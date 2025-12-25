@@ -8,11 +8,16 @@ QTS-Observer-Core의 메인 오케스트레이터(중앙 제어 클래스)
 Phase 3:
 - Validation Layer
 - Guard Layer
-- Quality Metadata Standardization (B-step)
+
+Phase 4:
+- PatternRecord Enrichment
+  - Schema Auto Lite (record schema versioning + namespace)
+  - Quality Tagging
+  - Interpretation Metadata
 
 원칙:
 - 전략 계산, 매매 판단, 실행은 절대 여기서 하지 않는다.
-- Snapshot을 받아 → Validation → Guard → Record → EventBus 로 전달한다.
+- Snapshot을 받아 → Validation → Guard → Record → (Phase4 Enrich) → EventBus 로 전달한다.
 """
 
 import logging
@@ -26,15 +31,19 @@ from .event_bus import EventBus
 from .validation import DefaultSnapshotValidator, SnapshotValidator
 from .guard import DefaultGuard
 
+# Phase 4
+from .phase4_enricher import DefaultRecordEnricher, RecordEnricher
+
 
 class Observer:
     """
-    QTS-Observer-Core Orchestrator (Phase 3)
+    QTS-Observer-Core Orchestrator (Phase 4)
 
     역할:
     - ObservationSnapshot 수신
     - Validation → Guard
     - PatternRecord 생성
+    - (Phase 4) Record Enrichment
     - EventBus dispatch
 
     절대 하지 않는 것:
@@ -51,6 +60,7 @@ class Observer:
         event_bus: EventBus,
         validator: SnapshotValidator | None = None,
         guard: DefaultGuard | None = None,
+        enricher: RecordEnricher | None = None,  # Phase 4 hook
     ) -> None:
         self._log = logging.getLogger("Observer")
         self._running = False
@@ -62,6 +72,15 @@ class Observer:
         # Phase 3 defaults
         self._validator = validator or DefaultSnapshotValidator()
         self._guard = guard or DefaultGuard()
+
+        # Phase 4 defaults
+        # - None이면 기본 Enricher를 사용한다.
+        # - 향후 Phase 5에서 다른 Enricher로 교체 가능.
+        self._enricher = enricher or DefaultRecordEnricher(
+            producer="observer_core",
+            build_id="observer_core_v1",
+            dataset_version="v1.0.0",
+        )
 
     # ==================================================
     # Lifecycle Control
@@ -81,12 +100,13 @@ class Observer:
 
     def on_snapshot(self, snapshot: ObservationSnapshot) -> None:
         """
-        Phase 3 호출 흐름:
+        Phase 4 호출 흐름:
         1) Snapshot 수신
         2) Validation
         3) Guard
         4) PatternRecord 생성
-        5) EventBus dispatch
+        5) (Phase 4) Enrich
+        6) EventBus dispatch
         """
 
         if not self._running:
@@ -126,7 +146,7 @@ class Observer:
             return
 
         # --------------------------------------------------
-        # PatternRecord 생성
+        # PatternRecord 생성 (Phase 3 기준)
         # --------------------------------------------------
         record = PatternRecord(
             snapshot=snapshot,
@@ -134,6 +154,7 @@ class Observer:
             condition_tags=[],
             outcome_labels={},
             metadata={
+                # 기존 메타 유지(Phase 3까지의 계약)
                 "schema_version": "v1.0.0",
                 "dataset_version": "v1.0.0",
                 "build_id": "observer_core_v1",
@@ -141,7 +162,7 @@ class Observer:
                 "session_id": self.session_id,
                 "mode": self.mode,
 
-                # Phase 3 — always-present quality metadata
+                # Phase 3 — always-present quality metadata (legacy)
                 "quality_flags": [],
 
                 "validation": {
@@ -153,6 +174,13 @@ class Observer:
                 },
             },
         )
+
+        # --------------------------------------------------
+        # (Phase 4) Record Enrichment
+        # --------------------------------------------------
+        # - 판단/전략/실행 금지
+        # - metadata 네임스페이스(_schema/_quality/_interpretation)만 추가
+        record = self._enricher.enrich(record)
 
         # --------------------------------------------------
         # Dispatch
