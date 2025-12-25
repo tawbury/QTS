@@ -1,0 +1,165 @@
+from __future__ import annotations
+
+"""
+observer.py
+
+QTS-Observer-Core의 메인 오케스트레이터(중앙 제어 클래스)
+
+Phase 3:
+- Validation Layer
+- Guard Layer
+- Quality Metadata Standardization (B-step)
+
+원칙:
+- 전략 계산, 매매 판단, 실행은 절대 여기서 하지 않는다.
+- Snapshot을 받아 → Validation → Guard → Record → EventBus 로 전달한다.
+"""
+
+import logging
+from datetime import datetime, timezone
+
+from .snapshot import ObservationSnapshot
+from .pattern_record import PatternRecord
+from .event_bus import EventBus
+
+# Phase 3
+from .validation import DefaultSnapshotValidator, SnapshotValidator
+from .guard import DefaultGuard
+
+
+class Observer:
+    """
+    QTS-Observer-Core Orchestrator (Phase 3)
+
+    역할:
+    - ObservationSnapshot 수신
+    - Validation → Guard
+    - PatternRecord 생성
+    - EventBus dispatch
+
+    절대 하지 않는 것:
+    - 매수/매도 판단
+    - 전략 계산
+    - 주문 실행
+    """
+
+    def __init__(
+        self,
+        *,
+        session_id: str,
+        mode: str,
+        event_bus: EventBus,
+        validator: SnapshotValidator | None = None,
+        guard: DefaultGuard | None = None,
+    ) -> None:
+        self._log = logging.getLogger("Observer")
+        self._running = False
+
+        self.session_id = session_id
+        self.mode = mode
+        self._event_bus = event_bus
+
+        # Phase 3 defaults
+        self._validator = validator or DefaultSnapshotValidator()
+        self._guard = guard or DefaultGuard()
+
+    # ==================================================
+    # Lifecycle Control
+    # ==================================================
+
+    def start(self) -> None:
+        self._running = True
+        self._log.info("Observer-Core started")
+
+    def stop(self) -> None:
+        self._running = False
+        self._log.info("Observer-Core stopped")
+
+    # ==================================================
+    # Core Entry Point
+    # ==================================================
+
+    def on_snapshot(self, snapshot: ObservationSnapshot) -> None:
+        """
+        Phase 3 호출 흐름:
+        1) Snapshot 수신
+        2) Validation
+        3) Guard
+        4) PatternRecord 생성
+        5) EventBus dispatch
+        """
+
+        if not self._running:
+            self._log.debug("Observer is not running. Snapshot ignored.")
+            return
+
+        # --------------------------------------------------
+        # Validation
+        # --------------------------------------------------
+        v = self._validator.validate(snapshot)
+        if not v.is_valid:
+            self._log.warning(
+                "Snapshot validation failed (blocked)",
+                extra={
+                    "session_id": self.session_id,
+                    "run_id": snapshot.meta.run_id,
+                    "severity": v.severity,
+                    "errors": v.errors[:10],
+                },
+            )
+            return
+
+        # --------------------------------------------------
+        # Guard
+        # --------------------------------------------------
+        g = self._guard.decide(snapshot, v)
+        if not g.allow:
+            self._log.warning(
+                "Snapshot guard blocked",
+                extra={
+                    "session_id": self.session_id,
+                    "run_id": snapshot.meta.run_id,
+                    "action": g.action,
+                    "reason": g.reason,
+                },
+            )
+            return
+
+        # --------------------------------------------------
+        # PatternRecord 생성
+        # --------------------------------------------------
+        record = PatternRecord(
+            snapshot=snapshot,
+            regime_tags={},
+            condition_tags=[],
+            outcome_labels={},
+            metadata={
+                "schema_version": "v1.0.0",
+                "dataset_version": "v1.0.0",
+                "build_id": "observer_core_v1",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "session_id": self.session_id,
+                "mode": self.mode,
+
+                # Phase 3 — always-present quality metadata
+                "quality_flags": [],
+
+                "validation": {
+                    "severity": v.severity
+                },
+                "guard": {
+                    "action": g.action,
+                    "reason": g.reason,
+                },
+            },
+        )
+
+        # --------------------------------------------------
+        # Dispatch
+        # --------------------------------------------------
+        self._event_bus.dispatch(record)
+
+        self._log.info(
+            "PatternRecord dispatched",
+            extra={"session_id": self.session_id},
+        )
