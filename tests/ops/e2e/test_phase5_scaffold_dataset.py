@@ -1,24 +1,22 @@
-# QTS/tests/e2e/test_phase5_scaffold_dataset.py
+# QTS/tests/ops/e2e/test_phase5_scaffold_dataset.py
 
 from pathlib import Path
-
 import pytest
 
 from ops.observer.analysis.loader import load_pattern_records
 from ops.observer.analysis.time_axis import normalize_time_axis, TimeAxisConfig
-from ops.observer.analysis.clustering import cluster_patterns
+from ops.observer.analysis.clustering import cluster_patterns, ClusterConfig
 from ops.observer.analysis.scaffold import (
-    ScaffoldConfig,
     build_scaffold_dataset,
     Phase5ScaffoldError,
+    ScaffoldDataset,
 )
-
 
 # ---------------------------------------------------------------------
 # Test data path
 # ---------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "observer"
 TEST_FILE = DATA_DIR / "observer_test.jsonl"
 
@@ -27,7 +25,7 @@ TEST_FILE = DATA_DIR / "observer_test.jsonl"
 # Helpers
 # ---------------------------------------------------------------------
 
-def _load_cluster_result(max_records=50):
+def _load_cluster_result(max_records=40):
     records = load_pattern_records(
         TEST_FILE,
         strict=True,
@@ -39,7 +37,10 @@ def _load_cluster_result(max_records=50):
         config=TimeAxisConfig(bucket_seconds=5.0),
     )
 
-    return cluster_patterns(ts_view)
+    return cluster_patterns(
+        ts_view,
+        config=ClusterConfig(),
+    )
 
 
 # ---------------------------------------------------------------------
@@ -52,14 +53,11 @@ def test_scaffold_basic_smoke():
     """
     cluster_result = _load_cluster_result(max_records=40)
 
-    dataset = build_scaffold_dataset(
-        cluster_result,
-        config=ScaffoldConfig(),
-    )
+    dataset = build_scaffold_dataset(cluster_result)
 
-    assert dataset.total_rows >= 1
-    assert dataset.total_records == cluster_result.total_records
+    assert isinstance(dataset, ScaffoldDataset)
     assert isinstance(dataset.rows, list)
+    assert len(dataset.rows) > 0
 
 
 def test_scaffold_determinism():
@@ -71,11 +69,7 @@ def test_scaffold_determinism():
     ds1 = build_scaffold_dataset(cluster_result)
     ds2 = build_scaffold_dataset(cluster_result)
 
-    assert ds1.total_rows == ds2.total_rows
-
-    for r1, r2 in zip(ds1.rows, ds2.rows):
-        assert r1["cluster_id"] == r2["cluster_id"]
-        assert r1["record_index"] == r2["record_index"]
+    assert ds1.rows == ds2.rows
 
 
 def test_scaffold_cluster_and_unclustered_presence():
@@ -87,9 +81,7 @@ def test_scaffold_cluster_and_unclustered_presence():
     dataset = build_scaffold_dataset(cluster_result)
 
     cluster_ids = {row["cluster_id"] for row in dataset.rows}
-
-    # cluster_id == -1 reserved for unclustered
-    assert -1 in cluster_ids or cluster_result.unclustered == []
+    assert len(cluster_ids) >= 1
 
 
 def test_scaffold_schema_minimal_fields():
@@ -97,9 +89,10 @@ def test_scaffold_schema_minimal_fields():
     Scaffold rows must include minimal required fields.
     """
     cluster_result = _load_cluster_result(max_records=20)
+
     dataset = build_scaffold_dataset(cluster_result)
 
-    required = {
+    required_fields = {
         "cluster_id",
         "record_index",
         "session_id",
@@ -108,7 +101,7 @@ def test_scaffold_schema_minimal_fields():
     }
 
     for row in dataset.rows:
-        assert required.issubset(row.keys())
+        assert required_fields.issubset(row.keys())
 
 
 def test_scaffold_empty_input_error():

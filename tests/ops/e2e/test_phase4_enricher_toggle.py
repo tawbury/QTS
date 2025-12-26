@@ -21,7 +21,7 @@ class AttrDict(dict):
 # -------------------------------------------------
 # Paths
 # -------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUT_FILE = PROJECT_ROOT / "data" / "observer" / "observer_toggle_test.jsonl"
 
 
@@ -53,22 +53,23 @@ def make_snapshot():
 
 
 # -------------------------------------------------
-# Single test run
+# Internal runner
 # -------------------------------------------------
-def run_case(label):
+def _run_case():
+    # 디렉터리 보장 (E2E 테스트 책임)
+    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     if OUT_FILE.exists():
         OUT_FILE.unlink()
 
     sink = JsonlFileSink(str(OUT_FILE))
     bus = EventBus(sinks=[sink])
 
-    # NOTE:
-    # enricher=None → DefaultEnricher 자동 적용 (설계 확정 사항)
     observer = Observer(
         session_id="toggle_test",
         mode="DEV",
         event_bus=bus,
-        enricher=None,
+        enricher=None,  # DefaultEnricher 자동 적용
     )
 
     observer.start()
@@ -78,27 +79,19 @@ def run_case(label):
     with OUT_FILE.open(encoding="utf-8") as f:
         record = json.loads(next(f))
 
-    metadata = record.get("metadata", {})
-    print(f"[{label}] metadata keys:", list(metadata.keys()))
-
-    return metadata
+    return record.get("metadata", {})
 
 
 # -------------------------------------------------
-# Main
+# Pytest test
 # -------------------------------------------------
-def main():
-    # ---------------------------------------------
-    # Phase 4 DefaultEnricher 항상 활성 검증
-    # ---------------------------------------------
-    md = run_case(label="DEFAULT ENRICHER (ALWAYS ON)")
+def test_phase4_default_enricher_always_on():
+    """
+    Phase 4:
+    DefaultEnricher must always be applied when enricher=None.
+    """
+    metadata = _run_case()
 
-    assert "_schema" in md
-    assert "_quality" in md
-    assert "_interpretation" in md
-
-    print("[PASS] Phase 4 DefaultEnricher is always applied")
-
-
-if __name__ == "__main__":
-    main()
+    assert "_schema" in metadata
+    assert "_quality" in metadata
+    assert "_interpretation" in metadata

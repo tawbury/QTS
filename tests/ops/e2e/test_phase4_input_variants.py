@@ -18,7 +18,7 @@ class AttrDict(dict):
 # -------------------------------------------------
 # Paths
 # -------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUT_FILE = PROJECT_ROOT / "data" / "observer" / "observer_input_variants.jsonl"
 
 
@@ -81,9 +81,12 @@ def make_snapshot(variant: str):
 
 
 # -------------------------------------------------
-# Main
+# Internal runner
 # -------------------------------------------------
-def main():
+def _run_variants():
+    # E2E 테스트 책임: 디렉터리 보장
+    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
     if OUT_FILE.exists():
         OUT_FILE.unlink()
 
@@ -111,11 +114,22 @@ def main():
 
     observer.stop()
 
-    # -------------------------------------------------
-    # Validation
-    # -------------------------------------------------
     with OUT_FILE.open(encoding="utf-8") as f:
         records = [json.loads(line) for line in f]
+
+    return variants, records
+
+
+# -------------------------------------------------
+# Pytest test
+# -------------------------------------------------
+def test_phase4_input_variants_are_stable():
+    """
+    Phase 4:
+    Observer + DefaultEnricher must be stable
+    against various input shape / type variants.
+    """
+    variants, records = _run_variants()
 
     assert len(records) == len(variants)
 
@@ -124,9 +138,3 @@ def main():
         assert "_schema" in md
         assert "_quality" in md
         assert "_interpretation" in md
-
-    print("[PASS] Phase 4 is stable against input variants")
-
-
-if __name__ == "__main__":
-    main()

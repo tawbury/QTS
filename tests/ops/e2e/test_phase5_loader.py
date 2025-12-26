@@ -1,3 +1,5 @@
+# QTS/tests/ops/e2e/test_phase5_loader.py
+
 from pathlib import Path
 import pytest
 
@@ -10,7 +12,10 @@ from ops.observer.analysis.loader import (
 # Test data path (Phase 4 output)
 # ---------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# FIX:
+# tests/ops/e2e/test_*.py
+# parents[3] -> QTS/
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "observer"
 TEST_FILE = DATA_DIR / "observer_test.jsonl"
 

@@ -1,7 +1,6 @@
-# QTS/tests/e2e/test_phase5_clustering.py
+# QTS/tests/ops/e2e/test_phase5_clustering.py
 
 from pathlib import Path
-
 import pytest
 
 from ops.observer.analysis.loader import load_pattern_records
@@ -12,12 +11,14 @@ from ops.observer.analysis.clustering import (
     Phase5ClusteringError,
 )
 
-
 # ---------------------------------------------------------------------
 # Test data path
 # ---------------------------------------------------------------------
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+# FIX:
+# tests/ops/e2e/test_*.py
+# parents[3] -> QTS/
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data" / "observer"
 TEST_FILE = DATA_DIR / "observer_test.jsonl"
 
