@@ -4,8 +4,11 @@ from dataclasses import dataclass
 
 from src.ops.decision_pipeline.contracts.order_decision import OrderDecision
 from src.ops.decision_pipeline.contracts.execution_hint import ExecutionHint
+
 from .execution_context import ExecutionContext
-from .iexecution import ExecutionResult, IExecution
+from .execution_mode import ExecutionMode
+from .execution_result import ExecutionResult
+from .iexecution import IExecution
 
 
 @dataclass(frozen=True, slots=True)
@@ -13,8 +16,8 @@ class NoopExecutor(IExecution):
     """
     NoopExecutor
 
-    Phase 7 정책:
-    - 실행(Act)은 존재하되, 항상 실행하지 않는다.
+    Phase 7 정책 유지:
+    - executor는 존재하되, 항상 실행하지 않는다.
     - pipeline은 executor를 호출해도 안전해야 한다.
     """
 
@@ -27,14 +30,18 @@ class NoopExecutor(IExecution):
         hint: ExecutionHint,
         context: ExecutionContext,
     ) -> ExecutionResult:
-        # Phase 7에서 intended True가 오더라도 실행하지 않는다.
-        # (정책 강제: 사람이 잘못 세팅해도 안전)
         _ = order
         _ = hint
         _ = context
 
+        # Noop은 Virtual로 취급(실행 불가가 아니라 '정책상 실행 안 함')
         return ExecutionResult(
-            status="NOOP",
+            mode=ExecutionMode.VIRTUAL.value,
+            status="SKIPPED",
             executed=False,
-            message=self.reason,
+            decision_id=getattr(order, "decision_id", None) or getattr(order, "id", None) or "UNKNOWN",
+            order_fingerprint="noop",
+            blocked_by="G_EXE_NOOP_POLICY",
+            reason=self.reason,
+            audit={"executor": "NoopExecutor"},
         )
