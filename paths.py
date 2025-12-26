@@ -67,20 +67,51 @@ def ops_dir() -> Path:
     return src_dir() / "ops"
 
 
+def runtime_dir() -> Path:
+    """
+    Canonical runtime engine directory.
+    (Non-ops execution core)
+    """
+    return src_dir() / "runtime"
+
+
 def tests_dir() -> Path:
     return project_root() / "tests"
 
 
 def data_dir() -> Path:
-    path = project_root() / "data"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+    """
+    Canonical data root directory.
+    (No subdirectory creation beyond this level)
+    """
+    return project_root() / "data"
 
 
-def logs_dir() -> Path:
-    path = project_root() / "logs"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
+# ------------------------------------------------------------
+# Ops subdomains
+# ------------------------------------------------------------
+
+def ops_observer_dir() -> Path:
+    return ops_dir() / "observer"
+
+
+def ops_decision_pipeline_dir() -> Path:
+    return ops_dir() / "decision_pipeline"
+
+
+def ops_retention_dir() -> Path:
+    return ops_dir() / "retention"
+
+
+def ops_runtime_dir() -> Path:
+    """
+    Runtime bridge / runner layer under ops.
+    """
+    return ops_dir() / "runtime"
+
+
+def ops_backup_dir() -> Path:
+    return ops_dir() / "backup"
 
 
 # ------------------------------------------------------------
@@ -89,8 +120,10 @@ def logs_dir() -> Path:
 
 def observer_data_dir() -> Path:
     """
-    Canonical observer runtime output directory.
-    All observer-generated jsonl files must be placed here.
+    Canonical observer runtime data directory.
+
+    All observer-generated jsonl files
+    must be placed here.
     """
     path = data_dir() / "observer"
     path.mkdir(parents=True, exist_ok=True)
@@ -107,6 +140,10 @@ def tests_ops_dir() -> Path:
 
 def tests_ops_e2e_dir() -> Path:
     return tests_ops_dir() / "e2e"
+
+
+def tests_ops_decision_dir() -> Path:
+    return tests_ops_dir() / "decision"
 
 
 def tests_ops_observation_dir() -> Path:
