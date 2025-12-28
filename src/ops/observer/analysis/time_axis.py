@@ -12,7 +12,7 @@ class Phase5TimeAxisError(Exception):
 
 
 # =====================================================================
-# Config & View models
+# Config & View models (Phase 5)
 # =====================================================================
 
 @dataclass(frozen=True)
@@ -46,7 +46,7 @@ class TimeSeriesPatternView:
 
 
 # =====================================================================
-# Public API
+# Public API (Phase 5)
 # =====================================================================
 
 def normalize_time_axis(
@@ -132,7 +132,7 @@ def normalize_time_axis(
 
 
 # =====================================================================
-# Internal helpers
+# Internal helpers (Phase 5)
 # =====================================================================
 
 def _extract_timestamp(rec: PatternRecordContract) -> Optional[float]:
@@ -163,3 +163,71 @@ def _extract_timestamp(rec: PatternRecordContract) -> Optional[float]:
 def _parse_iso(value: str) -> float:
     dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
     return dt.replace(tzinfo=timezone.utc).timestamp()
+
+
+# =====================================================================
+# Phase 11: Raw Observation Time Axis (append-only)
+# =====================================================================
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    # loader.py에 정의된 Phase11RawRecord를 타입 힌트로만 참조
+    from .loader import Phase11RawRecord
+
+
+class Phase11TimeAxisError(Exception):
+    """Raised when Phase 11 time axis normalization fails."""
+
+
+@dataclass(frozen=True)
+class Phase11TimeAxis:
+    """
+    Phase 11 deterministic time axis for raw observation logs.
+
+    Characteristics:
+    - operates on raw records (dict payload)
+    - no bucketing
+    - strictly replay-oriented ordering
+    """
+    records: List["Phase11RawRecord"]
+
+    @property
+    def total_records(self) -> int:
+        return len(self.records)
+
+    def time_range(self) -> Optional[Tuple[float, float]]:
+        if not self.records:
+            return None
+
+        start = self.records[0].ts_utc.timestamp()
+        end = self.records[-1].ts_utc.timestamp()
+        return start, end
+
+
+def normalize_observation_time_axis(
+    records: List["Phase11RawRecord"],
+    *,
+    enforce_monotonic: bool = False,
+) -> Phase11TimeAxis:
+    """
+    Phase 11 time axis normalization.
+
+    Ordering policy:
+    - primary: ts_utc
+    - secondary: line_no (stable replay guarantee)
+
+    Notes:
+    - enforce_monotonic=False by default because raw observer logs
+      may legally contain out-of-order timestamps.
+    """
+    ordered = sorted(records, key=lambda r: (r.ts_utc, r.line_no))
+
+    if enforce_monotonic:
+        for i in range(1, len(ordered)):
+            if ordered[i].ts_utc < ordered[i - 1].ts_utc:
+                raise Phase11TimeAxisError(
+                    "Timestamps are not monotonic after sorting."
+                )
+
+    return Phase11TimeAxis(records=ordered)
