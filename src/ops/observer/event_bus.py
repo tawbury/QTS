@@ -11,18 +11,21 @@ Observer-Core에서 생성된 PatternRecord를
 - Observer는 EventBus에게 "이 기록을 처리해줘"라고 맡긴다.
 - EventBus는 여러 Sink(출력 대상)에게 전달할 수 있다.
 
-현재 Phase 2에서는:
-- 출력 대상(Sink)은 JSONL 파일 하나뿐이다.
-- 구조는 향후 DB / API / 스트리밍으로 확장 가능하다.
+Phase F 규칙:
+- Observer 이벤트 로그는 '운영 자산'으로 간주된다.
+- 모든 Observer JSONL 로그는 paths.py가 정의한
+  canonical observer asset directory에 저장된다.
+- event_bus.py는 더 이상 프로젝트 루트나
+  실제 파일 시스템 구조를 추론하지 않는다.
 """
 
 import json
 import logging
-from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import Iterable, List
 
 from .pattern_record import PatternRecord
+from paths import observer_asset_dir, observer_asset_file
 
 
 logger = logging.getLogger(__name__)
@@ -70,8 +73,12 @@ class JsonlFileSink(SnapshotSink):
     - 1 PatternRecord = 1 JSON line
     - 실행 위치(CWD)에 상관없이 항상 동일한 경로 사용
 
+    Phase F 규칙:
+    - Observer 로그는 '운영 자산'이다.
+    - 실제 저장 경로는 paths.py가 유일하게 결정한다.
+
     출력 경로:
-    <PROJECT_ROOT>/data/observer/{filename}
+    observer_asset_dir() / {filename}
     """
 
     def __init__(
@@ -85,24 +92,10 @@ class JsonlFileSink(SnapshotSink):
         """
 
         # --------------------------------------------------
-        # 프로젝트 루트 계산
+        # Phase F: 경로 책임은 paths.py 단일 SSoT
         # --------------------------------------------------
-        # event_bus.py 위치 기준으로 상위 디렉터리를 탐색한다.
-        #
-        # 예시 구조:
-        #   project_root/
-        #     ├─ src/
-        #     │   └─ ops/observer/event_bus.py
-        #     └─ data/observer/
-        #
-        # parents[3] → project_root
-        self.project_root = Path(__file__).resolve().parents[3]
-
-        self.base_dir = self.project_root / "data" / "observer"
-        self.file_path = self.base_dir / filename
-
-        # 출력 디렉터리 자동 생성
-        self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.base_dir = observer_asset_dir()
+        self.file_path = observer_asset_file(filename)
 
         logger.info(
             "JsonlFileSink initialized",

@@ -1,16 +1,22 @@
-"""
-main.py
+# main.py
+from __future__ import annotations
 
-Observer-Core Phase 2 스모크 테스트용 엔트리 포인트
+# ============================================================
+# Ensure src/ is on sys.path (QTS bootstrap)
+# ============================================================
 
-이 파일의 목적:
-- Observer-Core 전체 흐름이 정상 동작하는지 확인
-- JSONL 파일이 실제로 생성되는지 확인
+import sys
+from pathlib import Path
 
-주의:
-- 이 파일은 예제/테스트 용도다.
-- 전략 계산, 실거래, 자동 루프는 포함하지 않는다.
-"""
+PROJECT_ROOT = Path(__file__).resolve().parent
+SRC_DIR = PROJECT_ROOT / "src"
+
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+# ============================================================
+# Imports
+# ============================================================
 
 import logging
 
@@ -18,19 +24,19 @@ from ops.observer.snapshot import build_snapshot
 from ops.observer.event_bus import EventBus, JsonlFileSink
 from ops.observer.observer import Observer
 
-
-# --------------------------------------------------
-# Logging 설정
-# --------------------------------------------------
+# ============================================================
+# Logging
+# ============================================================
 
 logging.basicConfig(level=logging.INFO)
 
+# ============================================================
+# Sink / EventBus
+# ============================================================
 
-# --------------------------------------------------
-# Sink / EventBus 구성
-# --------------------------------------------------
-# JsonlFileSink는 프로젝트 루트 기준
-# data/observer/observer_test.jsonl 파일을 생성한다.
+# ⚠️ 주의:
+# event_bus.py 기준 기본 파일명은 observer.jsonl 이지만
+# 여기서는 테스트 목적이므로 observer_test.jsonl 사용
 
 sink = JsonlFileSink(
     filename="observer_test.jsonl"
@@ -38,13 +44,9 @@ sink = JsonlFileSink(
 
 event_bus = EventBus([sink])
 
-
-# --------------------------------------------------
-# Observer 생성
-# --------------------------------------------------
-# session_id:
-# - 이번 실행 묶음 ID
-# - 로그/분석 시 구분용
+# ============================================================
+# Observer
+# ============================================================
 
 observer = Observer(
     session_id="test_session",
@@ -54,14 +56,9 @@ observer = Observer(
 
 observer.start()
 
-
-# --------------------------------------------------
-# ObservationSnapshot 생성 (권장 방식)
-# --------------------------------------------------
-# build_snapshot()을 사용하면
-# - 시간(timestamp)
-# - run_id
-# 를 자동으로 생성해준다.
+# ============================================================
+# ObservationSnapshot 생성
+# ============================================================
 
 snapshot = build_snapshot(
     session_id="test_session",
@@ -78,15 +75,12 @@ snapshot = build_snapshot(
     state={},
 )
 
-
-# --------------------------------------------------
+# ============================================================
 # Observer에 Snapshot 전달
-# --------------------------------------------------
-# 이 시점에 observer_test.jsonl 파일에
-# 1줄의 JSON 데이터가 append 된다.
+# ============================================================
 
 observer.on_snapshot(snapshot)
 
 observer.stop()
 
-print("DONE - observer_test.jsonl 파일을 확인하세요.")
+print("DONE - data/observer/observer_test.jsonl 파일을 확인하세요.")

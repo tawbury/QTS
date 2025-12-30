@@ -18,7 +18,8 @@ def _get_input_path() -> Path:
       예외적으로 상대 경로를 허용한다.
     - 이후 paths.py 전환 시 이 함수만 수정 대상.
     """
-    return Path("data/observer/observer_test.jsonl")
+    from paths import observer_asset_file
+    return observer_asset_file("observer_test.jsonl")
 
 
 @pytest.mark.smoke

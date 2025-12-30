@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, List, Optional, Sequence
+
+from ..registry.strategy_registry import StrategyRegistry, StrategyLike
+
+
+@dataclass(frozen=True)
+class StrategyIntent:
+    """
+    Intent에 Strategy Context를 붙인 래퍼.
+    Execution Loop는 최종적으로 `intent`만 받도록 유지한다.
+    """
+    strategy_id: str
+    strategy_name: str
+    intent: Any  # runtime.execution.models.intent.Intent 를 직접 import하지 않음(결합 최소화)
+
+
+class StrategyMultiplexer:
+    """
+    Phase 6: 다중 Strategy를 순회하며 Intent를 수집.
+    - 전략 간 상호 인지 금지
+    - 단일 전략 실패는 전체 실패로 전파하지 않음
+    """
+
+    def __init__(self, registry: StrategyRegistry) -> None:
+        self._registry = registry
+
+    def collect(self, snapshot: Any) -> List[StrategyIntent]:
+        out: List[StrategyIntent] = []
+
+        for s in self._registry.active_strategies():
+            try:
+                intents = self._generate_intents(s, snapshot)
+                for it in intents:
+                    out.append(StrategyIntent(s.strategy_id, s.name, it))
+            except Exception:
+                # Phase 6 원칙: 한 Strategy의 실패가 전체를 깨지 않음
+                continue
+
+        return out
+
+    def _generate_intents(self, strategy: StrategyLike, snapshot: Any) -> Sequence[Any]:
+        """
+        Strategy 구현체의 실제 메서드명에 의존하지 않기 위해
+        관용적으로 다음 중 하나를 지원:
+        - generate_intents(snapshot)
+        - generate(snapshot)
+        - __call__(snapshot)
+        """
+        if hasattr(strategy, "generate_intents"):
+            return list(strategy.generate_intents(snapshot))  # type: ignore[attr-defined]
+        if hasattr(strategy, "generate"):
+            return list(strategy.generate(snapshot))  # type: ignore[attr-defined]
+        if callable(strategy):
+            return list(strategy(snapshot))  # type: ignore[misc]
+        raise AttributeError("Strategy must implement generate_intents/generate or be callable")

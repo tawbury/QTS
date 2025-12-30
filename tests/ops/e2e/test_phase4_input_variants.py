@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
 import json
-from pathlib import Path
 
 from ops.observer.observer import Observer
 from ops.observer.snapshot import ObservationSnapshot
 from ops.observer.event_bus import EventBus, JsonlFileSink
+from paths import observer_asset_file
 
 
 # -------------------------------------------------
@@ -13,13 +13,6 @@ from ops.observer.event_bus import EventBus, JsonlFileSink
 class AttrDict(dict):
     """dict + attribute access (JSON-serializable)"""
     __getattr__ = dict.get
-
-
-# -------------------------------------------------
-# Paths
-# -------------------------------------------------
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
-OUT_FILE = PROJECT_ROOT / "data" / "observer" / "observer_input_variants.jsonl"
 
 
 # -------------------------------------------------
@@ -84,13 +77,14 @@ def make_snapshot(variant: str):
 # Internal runner
 # -------------------------------------------------
 def _run_variants():
-    # E2E 테스트 책임: 디렉터리 보장
-    OUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    filename = "observer_input_variants.jsonl"
+    out_path = observer_asset_file(filename)
 
-    if OUT_FILE.exists():
-        OUT_FILE.unlink()
+    # 테스트 재실행 안정성 보장
+    if out_path.exists():
+        out_path.unlink()
 
-    sink = JsonlFileSink(str(OUT_FILE))
+    sink = JsonlFileSink(filename)
     bus = EventBus(sinks=[sink])
 
     observer = Observer(
@@ -114,7 +108,7 @@ def _run_variants():
 
     observer.stop()
 
-    with OUT_FILE.open(encoding="utf-8") as f:
+    with out_path.open(encoding="utf-8") as f:
         records = [json.loads(line) for line in f]
 
     return variants, records
