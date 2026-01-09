@@ -129,6 +129,7 @@ def normalize_schema_structure(schema: Dict[str, Any]) -> Dict[str, Any]:
             "row_start": row_start,
             "mapping": mapping,
             "layout": layout,
+            "source_type": spec.get("source_type", "sheet"),
         }
 
     return {"sheets": norm_sheets}

@@ -18,6 +18,14 @@ import uuid
 
 
 # ============================================================
+# Short-term State Cache (module-local, minimal)
+# ============================================================
+
+_last_price: Optional[float] = None
+_last_volume: Optional[float] = None
+
+
+# ============================================================
 # Time / ID Utilities
 # ============================================================
 
@@ -60,6 +68,14 @@ class Meta:
     - run_id                   : 스냅샷 1개 고유 ID (보통 자동 생성)
     - mode                     : 'DEV' / 'PROD' 등
     - observer_version         : 버전 추적용
+    
+    확장 필드 (Scalp Extension E2):
+    - iteration_id             : 루프 반복 카운터
+    - loop_interval_ms         : 목표 루프 주기
+    - latency_ms               : 수집 지연
+    - tick_source              : 데이터 유입 채널
+    - buffer_depth             : 버퍼 깊이
+    - flush_reason             : 플러시 트리거
     """
     timestamp: str              # ISO-8601 (UTC)
     timestamp_ms: int           # epoch milliseconds (UTC)
@@ -67,6 +83,14 @@ class Meta:
     run_id: str
     mode: str
     observer_version: str = "v1.0.0"
+    
+    # Extended meta fields (Scalp Extension E2)
+    iteration_id: Optional[int] = None
+    loop_interval_ms: Optional[float] = None
+    latency_ms: Optional[float] = None
+    tick_source: Optional[str] = None
+    buffer_depth: Optional[int] = None
+    flush_reason: Optional[str] = None
 
 
 # ============================================================
@@ -132,6 +156,46 @@ class ObservationSnapshot:
 
 
 # ============================================================
+# Internal helpers
+# ============================================================
+
+def _is_number(x: Any) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool)
+
+
+def _compute_short_deltas(inputs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    직전 관측값 기준 단기 delta 계산
+    - 판단/플래그 없음
+    - 숫자값만 기록
+    """
+    global _last_price, _last_volume
+
+    computed: Dict[str, Any] = {}
+
+    price = inputs.get("price")
+    volume = inputs.get("volume")
+
+    # ---- price delta ----
+    if _is_number(price):
+        if _last_price is not None:
+            computed["price_delta_short"] = price - _last_price
+        else:
+            computed["price_delta_short"] = 0
+        _last_price = price
+
+    # ---- volume delta ----
+    if _is_number(volume):
+        if _last_volume is not None:
+            computed["volume_delta_short"] = volume - _last_volume
+        else:
+            computed["volume_delta_short"] = 0
+        _last_volume = volume
+
+    return computed
+
+
+# ============================================================
 # Snapshot Factory (초보자용 진입점)
 # ============================================================
 
@@ -148,6 +212,13 @@ def build_snapshot(
     market: Optional[str] = None,
     observer_version: str = "v1.0.0",
     run_id: Optional[str] = None,
+    # Extended meta fields (Scalp Extension E2)
+    iteration_id: Optional[int] = None,
+    loop_interval_ms: Optional[float] = None,
+    latency_ms: Optional[float] = None,
+    tick_source: Optional[str] = None,
+    buffer_depth: Optional[int] = None,
+    flush_reason: Optional[str] = None,
 ) -> ObservationSnapshot:
     """
     초보자용 스냅샷 생성 함수 (권장 사용법)
@@ -179,6 +250,13 @@ def build_snapshot(
         run_id=run_id or new_run_id(),
         mode=mode,
         observer_version=observer_version,
+        # Extended meta fields (Scalp Extension E2)
+        iteration_id=iteration_id,
+        loop_interval_ms=loop_interval_ms,
+        latency_ms=latency_ms,
+        tick_source=tick_source,
+        buffer_depth=buffer_depth,
+        flush_reason=flush_reason,
     )
 
     context = Context(

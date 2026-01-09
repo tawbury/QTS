@@ -22,9 +22,10 @@ Phase F 규칙:
 import json
 import logging
 from abc import ABC, abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 
 from .pattern_record import PatternRecord
+from .log_rotation import RotationConfig, RotationManager, create_rotation_config, validate_rotation_config
 from paths import observer_asset_dir, observer_asset_file
 
 
@@ -77,6 +78,11 @@ class JsonlFileSink(SnapshotSink):
     - Observer 로그는 '운영 자산'이다.
     - 실제 저장 경로는 paths.py가 유일하게 결정한다.
 
+    Time-based Rotation (Task 04):
+    - rotation이 활성화된 경우, 시간 창에 따라 파일을 분할
+    - 파일 이름: {base_filename}_YYYYMMDD_HHMM.jsonl
+    - rotation은 append-only 정책을 유지
+
     출력 경로:
     observer_asset_dir() / {filename}
     """
@@ -84,29 +90,57 @@ class JsonlFileSink(SnapshotSink):
     def __init__(
         self,
         filename: str = "observer.jsonl",
+        *,
+        rotation_config: Optional[RotationConfig] = None,
     ) -> None:
         """
         filename:
-        - 저장할 JSONL 파일 이름
+        - 저장할 JSONL 파일 이름 (rotation이 비활성화된 경우)
         - 예: observer.jsonl / observer_test.jsonl
+        
+        rotation_config:
+        - 시간 기반 로테이션 설정 (선택 사항)
+        - None인 경우 rotation이 비활성화됨
         """
 
         # --------------------------------------------------
         # Phase F: 경로 책임은 paths.py 단일 SSoT
         # --------------------------------------------------
         self.base_dir = observer_asset_dir()
-        self.file_path = observer_asset_file(filename)
+        
+        # Rotation setup
+        if rotation_config is not None:
+            validate_rotation_config(rotation_config)
+            self._rotation_manager = RotationManager(rotation_config)
+            self.file_path = self._rotation_manager.get_current_file_path()
+        else:
+            self._rotation_manager = None
+            self.file_path = observer_asset_file(filename)
 
         logger.info(
             "JsonlFileSink initialized",
-            extra={"file_path": str(self.file_path)},
+            extra={
+                "file_path": str(self.file_path),
+                "rotation_enabled": rotation_config is not None and rotation_config.enable_rotation,
+                "rotation_window_ms": rotation_config.window_ms if rotation_config else None,
+            },
         )
 
     def publish(self, record: PatternRecord) -> None:
         """
         PatternRecord 1개를 파일에 한 줄(JSON)로 저장한다.
+        
+        Time-based rotation이 활성화된 경우:
+        - 현재 시간 창에 해당하는 파일에 기록
+        - 시간 창이 변경된 경우 자동으로 새 파일로 전환
         """
         try:
+            # Check if we need to rotate (only if rotation is enabled)
+            if self._rotation_manager is not None:
+                current_file_path = self._rotation_manager.get_current_file_path()
+                if current_file_path != self.file_path:
+                    self.file_path = current_file_path
+            
             with open(self.file_path, "a", encoding="utf-8") as f:
                 f.write(
                     json.dumps(record.to_dict(), ensure_ascii=False) + "\n"
@@ -117,6 +151,13 @@ class JsonlFileSink(SnapshotSink):
                 "JsonlFileSink publish failed",
                 extra={"file_path": str(self.file_path)},
             )
+    
+    def get_rotation_stats(self) -> dict:
+        """Get current rotation statistics for monitoring."""
+        if self._rotation_manager is None:
+            return {"rotation_enabled": False}
+        
+        return self._rotation_manager.get_rotation_stats()
 
 
 # ============================================================

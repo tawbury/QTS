@@ -37,9 +37,10 @@ logging.basicConfig(level=logging.INFO)
 # ⚠️ 주의:
 # event_bus.py 기준 기본 파일명은 observer.jsonl 이지만
 # 여기서는 테스트 목적이므로 observer_test.jsonl 사용
+# 테스트 완료 되어 observer.jsonl로 수정
 
 sink = JsonlFileSink(
-    filename="observer_test.jsonl"
+    filename="observer.jsonl"
 )
 
 event_bus = EventBus([sink])

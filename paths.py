@@ -24,8 +24,10 @@ Phase F update:
 from pathlib import Path
 from typing import Optional
 import logging
+import os
 
 logger = logging.getLogger(__name__)
+
 
 
 # ============================================================
@@ -37,10 +39,17 @@ def _resolve_project_root(start: Optional[Path] = None) -> Path:
     Resolve QTS project root directory.
 
     Resolution rules (first match wins):
-    1. Directory containing '.git'
-    2. Directory containing 'pyproject.toml'
-    3. Directory containing both 'src' and 'tests'
+    1. Observer standalone mode (forced)
+    2. Directory containing '.git'
+    3. Directory containing 'pyproject.toml'
+    4. Directory containing both 'src' and 'tests'
     """
+
+    # 1️⃣ Observer standalone mode (explicit opt-in)
+    if os.environ.get("QTS_OBSERVER_STANDALONE") == "1":
+        return Path(__file__).resolve().parent
+
+    # 2️⃣ Normal QTS project resolution
     current = start.resolve() if start else Path(__file__).resolve()
 
     for parent in [current] + list(current.parents):
