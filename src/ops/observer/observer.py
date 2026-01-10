@@ -26,6 +26,7 @@ from datetime import datetime, timezone
 from .snapshot import ObservationSnapshot
 from .pattern_record import PatternRecord
 from .event_bus import EventBus
+from .performance_metrics import get_metrics, LatencyTimer
 
 # Phase 3
 from .validation import DefaultSnapshotValidator, SnapshotValidator
@@ -109,85 +110,107 @@ class Observer:
         6) EventBus dispatch
         """
 
-        if not self._running:
-            self._log.debug("Observer is not running. Snapshot ignored.")
-            return
+        with LatencyTimer("snapshot_processing"):
+            if not self._running:
+                self._log.debug("Observer is not running. Snapshot ignored.")
+                return
 
-        # --------------------------------------------------
-        # Validation
-        # --------------------------------------------------
-        v = self._validator.validate(snapshot)
-        if not v.is_valid:
-            self._log.warning(
-                "Snapshot validation failed (blocked)",
-                extra={
-                    "session_id": self.session_id,
-                    "run_id": snapshot.meta.run_id,
-                    "severity": v.severity,
-                    "errors": v.errors[:10],
-                },
+            # Record performance metrics (Task 06)
+            # SAFETY: Metrics are purely observational, do NOT affect behavior
+            get_metrics().increment_counter("snapshots_received")
+
+            # --------------------------------------------------
+            # Validation
+            # --------------------------------------------------
+            with LatencyTimer("validation"):
+                v = self._validator.validate(snapshot)
+            
+            if not v.is_valid:
+            # Record performance metrics (Task 06)
+            # SAFETY: Metrics are purely observational, do NOT affect behavior
+            get_metrics().increment_counter("snapshots_blocked_validation")
+                self._log.warning(
+                    "Snapshot validation failed (blocked)",
+                    extra={
+                        "session_id": self.session_id,
+                        "run_id": snapshot.meta.run_id,
+                        "severity": v.severity,
+                        "errors": v.errors[:10],
+                    },
+                )
+                return
+
+            # --------------------------------------------------
+            # Guard
+            # --------------------------------------------------
+            with LatencyTimer("guard"):
+                g = self._guard.decide(snapshot, v)
+            
+            if not g.allow:
+                # Record performance metrics (Task 06)
+                # SAFETY: Metrics are purely observational, do NOT affect behavior
+                get_metrics().increment_counter("snapshots_blocked_guard")
+                self._log.warning(
+                    "Snapshot guard blocked",
+                    extra={
+                        "session_id": self.session_id,
+                        "run_id": snapshot.meta.run_id,
+                        "action": g.action,
+                        "reason": g.reason,
+                    },
+                )
+                return
+
+            # --------------------------------------------------
+            # PatternRecord 생성 (Phase 3 기준)
+            # --------------------------------------------------
+            with LatencyTimer("record_creation"):
+                record = PatternRecord(
+                    snapshot=snapshot,
+                    regime_tags={},
+                    condition_tags=[],
+                    outcome_labels={},
+                    metadata={
+                        # 기존 메타 유지(Phase 3까지의 계약)
+                        "schema_version": "v1.0.0",
+                        "dataset_version": "v1.0.0",
+                        "build_id": "observer_core_v1",
+                        "generated_at": datetime.now(timezone.utc).isoformat(),
+                        "session_id": self.session_id,
+                        "mode": self.mode,
+
+                        # Phase 3 — always-present quality metadata (legacy)
+                        "quality_flags": [],
+
+                        "validation": {
+                            "severity": v.severity
+                        },
+                        "guard": {
+                            "action": g.action,
+                            "reason": g.reason,
+                        },
+                    },
+                )
+
+            # --------------------------------------------------
+            # (Phase 4) Record Enrichment
+            # --------------------------------------------------
+            # - 판단/전략/실행 금지
+            # - metadata 네임스페이스(_schema/_quality/_interpretation)만 추가
+            with LatencyTimer("enrichment"):
+                record = self._enricher.enrich(record)
+
+            # --------------------------------------------------
+            # Dispatch
+            # --------------------------------------------------
+            with LatencyTimer("dispatch"):
+                self._event_bus.dispatch(record)
+
+            # Record successful processing metrics
+            # SAFETY: Metrics are purely observational, do NOT affect behavior
+            get_metrics().increment_counter("snapshots_processed")
+            
+            self._log.info(
+                "PatternRecord dispatched",
+                extra={"session_id": self.session_id},
             )
-            return
-
-        # --------------------------------------------------
-        # Guard
-        # --------------------------------------------------
-        g = self._guard.decide(snapshot, v)
-        if not g.allow:
-            self._log.warning(
-                "Snapshot guard blocked",
-                extra={
-                    "session_id": self.session_id,
-                    "run_id": snapshot.meta.run_id,
-                    "action": g.action,
-                    "reason": g.reason,
-                },
-            )
-            return
-
-        # --------------------------------------------------
-        # PatternRecord 생성 (Phase 3 기준)
-        # --------------------------------------------------
-        record = PatternRecord(
-            snapshot=snapshot,
-            regime_tags={},
-            condition_tags=[],
-            outcome_labels={},
-            metadata={
-                # 기존 메타 유지(Phase 3까지의 계약)
-                "schema_version": "v1.0.0",
-                "dataset_version": "v1.0.0",
-                "build_id": "observer_core_v1",
-                "generated_at": datetime.now(timezone.utc).isoformat(),
-                "session_id": self.session_id,
-                "mode": self.mode,
-
-                # Phase 3 — always-present quality metadata (legacy)
-                "quality_flags": [],
-
-                "validation": {
-                    "severity": v.severity
-                },
-                "guard": {
-                    "action": g.action,
-                    "reason": g.reason,
-                },
-            },
-        )
-
-        # --------------------------------------------------
-        # (Phase 4) Record Enrichment
-        # --------------------------------------------------
-        # - 판단/전략/실행 금지
-        # - metadata 네임스페이스(_schema/_quality/_interpretation)만 추가
-        record = self._enricher.enrich(record)
-
-        # --------------------------------------------------
-        # Dispatch
-        # --------------------------------------------------
-        self._event_bus.dispatch(record)
-
-        self._log.info(
-            "PatternRecord dispatched",
-            extra={"session_id": self.session_id},
-        )

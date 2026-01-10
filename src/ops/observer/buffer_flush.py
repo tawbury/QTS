@@ -13,6 +13,7 @@ from .pattern_record import PatternRecord
 from .snapshot import utc_now_ms
 from .log_rotation import RotationManager
 from .usage_metrics import UsageMetricsCollector
+from .performance_metrics import get_metrics, LatencyTimer
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +145,11 @@ class SnapshotBuffer:
             if self._metrics_collector:
                 self._metrics_collector.record_buffer_depth(buffer_depth)
             
+            # Record performance metrics (Task 06)
+            # SAFETY: Metrics are purely observational, do NOT affect behavior
+            get_metrics().set_gauge("buffer_depth", buffer_depth)
+            get_metrics().increment_counter("records_buffered")
+            
             # Safety check for buffer size
             if len(self._buffer) >= self._config.max_buffer_size:
                 logger.warning(
@@ -172,31 +178,38 @@ class SnapshotBuffer:
     
     def _flush_buffer(self) -> None:
         """Flush all buffered records to disk."""
-        with self._lock:
-            if not self._buffer:
-                return
+        with LatencyTimer("flush_operation"):
+            with self._lock:
+                if not self._buffer:
+                    return
+                
+                # Copy buffer and clear it
+                records_to_flush = self._buffer.copy()
+                buffer_depth = len(self._buffer)
+                self._buffer.clear()
+                self._last_flush_ms = utc_now_ms()
             
-            # Copy buffer and clear it
-            records_to_flush = self._buffer.copy()
-            buffer_depth = len(self._buffer)
-            self._buffer.clear()
-            self._last_flush_ms = utc_now_ms()
-        
-        # Write records outside of lock to minimize blocking
-        bytes_written, records_written = self._write_records_to_disk(records_to_flush)
-        
-        # Record usage metrics (Task 05)
-        if self._metrics_collector:
-            self._metrics_collector.record_flush(
-                buffer_depth=buffer_depth,
-                bytes_written=bytes_written,
-                records_written=records_written
+            # Write records outside of lock to minimize blocking
+            bytes_written, records_written = self._write_records_to_disk(records_to_flush)
+            
+            # Record usage metrics (Task 05)
+            if self._metrics_collector:
+                self._metrics_collector.record_flush(
+                    buffer_depth=buffer_depth,
+                    bytes_written=bytes_written,
+                    records_written=records_written
+                )
+            
+            # Record performance metrics (Task 06)
+            # SAFETY: Metrics are purely observational, do NOT affect behavior
+            get_metrics().increment_counter("flush_operations")
+            get_metrics().increment_counter("records_flushed", records_written)
+            get_metrics().set_gauge("buffer_depth", 0)  # Reset after flush
+            
+            logger.debug(
+                "Flush completed",
+                extra={"records_flushed": len(records_to_flush)},
             )
-        
-        logger.debug(
-            "Flush completed",
-            extra={"records_flushed": len(records_to_flush)},
-        )
     
     def _flush_remaining(self) -> None:
         """Flush any remaining records when stopping."""
