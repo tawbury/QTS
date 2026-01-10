@@ -1,3 +1,4 @@
+import time
 # observer.py
 from __future__ import annotations
 
@@ -82,9 +83,10 @@ def run_observer():
     log.info("Writing to data/observer/observer.jsonl")
     log.info("Waiting for events... (Ctrl+C to stop)")
 
+    # Prevent busy-loop: sleep when idle (no input)
     try:
         while True:
-            pass
+            time.sleep(0.5)
     except KeyboardInterrupt:
         log.info("Observer stopped")
 
