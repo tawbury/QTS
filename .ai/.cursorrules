@@ -1,0 +1,64 @@
+# Global Rules
+
+## 1. Directory & Path Mapping
+- **Role Definition Input**: `docs/tasks/task_<role>_<dept>.md`.
+- **Evaluation Output**: `docs/reports/report_<role>_<dept>_<YYYYMMDD>.md`.
+- **Agent Context**: Refer to `agents/hr/hr.agent.md` for overall execution flow.
+
+## 2. Automated Workflow Sequence
+Whenever a user requests to "create a new role" or "evaluate a position":
+1.  **Generate Task**: Create a file in `docs/tasks/` using the **Task Template**.
+2.  **Validate Structure**: Run `HR_Onboarding_Init` logic to ensure all Meta and Content sections exist.
+3.  **Level Judgment**: Apply `HR_Level_Check` using department-specific keywords (Dev/Content).
+4.  **Emit Report**: Produce the final evaluation in `docs/reports/`.
+
+## 3. Document Templates
+
+### [Task Template] - docs/tasks/
+```markdown
+# Meta
+- Project Name: 
+- File Name: 
+- Document ID: 
+- Status: Draft
+- Created Date: {{CURRENT_DATE}}
+- Author: {{USER}}
+- Parent Document: 
+
+---
+
+## Department
+- 
+## Role Name
+- 
+## Expected Level
+- 
+## Provided Criteria
+- (Define specific responsibilities and required skills here)
+## Notes
+- 
+```
+
+### [Report Template] - docs/reports/
+(Use the structure defined in `hr_report_emit.skill.md` including the Feedback for Improvement section).
+
+## 4. Constraint Enforcement
+- **Meta Isolation**: Never use Meta section data (like Expected Level) to influence the final Evaluation Result.
+- **Pending Protocol**: If criteria are insufficient, Status must be `PENDING` and the `Feedback for Improvement` section must be detailed.
+- **No Natural Language**: Reports should be structured and deterministic for other agents to consume.
+
+## 5. Language & Output Policy
+
+- **Input Language Rule**:
+  - All user inputs, task definitions, and instructions MUST be written in English.
+  - If a user provides non-English input, the agent must internally normalize it to English before processing.
+
+- **Response Language Rule**:
+  - All conversational responses to the user MUST be written in Korean.
+
+- **Report Output Language Rule**:
+  - All generated report files in `docs/reports/` MUST be written in English.
+  - Report structure, headings, and content must remain fully machine-readable and deterministic.
+
+- **Precedence**:
+  - In case of conflict, this Language & Output Policy overrides any implicit language assumptions in templates or agent behaviors.
