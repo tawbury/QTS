@@ -579,6 +579,108 @@ All PatternRecord outputs must satisfy:
 
 ---
 
+## 10. Performance Monitoring (Task 06)
+
+### 10.1 Performance Metrics Collection
+
+Observer includes internal performance monitoring that is **purely observational** and does NOT influence behavior.
+
+**What IS monitored:**
+- Snapshot processing latency (validation, guard, record creation, enrichment, dispatch)
+- Buffer depth and flush operation metrics
+- Record processing counters (received, processed, blocked)
+- System uptime and timing statistics
+
+**What is NOT monitored:**
+- Strategy performance or decision outcomes
+- Execution pipeline metrics
+- Trading results or profitability
+- Market data quality assessment
+
+**Key Constraints:**
+- Metrics are in-memory only, reset on process restart
+- Metrics do NOT affect Observer behavior or decision flow
+- Metrics are purely observational, no automatic tuning
+- External read-only access via performance_monitoring_interface.py
+
+**Implementation Location:**
+- Core metrics: `src/ops/observer/performance_metrics.py`
+- External interface: `src/ops/observer/performance_monitoring_interface.py`
+- Integration points: `observer.py`, `buffer_flush.py`
+
+---
+
+## 11. Configuration Management (Task 07)
+
+### 11.1 Scalp Extension Configuration
+
+Observer supports additive configuration for scalp extension features while maintaining existing Observer responsibilities.
+
+**Configuration Sections:**
+- **Hybrid Trigger**: Enable/disable hybrid mode, tick source selection, interval limits
+- **Buffer Management**: Flush intervals, buffer size limits, enable/disable buffering
+- **Log Rotation**: Rotation enable/disable, window settings, file limits
+- **Performance Monitoring**: Enable/disable metrics, history size limits
+
+**Key Constraints:**
+- Configuration is loaded at startup only, no runtime reloading
+- Configuration does NOT introduce decision logic or strategy parameters
+- All configuration changes are additive and backward-compatible
+- Configuration validation prevents invalid values with safe defaults
+
+**Implementation Location:**
+- Core configuration: `src/ops/observer/scalp_config.py`
+- Management interface: `src/ops/observer/config_manager.py`
+
+---
+
+## 12. Testing Infrastructure (Task 08)
+
+### 12.1 Test Coverage and Boundaries
+
+Observer includes comprehensive testing infrastructure that validates behavior without changing it.
+
+**Test Categories:**
+- **Unit Tests**: Performance metrics, configuration management, buffer operations
+- **Integration Tests**: End-to-end workflow with mocked pipeline components
+- **Mock Components**: Tick sources, event bus, external dependencies
+
+**Key Testing Constraints:**
+- Tests do NOT affect Observer responsibilities or introduce decision logic
+- Tests use mocks and controlled environments
+- Tests validate existing behavior without modification
+- Tests are additive and removable without affecting core functionality
+
+**Implementation Location:**
+- Performance tests: `tests/ops/observer/test_performance_metrics.py`
+- Configuration tests: `tests/ops/observer/test_scalp_config.py`
+- Buffer tests: `tests/ops/observer/test_buffer_operations.py`
+- Integration tests: `tests/ops/observer/test_integration_scalp_workflow.py`
+
+---
+
+## 13. Deferred Designs (Reference Only)
+
+### 13.1 Scalp Extension Design Document
+
+`Observer_Scalp_Extension.md` contains **design-only reference** for future scalp extension directions and **MUST NOT** be interpreted as implemented behavior.
+
+**Design-Only Elements:**
+- High-frequency snapshot behavior (not implemented)
+- Adaptive frequency or trigger modes (not implemented)
+- Strategy-specific optimizations (not implemented)
+- Real-time loop control mechanisms (not implemented)
+
+**Current Implementation Status:**
+- Observer remains a judgment-free data producer
+- No adaptive or conditional behavior implemented
+- All scalp features are additive configuration and monitoring only
+- Core Observer responsibilities unchanged from Phase 15
+
+**Contract Violation:** Any implementation that treats design-only elements as current behavior violates the Observer contract.
+
+---
+
 ## 14. Architecture Lock Declaration
 
 This architecture is **LOCKED** as of Phase 15 completion.
