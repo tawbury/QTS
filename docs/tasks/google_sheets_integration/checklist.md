@@ -124,7 +124,7 @@
 
 ---
 
-## 4. 11개 시트 리포지토리 구현 (2주차)
+## 4. 8개 시트 리포지토리 구현 (2주차)
 
 ### 4.1 T_Ledger 리포지토리 (완성된 시트)
 - [x] `src/runtime/data/repositories/t_ledger_repository.py` 파일 생성
@@ -196,13 +196,13 @@
 - [x] update_dividend_data() 메서드 구현
 - [x] 기타 CRUD 메서드 구현
 
-### 4.9 DI_DB 리포지토리 (완성된 시트)
-- [x] `src/runtime/data/repositories/di_db_repository.py` 파일 생성
-- [x] DIDBRepository 클래스 구현
-- [x] get_dividend_info() 메서드 구현
-- [x] get_by_ticker() 메서드 구현
-- [x] update_dividend_info() 메서드 구현
-- [x] 기타 CRUD 메서드 구현
+### 4.9 DI_DB 리포지토리 (삭제됨 - 로컬로 마이그레이션)
+- [x] DI_DB 리포지토리 파일 삭제
+- [x] 로컬 배당 정보 설정으로 마이그레이션
+- [x] `src/runtime/config/dividend_config.py` 파일 생성
+- [x] DividendConfig 클래스 구현
+- [x] 로컬 JSON 기반 배당 정보 관리
+- [x] 배당 정보 CRUD 오퍼레이션 구현
 
 ### 4.10 미완성 시트 (Portfolio, Performance) - 추후 구현
 - [ ] Portfolio 리포지토리 (미완성 - 구현 보류)
