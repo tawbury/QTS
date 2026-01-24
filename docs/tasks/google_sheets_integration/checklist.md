@@ -124,60 +124,89 @@
 
 ---
 
-## 4. 9개 시트 리포지토리 구현 (2주차)
+## 4. 11개 시트 리포지토리 구현 (2주차)
 
-### 4.1 T_Ledger 리포지토리
-- [ ] `src/runtime/data/repositories/t_ledger_repository.py` 파일 생성
-- [ ] T_LedgerRepository 클래스 구현
-- [ ] get_all() 메서드 구현
-- [ ] get_by_id() 메서드 구현
-- [ ] get_by_date_range() 메서드 구현
-- [ ] get_by_symbol() 메서드 구현
-- [ ] create_trade() 메서드 구현
-- [ ] update() 메서드 구현
-- [ ] delete() 메서드 구현
-- [ ] exists() 메서드 구현
+### 4.1 T_Ledger 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/t_ledger_repository.py` 파일 생성
+- [x] T_LedgerRepository 클래스 구현
+- [x] get_all() 메서드 구현
+- [x] get_by_id() 메서드 구현
+- [x] get_by_date_range() 메서드 구현
+- [x] get_by_symbol() 메서드 구현
+- [x] create_trade() 메서드 구현
+- [x] update() 메서드 구현
+- [x] delete() 메서드 구현
+- [x] exists() 메서드 구현
 
-### 4.2 Position 리포지토리
-- [ ] `src/runtime/data/repositories/position_repository.py` 파일 생성
-- [ ] PositionRepository 클래스 구현
-- [ ] get_current_positions() 메서드 구현
-- [ ] get_by_symbol() 메서드 구현
-- [ ] update_position() 메서드 구현
-- [ ] calculate_unrealized_pnl() 메서드 구현
-- [ ] 기타 CRUD 메서드 구현
+### 4.2 Position 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/position_repository.py` 파일 생성
+- [x] PositionRepository 클래스 구현
+- [x] get_current_positions() 메서드 구현
+- [x] get_by_symbol() 메서드 구현
+- [x] update_position() 메서드 구현
+- [x] calculate_unrealized_pnl() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
 
-### 4.3 History 리포지토리
-- [ ] `src/runtime/data/repositories/history_repository.py` 파일 생성
-- [ ] HistoryRepository 클래스 구현
-- [ ] get_execution_history() 메서드 구현
-- [ ] get_error_history() 메서드 구현
-- [ ] log_execution() 메서드 구현
-- [ ] log_error() 메서드 구현
-- [ ] 기타 CRUD 메서드 구현
+### 4.3 History 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/history_repository.py` 파일 생성
+- [x] HistoryRepository 클래스 구현
+- [x] get_execution_history() 메서드 구현
+- [x] get_error_history() 메서드 구현
+- [x] log_execution() 메서드 구현
+- [x] log_error() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
 
-### 4.4 Strategy_Performance 리포지토리
-- [ ] `src/runtime/data/repositories/strategy_performance_repository.py` 파일 생성
-- [ ] StrategyPerformanceRepository 클래스 구현
-- [ ] get_performance_by_strategy() 메서드 구현
-- [ ] update_performance_metrics() 메서드 구현
-- [ ] calculate_returns() 메서드 구현
-- [ ] 기타 CRUD 메서드 구현
+### 4.4 Strategy_Performance 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/strategy_performance_repository.py` 파일 생성
+- [x] StrategyPerformanceRepository 클래스 구현
+- [x] get_performance_by_strategy() 메서드 구현
+- [x] update_performance_metrics() 메서드 구현
+- [x] calculate_returns() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
 
-### 4.5 R_Dash 리포지토리
-- [ ] `src/runtime/data/repositories/r_dash_repository.py` 파일 생성
-- [ ] R_DashRepository 클래스 구현
-- [ ] get_dashboard_data() 메서드 구현
-트
-- [ ] update_dashboard_widget() 메서드 구현
-- [ ] get_widget_data() 메서드 구현
-- [ ] 기타 CRUD 메서드 구현
+### 4.5 R_Dash 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/r_dash_repository.py` 파일 생성
+- [x] R_DashRepository 클래스 구현
+- [x] get_dashboard_data() 메서드 구현
+- [x] update_dashboard_widget() 메서드 구현
+- [x] get_widget_data() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
 
-### 4.6 기타 운영 시트 리포지토리 (4개)
-- [ ] Config_Operations 리포지토리 구현
-- [ ] Risk_Monitoring 리포지토리 구현
-- [ ] System_Health 리포지토리 구현
-- [ ] Audit_Log 리포지토리 구현
+### 4.6 Config_Swing 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/config_swing_repository.py` 파일 생성
+- [x] ConfigSwingRepository 클래스 구현
+- [x] get_config_by_category() 메서드 구현
+- [x] get_config_by_key() 메서드 구현
+- [x] update_config() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
+
+### 4.7 Config_Scalf 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/config_scalf_repository.py` 파일 생성
+- [x] ConfigScalfRepository 클래스 구현
+- [x] get_config_by_category() 메서드 구현
+- [x] get_config_by_key() 메서드 구현
+- [x] update_config() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
+
+### 4.8 Dividend 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/dividend_repository.py` 파일 생성
+- [x] DividendRepository 클래스 구현
+- [x] get_dividend_by_year() 메서드 구현
+- [x] get_dividend_by_ticker() 메서드 구현
+- [x] update_dividend_data() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
+
+### 4.9 DI_DB 리포지토리 (완성된 시트)
+- [x] `src/runtime/data/repositories/di_db_repository.py` 파일 생성
+- [x] DIDBRepository 클래스 구현
+- [x] get_dividend_info() 메서드 구현
+- [x] get_by_ticker() 메서드 구현
+- [x] update_dividend_info() 메서드 구현
+- [x] 기타 CRUD 메서드 구현
+
+### 4.10 미완성 시트 (Portfolio, Performance) - 추후 구현
+- [ ] Portfolio 리포지토리 (미완성 - 구현 보류)
+- [ ] Performance 리포지토리 (미완성 - 구현 보류)
 
 ### 4.7 테스트 코드
 - [ ] 각 리포지토리별 단위 테스트 파일 생성
