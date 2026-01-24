@@ -9,112 +9,112 @@
 ## 1. 사전 준비 사항
 
 ### 1.1 환경 설정
-- [ ] Google Cloud Platform 프로젝트 생성
-- [ ] Google Sheets API 활성화
-- [ ] 서비스 계정 생성 및 인증키 발급
-- [ ] 테스트용 Google 스프레드시트 생성
-- [ ] 9개 시트 생성 및 헤더 설정
-- [ ] 개발 환경 Python 패키지 설치
-  - [ ] google-api-python-client
-  - [ ] google-auth-httplib2
-  - [ ] google-auth-oauthlib
-  - [ ] pytest-asyncio
-  - [ ] pytest-mock
+- [x] Google Cloud Platform 프로젝트 생성
+- [x] Google Sheets API 활성화
+- [x] 서비스 계정 생성 및 인증키 발급
+- [x] 테스트용 Google 스프레드시트 생성
+- [x] 9개 시트 생성 및 헤더 설정
+- [x] 개발 환경 Python 패키지 설치
+  - [x] google-api-python-client
+  - [x] google-auth-httplib2
+  - [x] google-auth-oauthlib
+  - [x] pytest-asyncio
+  - [x] pytest-mock
 
 ### 1.2 접근 권한
-- [ ] 서비스 계정에 스프레드시트 접근 권한 부여
-- [ ] 공유 설정 확인 (편집자 권한)
-- [ ] API 키 보안 저장 위치 설정
-- [ ] 환경 변수 설정 확인
+- [x] 서비스 계정에 스프레드시트 접근 권한 부여
+- [x] 공유 설정 확인 (편집자 권한)
+- [x] API 키 보안 저장 위치 설정
+- [x] 환경 변수 설정 확인
 
 ---
 
 ## 2. Google Sheets 클라이언트 구현 (1주차)
 
 ### 2.1 기본 클라이언트 클래스
-- [ ] `src/runtime/data/google_sheets_client.py` 파일 생성
-- [ ] GoogleSheetsClient 클래스 기본 구조 설계
-- [ ] 생성자 구현 (인증 경로 설정)
-- [ ] authenticate() 메서드 구현
-  - [ ] OAuth 2.0 인증 로직
-  - [ ] 토큰 저장 및 갱신
-  - [ ] 인증 실패 처리
-- [ ] get_spreadsheet() 메서드 구현
-- [ ] get_sheet_data() 메서드 구현
-  - [ ] 범위 지정 조회
-  - [ ] 데이터 형식 변환
-  - [ ] 에러 핸들링
-- [ ] update_sheet_data() 메서드 구현
-  - [ ] 단일 셀 업데이트
-  - [ ] 범위 업데이트
-  - [ ] 값 입력 옵션 처리
-- [ ] append_sheet_data() 메서드 구현
-  - [ ] 행 추가 기능
-  - [ ] 데이터 유효성 검사
+- [x] `src/runtime/data/google_sheets_client.py` 파일 생성
+- [x] GoogleSheetsClient 클래스 기본 구조 설계
+- [x] 생성자 구현 (인증 경로 설정)
+- [x] authenticate() 메서드 구현
+  - [x] OAuth 2.0 인증 로직
+  - [x] 토큰 저장 및 갱신
+  - [x] 인증 실패 처리
+- [x] get_spreadsheet() 메서드 구현
+- [x] get_sheet_data() 메서드 구현
+  - [x] 범위 지정 조회
+  - [x] 데이터 형식 변환
+  - [x] 에러 핸들링
+- [x] update_sheet_data() 메서드 구현
+  - [x] 단일 셀 업데이트
+  - [x] 범위 업데이트
+  - [x] 값 입력 옵션 처리
+- [x] append_sheet_data() 메서드 구현
+  - [x] 행 추가 기능
+  - [x] 데이터 유효성 검사
 
 ### 2.2 에러 처리 및 재시도
-- [ ] 커스텀 예외 클래스 정의
-  - [ ] GoogleSheetsError
-  - [ ] AuthenticationError
-  - [ ] APIError
-  - [ ] RateLimitError
-  - [ ] ValidationError
-- [ ] 지수 백오프 재시도 로직 구현
-- [ ] API 제한 처리 로직
-- [ ] 네트워크 장애 복구 로직
-- [ ] 상세한 에러 로깅 구현
+- [x] 커스텀 예외 클래스 정의
+  - [x] GoogleSheetsError
+  - [x] AuthenticationError
+  - [x] APIError
+  - [x] RateLimitError
+  - [x] ValidationError
+- [x] 지수 백오프 재시도 로직 구현
+- [x] API 제한 처리 로직
+- [x] 네트워크 장애 복구 로직
+- [x] 상세한 에러 로깅 구현
 
 ### 2.3 성능 최적화
-- [ ] 요청 레이트 리밋 구현 (100초당 100요청)
-- [ ] 메모리 캐싱 전략 구현
-- [ ] 비동기 처리 최적화
-- [ ] 배치 처리 기능 구현
+- [x] 요청 레이트 리밋 구현 (100초당 100요청)
+- [x] 메모리 캐싱 전략 구현
+- [x] 비동기 처리 최적화
+- [x] 배치 처리 기능 구현
 
 ### 2.4 테스트 코드
-- [ ] 단위 테스트 파일 생성 (`tests/runtime/data/test_google_sheets_client.py`)
-- [ ] 인증 성공/실패 테스트
-- [ ] API 호출 성공/실패 테스트
-- [ ] 에러 처리 테스트
-- [ ] 재시도 로직 테스트
-- [ ] Mock 객체를 사용한 격리 테스트
+- [x] 단위 테스트 파일 생성 (`tests/runtime/data/test_google_sheets_client.py`)
+- [x] 인증 성공/실패 테스트
+- [x] API 호출 성공/실패 테스트
+- [x] 에러 처리 테스트
+- [x] 재시도 로직 테스트
+- [x] Mock 객체를 사용한 격리 테스트
 
 ---
 
 ## 3. 리포지토리 베이스 설계 (1주차)
 
 ### 3.1 베이스 클래스 구현
-- [ ] `src/runtime/data/repositories/base_repository.py` 파일 생성
-- [ ] BaseSheetRepository 추상 클래스 설계
-- [ ] CRUD 인터페이스 정의
-  - [ ] get_all() 추상 메서드
-  - [ ] get_by_id() 추상 메서드
-  - [ ] create() 추상 메서드
-  - [ ] update() 추상 메서드
-  - [ ] delete() 추상 메서드
-  - [ ] exists() 추상 메서드
-- [ ] 공통 유틸리티 메서드 구현
-- [ ] 데이터 검증 로직 공통화
+- [x] `src/runtime/data/repositories/base_repository.py` 파일 생성
+- [x] BaseSheetRepository 추상 클래스 설계
+- [x] CRUD 인터페이스 정의
+  - [x] get_all() 추상 메서드
+  - [x] get_by_id() 추상 메서드
+  - [x] create() 추상 메서드
+  - [x] update() 추상 메서드
+  - [x] delete() 추상 메서드
+  - [x] exists() 추상 메서드
+- [x] 공통 유틸리티 메서드 구현
+- [x] 데이터 검증 로직 공통화
 
 ### 3.2 필드 매핑 유틸리티
-- [ ] `src/runtime/data/mappers/field_mapper.py` 파일 생성
-- [ ] FieldMapper 클래스 설계
-- [ ] map_to_sheet() 메서드 구현
-  - [ ] 스키마 기반 필드 순서 정렬
-  - [ ] 데이터 타입 변환
-  - [ ] 필드 유효성 검사
-- [ ] map_from_sheet() 메서드 구현
-  - [ ] 시트 데이터를 객체로 변환
-  - [ ] 데이터 타입 역변환
-  - [ ] 누락 필드 처리
-- [ ] validate_data() 메서드 구현
-- [ ] 스키마 레지스트리 연동
+- [x] `src/runtime/data/mappers/field_mapper.py` 파일 생성
+- [x] FieldMapper 클래스 설계
+- [x] map_to_sheet() 메서드 구현
+  - [x] 스키마 기반 필드 순서 정렬
+  - [x] 데이터 타입 변환
+  - [x] 필드 유효성 검사
+- [x] map_from_sheet() 메서드 구현
+  - [x] 시트 데이터를 객체로 변환
+  - [x] 데이터 타입 역변환
+  - [x] 누락 필드 처리
+- [x] validate_data() 메서드 구현
+- [x] 스키마 레지스트리 연동
 
 ### 3.3 리포지토리 매니저
-- [ ] `src/runtime/data/repository_manager.py` 파일 생성
-- [ ] RepositoryManager 클래스 설계
-- [ ] 리포지토리 팩토리 메서드 구현
-- [ ] 연결 풀 관리 기능
-- [ ] 트랜잭션 관리 기능 (필요시)
+- [x] `src/runtime/data/repository_manager.py` 파일 생성
+- [x] RepositoryManager 클래스 설계
+- [x] 리포지토리 팩토리 메서드 구현
+- [x] 연결 풀 관리 기능
+- [x] 트랜잭션 관리 기능 (필요시)
 
 ### 3.4 테스트 코드
 - [ ] 베이스 리포지토리 테스트 파일 생성
