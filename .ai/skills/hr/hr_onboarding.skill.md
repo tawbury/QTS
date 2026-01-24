@@ -1,49 +1,60 @@
-[Optimized: 2026-01-09]
+[Optimized: 2026-01-16]
 
 # HR Onboarding Init Skill
 
+<!-- BLOCK:CORE_LOGIC -->
 ## Core Logic
-- Task 문서 구조 검증
-- 필수 항목 누락 확인
+- Task document structure verification
+- Required item missing confirmation
+<!-- END_BLOCK -->
 
+<!-- BLOCK:INPUT_OUTPUT -->
 ## Input/Output
 ### Input
-- Task 문서 경로 또는 내용
+- Task document path or contents
 
 ### Output
 - Validation Result (PASS/FAIL)
 - Missing Fields List (if any)
+<!-- END_BLOCK -->
 
-## Validation Rules
-### Required Meta Fields
+<!-- BLOCK:EXECUTION_LOGIC -->
+## Execution Logic
+### Validation Rules
+#### Required Meta Fields
 - Project Name, File Name, Document ID, Status
 - Created Date, Last Updated, Author, Parent Document
 
-### Required Content Sections
+#### Required contents Sections
 - Department, Role Name, Expected Level
 - Provided Criteria, Notes
 
-### Structural Requirements
-- Meta section 존재 및 정확한 포맷
-- Content separator (`---`) 존재
-- 모든 필수 섹션과 적절한 헤더
+#### Structural Requirements
+- Meta section presence & correct format
+- contents separator (`---`) presence
+- All required sections with appropriate headers
 
-## Validation Logic
-1. Meta section 완전성 검사
-2. 모든 필수 content 섹션 존재 확인
-3. Section header format 검증 (##)
-4. 필수 필드 비어있지 않음 확인
-5. 모든 검사 통과 시 PASS 반환
-6. 검사 실패 시 FAIL + 누락 필드 목록 반환
+### Validation Logic
+1. Meta section completeness check
+2. All required contents sections presence confirmation
+3. Section header format verification (##)
+4. Required fields not empty confirmation
+5. Return PASS if all checks pass
+6. Return FAIL + missing fields list if any check fails
+<!-- END_BLOCK -->
 
+<!-- BLOCK:TECHNICALREQUIREMENTS -->
+## Technical Requirements
+- Document structure parsing capability
+- Field validity checking
+- Format verification algorithms
+- Result formatting
+<!-- END_BLOCK -->
+
+<!-- BLOCK:CONSTRAINTS -->
 ## Constraints
-- 판단 수행 금지
-- 내용 기반 평가 금지
-- 구조 검증 ONLY
-- 부수적 효과 없음
-
-## Return Format
-```
-Status: PASS|FAIL
-Missing Fields: [field1, field2, ...] (if FAIL)
-```
+- Judgment execution prohibited
+- contents-based evaluation prohibited
+- Structure verification ONLY
+- No side effects
+<!-- END_BLOCK -->

@@ -128,7 +128,7 @@ class Observer:
             if not v.is_valid:
             # Record performance metrics (Task 06)
             # SAFETY: Metrics are purely observational, do NOT affect behavior
-            get_metrics().increment_counter("snapshots_blocked_validation")
+                get_metrics().increment_counter("snapshots_blocked_validation")
                 self._log.warning(
                     "Snapshot validation failed (blocked)",
                     extra={

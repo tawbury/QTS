@@ -1,32 +1,39 @@
-[Optimized: 2026-01-09]
+[Optimized: 2026-01-16]
 
 # HR Report Emit Skill
 
+<!-- BLOCK:CORE_LOGIC -->
 ## Core Logic
-- 판단 결과 → 구조화된 Report 출력
-- 다른 Agent 소비용 문서 생성
+- Judgment results → structured Report output
+- Document creation for other Agent consumption
+<!-- END_BLOCK -->
 
+<!-- BLOCK:INPUT_OUTPUT -->
 ## Input/Output
 ### Input
-- Task 문서 정보 (role, department, meta)
-- Level 판단 결과 (L1/L2/PENDING)
-- Decision basis 정보
+- Task document information (role, department, meta)
+- Level judgment results (L1/L2/PENDING)
+- Decision basis information
 
 ### Output
-- 구조화된 Report 문서
+- Structured Report document
+<!-- END_BLOCK -->
 
-## Report Structure
-### Meta Section
+<!-- BLOCK:EXECUTION_LOGIC -->
+## Execution Logic
+### Report Structure
+#### Meta Section
 - Project Name: [from task]
 - File Name: report_<role>_<dept>_<date>.md
 - Document ID: <Project>-REPORT-<number>
 - Status: Active
 - Created Date: YYYY-MM-DD HH:MM
 - Author: HR Agent
+- Reviewer: {{REVIEWER}}
 - Parent Document: [[task_<role>_<dept>.md]]
 - Related Reference: [blank]
 
-### Content Sections
+#### contents Sections
 - Role: [role name]
 - Department: [department name]
 - Evaluation Result: Status: L1|L2|PENDING
@@ -35,18 +42,20 @@
   - Missing/Unclear Criteria: [list]
 - Flags: Needs Review: true|false
 - Feedback for Improvement:
-  - Action Items: [PENDING 시 사용자 추가 내용]
-  - Recommended Keywords: [직군 권장 역량 키워드]
+  - Action Items: [user additional content when PENDING]
+  - Recommended Keywords: [recommended competency keywords for job group]
 
-## Generation Rules
+### Generation Rules
 1. File name: report_<role>_<dept>_<YYYYMMDD>.md
-2. Meta section 템플릿 정확히 준수
-3. Evaluation Result: status 값만 포함
-4. Decision Basis: matched/missing 리스트 분리
-5. Needs Review = true IF PENDING OR 불명확 기준
-6. Needs Review = false IF 명확한 L1/L2 결정
+2. Meta section template strict compliance
+3. Evaluation Result: status value only included
+4. Decision Basis: matched/missing list separation
+5. Needs Review = true IF PENDING OR unclear criteria
+6. Needs Review = false IF clear L1/L2 decision
+7. Reviewer field: Auto-populated with Senior HR Agent for L2 validation
+8. {{REVIEWER}} variable: Replaced with "Senior HR Agent" for L2 reviews
 
-## Output Format
+### Output Format
 ```markdown
 # HR Evaluation Report
 
@@ -76,9 +85,20 @@
 ## Flags
 - Needs Review : true|false
 ```
+<!-- END_BLOCK -->
 
+<!-- BLOCK:TECHNICAL_REQUIREMENTS -->
+## Technical Requirements
+- Template engine
+- File creation capability
+- Metadata processing
+- Format verification
+<!-- END_BLOCK -->
+
+<!-- BLOCK:CONSTRAINTS -->
 ## Constraints
-- 구조화된 데이터만 출력
-- 자연어 설명 금지
-- Agent 소비용 포맷 준수
-- 결정론적 구조 유지
+- Structured data output only
+- Natural language description prohibited
+- Agent consumption format compliance
+- Decisional structure maintenance
+<!-- END_BLOCK -->
