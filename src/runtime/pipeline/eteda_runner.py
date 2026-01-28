@@ -6,25 +6,22 @@ from typing import Any, Dict, Optional
 from ..config.config_models import UnifiedConfig
 from ..engines.portfolio_engine import PortfolioEngine
 from ..engines.strategy_engine import StrategyEngine
-from ops.observer.observer import Observer
 
 
 class ETEDARunner:
     """
     ETEDA Pipeline Runner
-    
+
     Executes the Extract-Transform-Evaluate-Decide-Act pipeline.
     """
 
     def __init__(
-        self, 
-        observer: Observer,
+        self,
         config: UnifiedConfig,
         portfolio_engine: PortfolioEngine,
         strategy_engine: StrategyEngine
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
-        self._observer = observer
         self._config = config
         self._portfolio_engine = portfolio_engine
         self._strategy_engine = strategy_engine

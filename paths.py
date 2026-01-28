@@ -5,8 +5,8 @@ QTS project-wide canonical path resolver.
 
 This module defines the single source of truth for all filesystem paths
 used across the QTS project, including:
-- execution (main.py)
-- observer / ops modules
+- execution
+- ops modules
 - pytest
 - local scripts
 
@@ -14,20 +14,10 @@ Design principles:
 - Resilient to folder restructuring
 - No relative depth assumptions (no parents[n])
 - Project-level, not package-level
-
-Phase F update:
-- Observer-generated JSON / JSONL files are treated as CONFIG ASSETS.
-- data/ directory is reserved for ephemeral runtime-only artifacts.
-- Observer assets MUST be resolved via observer_asset_dir().
 """
 
 from pathlib import Path
 from typing import Optional
-import logging
-import os
-
-logger = logging.getLogger(__name__)
-
 
 
 # ============================================================
@@ -39,17 +29,12 @@ def _resolve_project_root(start: Optional[Path] = None) -> Path:
     Resolve QTS project root directory.
 
     Resolution rules (first match wins):
-    1. Observer standalone mode (forced)
-    2. Directory containing '.git'
-    3. Directory containing 'pyproject.toml'
-    4. Directory containing both 'src' and 'tests'
+    1. Directory containing '.git'
+    2. Directory containing 'pyproject.toml'
+    3. Directory containing both 'src' and 'tests'
     """
 
-    # 1️⃣ Observer standalone mode (explicit opt-in)
-    if os.environ.get("QTS_OBSERVER_STANDALONE") == "1":
-        return Path(__file__).resolve().parent
-
-    # 2️⃣ Normal QTS project resolution
+    # Normal QTS project resolution
     current = start.resolve() if start else Path(__file__).resolve()
 
     for parent in [current] + list(current.parents):
@@ -123,10 +108,6 @@ def config_dir() -> Path:
 # Ops subdomains
 # ------------------------------------------------------------
 
-def ops_observer_dir() -> Path:
-    return ops_dir() / "observer"
-
-
 def ops_decision_pipeline_dir() -> Path:
     return ops_dir() / "decision_pipeline"
 
@@ -147,50 +128,6 @@ def ops_backup_dir() -> Path:
 
 
 # ------------------------------------------------------------
-# Observer-specific canonical paths (Phase F)
-# ------------------------------------------------------------
-
-def observer_asset_dir() -> Path:
-    """
-    Canonical Observer ASSET directory (Phase F).
-
-    All observer-generated JSON / JSONL artifacts
-    MUST be placed here.
-
-    Example:
-        config/observer/*.jsonl
-    """
-    path = config_dir() / "observer"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def observer_asset_file(filename: str) -> Path:
-    """
-    Resolve a canonical observer asset file path.
-    """
-    return observer_asset_dir() / filename
-
-
-def observer_data_dir() -> Path:
-    """
-    DEPRECATED since Phase F.
-
-    Legacy observer runtime data directory.
-    This path should NOT be used for new artifacts.
-
-    Kept for backward compatibility only.
-    """
-    logger.warning(
-        "observer_data_dir() is deprecated since Phase F. "
-        "Use observer_asset_dir() instead."
-    )
-    path = data_dir() / "observer"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-# ------------------------------------------------------------
 # Test-related paths (read-only usage)
 # ------------------------------------------------------------
 
@@ -198,16 +135,9 @@ def tests_ops_dir() -> Path:
     return tests_dir() / "ops"
 
 
-def tests_ops_e2e_dir() -> Path:
-    return tests_ops_dir() / "e2e"
-
-
 def tests_ops_decision_dir() -> Path:
     return tests_ops_dir() / "decision"
 
-
-def tests_ops_observation_dir() -> Path:
-    return tests_ops_dir() / "observation"
 
 
 # ============================================================
