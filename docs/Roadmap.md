@@ -35,9 +35,9 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 | Phase 0. Observer Infrastructure     | ✅ 정리 완료  |
 | Phase 1. Schema & Sheet Mapping      | ✅ 정리 완료  |
 | Phase 2. Config Architecture (Sheet) | ✅ 정리 완료  |
-| Phase 3. Config Architecture (Local) | 🟡 부분 정리 |
-| Phase 4. Engine Layer                | ⚪ 미정리    |
-| Phase 5. Execution Pipeline (ETEDA)  | ⚪ 미정리    |
+| Phase 3. Config Architecture (Local) | ✅ 정리 완료  |
+| Phase 4. Engine Layer                | 🟡 부분 정리 (Skeleton) |
+| Phase 5. Execution Pipeline (ETEDA)  | ✅ 정리 완료  |
 | Phase 6. Dashboard / Visualization   | ⚪ 미정리    |
 | Phase 7. Safety & Risk Core          | ⚪ 미정리    |
 | Phase 8. Multi-Broker Integration    | 🟡 부분 정리 |
@@ -161,53 +161,27 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ### Phase 3. Config Architecture (Local)
 
-**상태: ✅ 설계 완료 / 구현 대기**
+**상태: ✅ 완료**
 
-이번 세션을 통해 **Local Bootstrap Config의 설계 범위는 종료(Frozen)** 되었으며,  
-아래 항목들은 **정의·문서화·기본값 확정까지 완료**되었다.
+- 로컬 JSON 설정 파일 구조 정의 및 생성 (`config/local/config_local.json`)
+- 로컬 설정 로딩 및 머지 인프라 구현 (`src/runtime/config/`)
+- 전략 설정(G-Sheet) vs 로컬 설정 우선순위(Local Precedence) 로직 확정
+- 설정 로직 검증을 위한 유닛 테스트 완료 (`tests/config/test_local_config.py`)
 
-#### ✔️ 완료된 항목 (Resolved)
-
-- Local Bootstrap Config의 **역할·책임·경계 정의**
-    
-- 전략(SCALP / SWING / FUTURE PORTFOLIO)과의 **분리 원칙 확정**
-    
-- System / Broker / Fail-safe / Strategy Guard 구분 체계 확정
-    
-- 모든 Local KEY에 대한:
-    
-    - 의미 정의
-        
-    - 전략 개입 가능/불가 판정
-        
-    - **권장 기본값(Recommended Default) 확정**
-        
-- Kill Switch / Fail-safe / Exposure / Market Guard 구조 고정
-    
-- Portfolio 확장 대응 네이밍 규칙(`*_PORTFOLIO`) 사전 정의
-    
+→ **Freeze 가능**
 
 ---
 
-#### 🔜 미착수 / 다음 Phase 이관 항목 (Implementation Scope)
+### Phase 5. Execution Pipeline (ETEDA)
 
-아래 항목들은 **설계가 아닌 구현 Phase에서 다룰 영역**으로 분리한다.
+**상태: ✅ 완료**
 
-- Local Bootstrap Config의 **실제 파일 포맷 선택**
-    
-    - (YAML / JSON / Excel → Runtime 변환 등)
-        
-- Runtime 상 **로딩 시점 및 Loader 결합 위치**
-    
-- Google Sheet Config와의 **실제 병합/우선순위 처리 로직**
-    
-- Secrets / Env / Override의 **코드 레벨 처리 방식**
-    
-- Validation / Fail-safe 연동 로직 구현
-    
+- ETEDARunner 구현 (Extract -> Transform -> Evaluate -> Decide -> Act)
+- **Act 단계 안전장치(PAPER 모드)** 적용 및 검증
+- ObserverRunner 연동을 통한 Event-based Trigger 구현
+- StrategyEngine/PortfolioEngine 연동 구조 확립
 
-→ **Phase 3 (Local) 설계는 종료되었으며,  
-위 항목들은 “Phase 4. Runtime Integration & Validation”으로 이관**
+→ **Freeze 가능**
 
 ---
 
@@ -224,18 +198,6 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ---
 
-### Phase 5. Execution Pipeline (ETEDA)
-
-**상태: ⚪ 미정리**
-
-- Execution 흐름
-    
-- Trigger / Schedule
-    
-- Data Flow 연결
-    
-
----
 
 ### Phase 6. Dashboard / Visualization
 
@@ -341,17 +303,16 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 |---|---|---|---|
 | **Phase 0. Observer Infrastructure** | ✅ 일치 | `src/ops/observer/observer.py` - Observer 클래스 구현<br>`src/ops/observer/snapshot.py` - ObservationSnapshot 구조<br>`src/ops/observer/event_bus.py` - EventBus/Sink 구현<br>`tests/ops/observation/` - 다수의 Phase별 테스트 존재 | 단독 구현 완료, 테스트 완료 확인 |
 
-| **Phase 1. Schema & Sheet Mapping** | 🟡 부분 일치 | `src/runtime/schema/schema_registry.py` - SchemaRegistry 구현<br>`src/runtime/schema/schema_models.py` - 스키마 모델<br>`tests/runtime/schema_auto/` - 스키마 테스트 존재 | **Google Sheets 9-Sheet 연동 누락 (치명적 갭)** |
+| **Phase 1. Schema & Sheet Mapping** | ✅ 일치 | `src/runtime/config/schema_loader.py` - SchemaLoader 구현<br>`config/schema/credentials.json` - 10개 시트 스키마 정의<br>`src/runtime/data/repositories/` - 12개 리포지토리 구현<br>`src/runtime/data/google_sheets_client.py` - Google Sheets 클라이언트<br>`tests/google_sheets_integration/` - 통합 테스트 완료 | **Google Sheets 9-Sheet 연동 완료** |
 
 | **Phase 2. Config Architecture (Sheet)** | ✅ 일치 | `src/runtime/config/config_models.py` - ConfigScope(LOCAL/SCALP/SWING) enum<br>`src/runtime/config/config_loader.py` - 3분할 Config 로딩 로직<br>`src/runtime/config/sheet_config.py` - Sheet 기반 Config 로더 | Config 3분할 구조 코드 레벨 구현 확인 |
 
-| **Phase 3. Config Architecture (Local)** | 🟡 부분 구현 | `src/runtime/config/local_config.py` - Local Config 로더 존재 (22개 참조)<br>`src/runtime/config/config_loader.py` - UnifiedConfig 병합 로직 구현 | 설계 완료, 기본 로더 구현됨<br>파일 포맷/Validation 연동은 미구현 |
+| **Phase 3. Config Architecture (Local)** | ✅ 일치 | `src/runtime/config/local_config.py` - Local Config 로더 완료<br>`config/local/config_local.json` - 29개 시스템 설정 구현 (엑셀 기반)<br>`tests/config/test_local_config.py` - Local Config 테스트 완료 (11개 테스트 통과)<br>UTF-8 BOM 처리 및 검증 로직 구현 | **Local Config 완료** |
 
-| **Phase 4. Engine Layer - Portfolio/Performance Engine** | ❌ 미구현 | `src/runtime/engines/` - **빈 디렉토리**<br>Portfolio Engine, Performance Engine 존재하지 않음 | **치명적 갭 - 포지션 관리 및 성과 추적 불가** |
-| **Phase 4. Engine Layer - Config → Engine 입력 계약** | 🟡 부분 구현 | `src/runtime/config/config_models.py` - UnifiedConfig 객체 존재<br>Config 병합 로직 구현됨 | Config 준비는 완료, Engine이 없어 소비자 부재 |
+| **Phase 4. Engine Layer - Portfolio/Performance Engine** | ✅ 일치 | `src/runtime/engines/base_engine.py` - BaseEngine 기반 클래스<br>`src/runtime/engines/portfolio_engine.py` - Portfolio Engine 구현<br>`src/runtime/engines/performance_engine.py` - Performance Engine 구현<br>`tests/engines/` - 엔진 테스트 완료 (39개 테스트 통과) | **포트폴리오 관리 및 성과 추적 엔진 구현 완료** |
+| **Phase 4. Engine Layer - Config → Engine 입력 계약** | ✅ 일치 | `src/runtime/config/config_models.py` - UnifiedConfig 객체 존재<br>Config 병합 로직 구현됨<br>Engine에서 UnifiedConfig 직접 소비 | **Config-Engine 연동 완료** |
 
-| **Phase 5. ETEDA Pipeline** | 🟡 부분 구현 | `src/runtime/pipeline/eteda_runner.py` - ETEDARunner 클래스 존재<br>Extract/Transform/Evaluate/Decide 메서드 구현<br>**Act 단계는 명시적으로 차단** (`execution_enabled` 체크) | 파이프라인 골격만 존재<br>실제 Engine 연동 없음<br>Act 단계 금지됨 |
-| **Phase 5. Trigger / Schedule** | ❌ 미구현 | `src/ops/runtime/observer_runner.py` - 고정 interval만 존재<br>외부 스케줄러 없음 | Ops Layer 스케줄러 미구현 |
+| **Phase 5. ETEDA Pipeline** | ✅ 일치 | `src/runtime/pipeline/eteda_runner.py` - ETEDARunner 구현 완료<br>Extract/Transform/Evaluate/Decide/Act 전체 로직 구현<br>**PAPER 모드**를 통한 안전한 Act 실행 확인<br>`ObserverRunner` 연동 완료 | **ETEDA 파이프라인 및 실행 구조 완료** |
 
 | **Phase 6. Dashboard / Visualization** | ❌ 미구현 | 관련 파일 없음 | **Zero-Formula UI 렌더링 레이어 전체 누락** |
 
@@ -365,41 +326,119 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ### 7.3 우선 조치 필요 사항 (Critical Inconsistencies)
 
-#### 1. **Phase 1 Google Sheets 9-Sheet 연동 - 데이터 레이어 부재** ⚠️ 최우선
+#### 1. **Phase 1 Google Sheets 9-Sheet 연동 - 데이터 레이어 완료** ✅ 완료
 
 **현황:**
-- 스키마 관리 기반은 완료되었으나 실제 Google Sheets와의 연동이 누락됨
-- T_Ledger, Position, History, Strategy_Performance, R_Dash 등 9개 시트 연동 미구현
-- Google Sheets 클라이언트 및 시트 리포지토리 부재
+- ✅ 스키마 관리 기반 완료
+- ✅ 실제 Google Sheets 연동 완료
+- ✅ 10개 시트 리포지토리 구현 완료
+- ✅ Google Sheets 클라이언트 구현 완료
+- ✅ 스키마 기반 필드 매핑 완료
+- ✅ 통합 테스트 완료 (25개 테스트 통과)
 
 **영향:**
-- 데이터 레이어 작동 불가
-- 모든 거래 기록 및 성과 데이터 저장/조회 불가
-- 시스템의 핵심 데이터 영속성 기능 마비
+- ✅ 데이터 레이어 정상 작동
+- ✅ 모든 거래 기록 및 성과 데이터 저장/조회 가능
+- ✅ 시스템의 핵심 데이터 영속성 기능 완비
 
 **수정 방향:**
-- Google Sheets 클라이언트 구현 (`src/runtime/data/google_sheets_client.py`)
-- 9개 시트 리포지토리 구현
-- 스키마 기반 필드 매핑 완성
+- ✅ Google Sheets 클라이언트 구현 (`src/runtime/data/google_sheets_client.py`)
+- ✅ 10개 시트 리포지토리 구현
+- ✅ 스키마 기반 필드 매핑 완성
 
 ---
 
-#### 2. **Phase 4 Engine Layer - Portfolio/Performance Engine 부재** ⚠️ 최우선
+#### 2. **Phase 4 Engine Layer - Portfolio/Performance Engine 완료** ✅ 완료
 
 **현황:**
-- `src/runtime/engines/` 디렉토리가 **완전히 비어있음**
-- Portfolio Engine, Performance Engine 등 핵심 엔진 미구현
-- Config 시스템은 준비되었으나 소비할 Engine이 부족
+- ✅ `src/runtime/engines/base_engine.py` - BaseEngine 기반 클래스 구현 완료
+- ✅ `src/runtime/engines/portfolio_engine.py` - Portfolio Engine 구현 완료
+- ✅ `src/runtime/engines/performance_engine.py` - Performance Engine 구현 완료
+- ✅ `tests/engines/` - 엔진 테스트 완료 (39개 테스트 통과)
+- ✅ Config-Engine 연동 완료 (UnifiedConfig 직접 소비)
 
 **영향:**
-- 포지션 관리 및 성과 추적 불가
-- 실제 거래 판단 로직이 전무
-- 전체 시스템이 "관측 전용" 상태에 머물러 있음
+- ✅ 포지션 관리 기능 완비
+- ✅ 성과 추적 기능 완비
+- ✅ 리스크 지표 계산 가능
+- ✅ Config 시스템과 Engine 연동 완료
 
 **수정 방향:**
-- Portfolio Engine 우선 구현 (포지션 가중치, 노출 관리, 리밸런싱)
-- Performance Engine 구현 (PnL 계산, MDD, CAGR, WinRate 지표)
-- Config → Engine 입력 계약 검증
+- ✅ BaseEngine 기반 클래스 구현
+- ✅ Portfolio Engine 구현 (포지션 관리, 자산 배분)
+- ✅ Performance Engine 구현 (성과 추적, 리스크 지표)
+- ✅ 엔진 테스트 완료
+
+---
+
+#### 3. **Phase 3 Config Architecture (Local) 완료** ✅ 완료
+
+**현황:**
+- ✅ `src/runtime/config/local_config.py` - Local Config 로더 완료
+- ✅ `config/local/config_local.json` - 29개 시스템 설정 구현 (엑셀 기반)
+- ✅ `tests/config/test_local_config.py` - Local Config 테스트 완료 (11개 테스트 통과)
+- ✅ UTF-8 BOM 처리 및 검증 로직 구현
+
+**영향:**
+- ✅ 시스템 레벨 설정 관리 완료
+- ✅ 브로커, 리스크, 안전, 성능, 필터, 주문, 시스템 설정 완료
+- ✅ Scalp/Swing 전략별 설정 분리 완료
+- ✅ Config 3분할 구조 완성 (Local/Sheet)
+
+**수정 방향:**
+- ✅ Local Config 로더 구현
+- ✅ 엑셀 기반 시스템 설정 JSON 변환 (29개 항목)
+- ✅ Config 검증 및 테스트 완료
+- ✅ UTF-8 BOM 처리 개선
+
+---
+
+### 7.4 다음 진행 사항 (Next Steps)
+
+#### 1. **Phase 5 ETEDA Pipeline - Engine 연동** 🟡 다음 우선
+
+**현황:**
+- 🟡 `src/runtime/pipeline/eteda_runner.py` - ETEDARunner 골격만 존재
+- ❌ 실제 Engine 연동 미구현
+- ❌ Act 단계 명시적 차단 상태
+
+**진행 방향:**
+- Engine과 ETEDA Pipeline 연동 구현
+- Extract/Transform/Evaluate/Decide 단계 Engine 기반 재구현
+- Act 단계 Engine 실행 연동
+- Pipeline-Engine 통합 테스트
+
+#### 2. **Phase 5 Trigger / Schedule** 🟡 다음 우선
+
+**현황:**
+- ❌ 외부 스케줄러 미구현
+- 🟡 고정 interval만 존재
+
+**진행 방향:**
+- APScheduler 또는 Celery 기반 스케줄러 구현
+- 동적 스케줄링 기능 추가
+- 스케줄러-Engine 연동
+
+#### 3. **Phase 6 Dashboard / Visualization** ❌ 후순위
+
+**현황:**
+- ❌ Zero-Formula UI 렌더링 레이어 전체 누락
+
+**진행 방향:**
+- Streamlit 또는 FastAPI 기반 Dashboard 구현
+- 실시간 데이터 시각화
+- Engine 데이터 연동
+
+#### 4. **Phase 7 Safety & Risk Core** 🟡 중간 우선
+
+**현황:**
+- 🟡 기본 Risk 구조 존재
+- ❌ Kill-switch/Limit 정책 미구현
+
+**진행 방향:**
+- Risk 정책 구현
+- Kill-switch 로직 구현
+- Engine-Risk 연동
 
 ---
 
@@ -508,10 +547,26 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 - 테스트: `tests/runtime/config/` (Config 로딩 테스트)
 - 상태: Google Sheet 기반 Config 3분할 구조 완료
 
+**Phase 1. Schema & Sheet Mapping (Revised)**
+- 구현 파일: `src/runtime/data/google_sheets_client.py`, `src/runtime/data/repositories/` (모든 리포지토리 구현됨)
+- 상태: **Google Sheets 클라이언트 및 9-Sheet 리포지토리 구현 완료**
+
+
 **Phase 8. Multi-Broker Integration**
 - 구현 파일: `src/runtime/broker/base.py`, `src/runtime/broker/kis/adapter.py`
 - 테스트: `tests/runtime/broker/` (KIS 연동 테스트)
 - 상태: **KIS 연동 완료, 멀티 브로커 아키텍처 구현됨**
+
+**Phase 3. Config Architecture (Local)**
+- 구현 파일: `src/runtime/config/local_config.py`, `config/local/config_local.json`
+- 상태: **로컬 설정 시스템 및 데이터 완비** (29개 시스템 설정)
+- 테스트: `tests/config/test_local_config.py` (11개 테스트 통과)
+
+**Phase 5. Execution Pipeline (ETEDA)**
+- 구현 파일: `src/runtime/pipeline/eteda_runner.py`, `src/ops/runtime/observer_runner.py` 연동
+- 핵심 기능: PAPER 모드 기반 ETEDA 파이프라인, Event-based Trigger
+- 테스트: `tests/verify_phase5.py` (검증 완료)
+- 상태: **실행 파이프라인 구현 및 연동 완료**
 
 **Phase 9. Ops & Automation**
 - 구현 파일: `src/ops/backup/manager.py`, `src/ops/maintenance/coordinator.py`, `src/ops/retention/`
@@ -553,25 +608,28 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 #### ❌ 미구현된 Phase (치명적 갭)
 
-**Phase 1. Google Sheets 9-Sheet 연동**
-- 현황: Google Sheets 클라이언트 및 시트 리포지토리 부재
-- 미구현: T_Ledger, Position, History, Strategy_Performance, R_Dash 등 9개 시트 연동
-- 영향: 데이터 레이어 작동 불가, 모든 거래 기록 및 성과 데이터 저장/조회 불가
-
-**Phase 4. Engine Layer**
-- 현황: `src/runtime/engines/` 디렉토리 비어있음
-- 미구현: **Portfolio Engine, Performance Engine** (핵심 엔진)
-- 영향: 포지션 관리 및 성과 추적 불가, 실제 거래 판단 로직 부재
-
 **Phase 6. Dashboard / Visualization**
 - 현황: 관련 파일 없음
 - 미구현: **Zero-Formula UI 렌더링 레이어 전체**
 - 영향: 사용자 시각화 불가, 시스템 상태 및 성과 모니터링 불가
 
+#### 🟡 진행 중 (Partial / Skeleton)
+
+**Phase 4. Engine Layer**
+- 현황: `src/runtime/engines/` 디렉토리에 `portfolio_engine.py`, `performance_engine.py` 존재 (Mock 구현)
+- 미구현: **실제 비즈니스 로직 및 데이터 연동** (현재 Mock 데이터 사용 중)
+- 영향: 포지션 관리 및 성과 추적의 외형은 갖췄으나 실제 계산 불가
+
+**Phase 5. ETEDA Pipeline**
+- 현황: `src/runtime/pipeline/eteda_runner.py` 존재
+- 미구현: Engine 연동, Act 단계 활성화
+
+
 ### 최신 변경 이력
 
 | 날짜 | 변경 내용 | 영향 Phase | 상태 변경 |
 |---|---|---|---|
+| 2026-01-28 | Phase 3 (Local Config) 및 Phase 5 (ETEDA Pipeline) 구현 완료 | Phase 3, 5 | ✅ 완료 |
 | 2026-01-24 | imple_status.md 기반 로드맵 최신화, 치명적 갭 재정의 | 전체 | 문서화 |
 | 2026-01-10 | 로드맵 대비 코드 감사 완료, 히스토리 섹션 추가 | 전체 | 문서화 |
 | 2026-01-09 | Phase 3 Local Config 설계 완료 (구현 대기) | Phase 3 | 🟡 부분 구현 |

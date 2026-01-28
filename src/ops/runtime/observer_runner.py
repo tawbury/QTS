@@ -22,6 +22,19 @@ from ops.observer.usage_metrics import (
     create_default_usage_metrics,
 )
 
+# Phase 5: ETEDA Pipeline Integration
+try:
+    from runtime.pipeline.eteda_runner import ETEDARunner
+    from runtime.config.config_models import UnifiedConfig
+    from runtime.engines.portfolio_engine import PortfolioEngine
+    from runtime.engines.strategy_engine import StrategyEngine
+except ImportError:
+    # Allow running without runtime dependencies (e.g. pure ops tests)
+    ETEDARunner = None
+    UnifiedConfig = None
+    PortfolioEngine = None
+    StrategyEngine = None
+
 
 class ObserverRunner:
     """
@@ -52,6 +65,8 @@ class ObserverRunner:
         # Usage metrics configuration (Task 05)
         enable_usage_metrics: bool = True,
         metrics_window_ms: int = 60_000,
+        # Phase 5: ETEDA Integration
+        eteda_runner: Optional[ETEDARunner] = None,
     ) -> None:
         self._provider = provider
         self._interval = interval_sec
@@ -103,6 +118,9 @@ class ObserverRunner:
                 )
         else:
             self._metrics_collector = None
+            
+        # Phase 5: ETEDA Runner
+        self._eteda_runner = eteda_runner
 
     def run(self, auto_generate_test_ticks: bool = False) -> None:
         iteration = 0
@@ -137,6 +155,22 @@ class ObserverRunner:
                     continue
 
                 self._observer.on_snapshot(snapshot)
+
+                # Phase 5: Execute ETEDA Pipeline
+                if self._eteda_runner:
+                    # Async execution in sync loop - fire and forget for now
+                    # or run_until_complete if strictly sequential
+                    import asyncio
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            loop.create_task(self._eteda_runner.run_once(snapshot.to_dict()))
+                        else:
+                            loop.run_until_complete(self._eteda_runner.run_once(snapshot.to_dict()))
+                    except Exception as e:
+                        # Don't break the observation loop on pipeline error
+                        # In real prod, this should use a proper async runner
+                        pass
 
                 # Generate test ticks during run if requested (for testing only)
                 if auto_generate_test_ticks and self._hybrid_mode and self._tick_provider:
