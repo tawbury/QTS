@@ -32,7 +32,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 | 메인 페이즈                               | 상태       |
 | ------------------------------------ | -------- |
-| Phase 0. Observer Infrastructure     | ✅ 정리 완료  |
+| Phase 0. Observer Infrastructure     | ↗️ 독립 프로젝트 분리 |
 | Phase 1. Schema & Sheet Mapping      | ✅ 정리 완료  |
 | Phase 2. Config Architecture (Sheet) | ✅ 정리 완료  |
 | Phase 3. Config Architecture (Local) | ✅ 정리 완료  |
@@ -50,18 +50,11 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ### Phase 0. Observer Infrastructure
 
-**상태: ✅ 완료**
+**상태: ↗️ 독립 프로젝트로 분리**
 
-- Observer 단독 구현 완료
-    
-- 단독 테스트 완료
-    
-- 서버 배포 직전 단계
-    
-- 멀티 브로커 연동 일부 구현 자산 존재
-    
-
-→ 이후 Phase에서는 **의존 자산**으로만 사용
+- Observer는 별도의 독립 프로젝트로 분리됨 (2026-01-28)
+- QTS와 독립적으로 운영
+- Observer 아키텍처 문서는 해당 프로젝트 참조
 
 ---
 
@@ -141,9 +134,9 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 **상태: 🟡 부분 정리**
 
-- 멀티 브로커 Observer 연동 일부 구현 자산 존재
-    
-- Observer → Broker 상태 감시 흐름 구현됨
+- 멀티 브로커 연동 일부 구현 자산 존재
+
+- Broker 상태 감시 흐름 구현됨
     
 - 다만:
     
@@ -178,7 +171,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 - ETEDARunner 구현 (Extract -> Transform -> Evaluate -> Decide -> Act)
 - **Act 단계 안전장치(PAPER 모드)** 적용 및 검증
-- ObserverRunner 연동을 통한 Event-based Trigger 구현
+- Event-based Trigger 구현
 - StrategyEngine/PortfolioEngine 연동 구조 확립
 
 → **Freeze 가능**
@@ -214,8 +207,8 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 **상태: ⚪ 미정리**
 
-- Observer 외 Risk 로직
-    
+- Risk 로직
+
 - Kill-switch / Limit 정책
     
 
@@ -249,7 +242,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ## 5. 핵심 정리 (Decision Snapshot)
 
-1. **Schema / Config / Observer 영역은 구조적으로 안정 상태**
+1. **Schema / Config 영역은 구조적으로 안정 상태** (Observer는 독립 프로젝트로 분리됨)
     
 2. 현재까지 발견된 문제는:
     
@@ -292,7 +285,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 - **실제 구현 기준 진행률:** 약 40-45% (imple_status.md 기준)
 - **정합성 평가:** ✅ 양호
 - **상태 총평:** 
-  - Observer 인프라와 Schema/Config 기반 계층은 설계·구현·검증 완료 상태로 안정적
+  - Schema/Config 기반 계층은 설계·구현·검증 완료 상태로 안정적 (Observer는 독립 프로젝트로 분리됨)
   - **Engine Layer, Google Sheets 연동, Dashboard 등 핵심 거래 실행 계층은 미구현 상태**
   - 로드맵 상태 표시와 실제 코드 구현 상태가 대체로 일치하며, 의도적 미착수 영역이 명확히 구분됨
   - 구조적 불일치나 누락은 발견되지 않음
@@ -301,7 +294,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 | **로드맵 항목** | **상태** | **근거 (파일 경로 및 로직)** | **비고** |
 |---|---|---|---|
-| **Phase 0. Observer Infrastructure** | ✅ 일치 | `src/ops/observer/observer.py` - Observer 클래스 구현<br>`src/ops/observer/snapshot.py` - ObservationSnapshot 구조<br>`src/ops/observer/event_bus.py` - EventBus/Sink 구현<br>`tests/ops/observation/` - 다수의 Phase별 테스트 존재 | 단독 구현 완료, 테스트 완료 확인 |
+| **Phase 0. Observer Infrastructure** | ↗️ 분리 | 독립 프로젝트로 분리됨 (2026-01-28) | Observer는 별도 프로젝트로 운영 |
 
 | **Phase 1. Schema & Sheet Mapping** | ✅ 일치 | `src/runtime/config/schema_loader.py` - SchemaLoader 구현<br>`config/schema/credentials.json` - 10개 시트 스키마 정의<br>`src/runtime/data/repositories/` - 12개 리포지토리 구현<br>`src/runtime/data/google_sheets_client.py` - Google Sheets 클라이언트<br>`tests/google_sheets_integration/` - 통합 테스트 완료 | **Google Sheets 9-Sheet 연동 완료** |
 
@@ -312,11 +305,11 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 | **Phase 4. Engine Layer - Portfolio/Performance Engine** | ✅ 일치 | `src/runtime/engines/base_engine.py` - BaseEngine 기반 클래스<br>`src/runtime/engines/portfolio_engine.py` - Portfolio Engine 구현<br>`src/runtime/engines/performance_engine.py` - Performance Engine 구현<br>`tests/engines/` - 엔진 테스트 완료 (39개 테스트 통과) | **포트폴리오 관리 및 성과 추적 엔진 구현 완료** |
 | **Phase 4. Engine Layer - Config → Engine 입력 계약** | ✅ 일치 | `src/runtime/config/config_models.py` - UnifiedConfig 객체 존재<br>Config 병합 로직 구현됨<br>Engine에서 UnifiedConfig 직접 소비 | **Config-Engine 연동 완료** |
 
-| **Phase 5. ETEDA Pipeline** | ✅ 일치 | `src/runtime/pipeline/eteda_runner.py` - ETEDARunner 구현 완료<br>Extract/Transform/Evaluate/Decide/Act 전체 로직 구현<br>**PAPER 모드**를 통한 안전한 Act 실행 확인<br>`ObserverRunner` 연동 완료 | **ETEDA 파이프라인 및 실행 구조 완료** |
+| **Phase 5. ETEDA Pipeline** | ✅ 일치 | `src/runtime/pipeline/eteda_runner.py` - ETEDARunner 구현 완료<br>Extract/Transform/Evaluate/Decide/Act 전체 로직 구현<br>**PAPER 모드**를 통한 안전한 Act 실행 확인 | **ETEDA 파이프라인 및 실행 구조 완료** |
 
 | **Phase 6. Dashboard / Visualization** | ❌ 미구현 | 관련 파일 없음 | **Zero-Formula UI 렌더링 레이어 전체 누락** |
 
-| **Phase 7. Safety & Risk Core** | 🟡 부분 구현 | `src/runtime/risk/` - Risk 관련 인터페이스 존재<br>`risk_gate.py`, `risk_policy.py` 등 구조 존재<br>`src/ops/observer/guard.py` - Observer Guard 구현 | 기본 Risk 구조 존재<br>Kill-switch/Limit 정책은 미구현 |
+| **Phase 7. Safety & Risk Core** | 🟡 부분 구현 | `src/runtime/risk/` - Risk 관련 인터페이스 존재<br>`risk_gate.py`, `risk_policy.py` 등 구조 존재<br>`src/ops/safety/guard.py` - Safety Guard 구현 | 기본 Risk 구조 존재<br>Kill-switch/Limit 정책은 미구현 |
 
 | **Phase 8. Multi-Broker Integration** | ✅ 일치 | `src/runtime/broker/base.py` - BrokerEngine 인터페이스<br>`src/runtime/broker/kis/adapter.py` - KIS 어댑터 존재<br>`tests/runtime/broker/` - 브로커 테스트 다수 | **KIS 연동 완료, 멀티 브로커 아키텍처 구현됨** |
 
@@ -485,7 +478,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 **현황:**
 - `src/ops/automation/` 디렉토리가 빈 상태 (.gitkeep만)
 - 외부 트리거/스케줄러 구현 없음
-- Observer는 고정 interval(1초)로만 동작
+- 고정 interval 기반 동작만 지원
 
 **영향:**
 - ETEDA 실행을 트리거할 Ops Layer 스케줄러 없음
@@ -499,10 +492,10 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ### 7.4 긍정적 발견 사항
 
-1. **구조적 안정성**: Observer/Schema/Config 계층은 설계-구현-테스트가 완벽히 정합
+1. **구조적 안정성**: Schema/Config 계층은 설계-구현-테스트가 완벽히 정합 (Observer는 독립 프로젝트로 분리)
 2. **명확한 경계**: 로드맵의 "미정리" 표시와 실제 미구현 상태가 정확히 일치
 3. **테스트 커버리지**: 구현된 영역은 대부분 테스트 코드 존재 (총 60개 테스트 파일)
-4. **아키텍처 준수**: Contract 우선 원칙이 코드에 반영됨 (Observer의 판단 금지 등)
+4. **아키텍처 준수**: Contract 우선 원칙이 코드에 반영됨
 5. **멀티 브로커 지원**: KIS 연동 완료, 확장 가능한 브로커 아키텍처 구현됨
 6. **운영 인프라**: 백업/유지보수/보관 정책 등 Ops 레이어 구현 완료
 
@@ -531,10 +524,8 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 #### ✅ 완료된 Phase 구현 상세
 
 **Phase 0. Observer Infrastructure**
-- 구현 파일: `src/ops/observer/observer.py`, `src/ops/observer/snapshot.py`, `src/ops/observer/event_bus.py`
-- 테스트: `tests/ops/observation/` (15개 테스트 파일), `tests/ops/observer/` (3개 테스트 파일)
-- 실행 파일: `observer.py` (독립 실행 가능)
-- 상태: 단독 구현 완료, 서버 배포 준비 완료
+- 상태: **↗️ 독립 프로젝트로 분리** (2026-01-28)
+- Observer 모듈 및 관련 테스트가 별도 프로젝트로 이관됨
 
 **Phase 1. Schema & Sheet Mapping**
 - 구현 파일: `src/runtime/schema/schema_registry.py`, `src/runtime/schema/schema_models.py`
@@ -563,10 +554,9 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 - 테스트: `tests/config/test_local_config.py` (11개 테스트 통과)
 
 **Phase 5. Execution Pipeline (ETEDA)**
-- 구현 파일: `src/runtime/pipeline/eteda_runner.py`, `src/ops/runtime/observer_runner.py` 연동
-- 핵심 기능: PAPER 모드 기반 ETEDA 파이프라인, Event-based Trigger
-- 테스트: `tests/verify_phase5.py` (검증 완료)
-- 상태: **실행 파이프라인 구현 및 연동 완료**
+- 구현 파일: `src/runtime/pipeline/eteda_runner.py`
+- 핵심 기능: PAPER 모드 기반 ETEDA 파이프라인
+- 상태: **실행 파이프라인 구현 완료**
 
 **Phase 9. Ops & Automation**
 - 구현 파일: `src/ops/backup/manager.py`, `src/ops/maintenance/coordinator.py`, `src/ops/retention/`
@@ -587,7 +577,7 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 **Phase 7. Safety & Risk Core**
 - 구현 파일: `src/runtime/risk/` (risk_gate.py, risk_policy.py 등)
-- 구현 파일: `src/ops/observer/guard.py` (Observer Guard)
+- 구현 파일: `src/ops/safety/guard.py` (Safety Guard)
 - 상태: 기본 Risk 구조 존재
 - 미구현: Kill-switch/Limit 정책 구체화
 
@@ -635,7 +625,8 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 | 2026-01-09 | Phase 3 Local Config 설계 완료 (구현 대기) | Phase 3 | 🟡 부분 구현 |
 | 2026-01-08 | ETEDA Pipeline Act 단계 의도적 차단 확인 | Phase 5 | 🟡 부분 구현 |
 | 2026-01-07 | Multi-Broker KIS 어댑터 기본 연동 완료 | Phase 8 | ✅ 완료 |
-| 2026-01-06 | Observer 단독 구현 및 테스트 완료 | Phase 0 | ✅ 완료 |
+| 2026-01-28 | Observer 독립 프로젝트로 분리 | Phase 0 | ↗️ 분리 |
+| 2026-01-06 | Observer 단독 구현 및 테스트 완료 | Phase 0 | (분리됨) |
 | 2026-01-05 | Schema Registry 및 Config 3분할 구조 구현 완료 | Phase 1-2 | ✅ 완료 |
 
 ### 다음 우선순위 구현 권고 (imple_status.md 기준)

@@ -12,7 +12,7 @@
     - [ ] Implement Main Dashboard View (Summary)
     - [ ] Implement Position View (Table + Charts)
     - [ ] Implement Performance View (PnL Curves)
-    - [ ] Implement System Status Monitor (Observer Health, Latency)
+    - [ ] Implement System Status Monitor (System Health, Latency)
 
 - [ ] **Deployment**
     - [ ] Configure local hosting port/access

@@ -17,7 +17,7 @@
 ### 전체 진행률: **약 40-45%**
 
 **주요 특징:**
-- ✅ **기반 인프라:** Config, Schema, Observer 기반 구조 완료
+- ✅ **기반 인프라:** Config, Schema 기반 구조 완료 (Observer는 독립 프로젝트로 분리)
 - ✅ **브로커 연동:** KIS 브로커 어댑터 기본 구현 완료
 - ✅ **전략/리스크 인터페이스:** 기본 인터페이스 및 레지스트리 구현
 - ⚠️ **핵심 엔진:** Portfolio, Performance 엔진 미구현
@@ -30,17 +30,12 @@
 ## 1. 메인 페이즈별 구현 상세 분석
 
 ### Phase 0. Observer Infrastructure
-**상태: ✅ 구현 완료**
+**상태: ↗️ 독립 프로젝트로 분리**
 
-| 구성요소 | 파일 경로 | 구현 상태 | 비고 |
-|---------|-----------|-----------|------|
-| Observer Core | `src/ops/observer/observer.py` | ✅ 완료 | 관찰 오케스트레이터 |
-| Snapshot | `src/ops/observer/snapshot.py` | ✅ 완료 | 스냅샷 데이터 구조 |
-| Pattern Record | `src/ops/observer/pattern_record.py` | ✅ 완료 | 확장된 관찰 레코드 |
-| Event Bus | `src/ops/observer/event_bus.py` | ✅ 완료 | 이벤트 디스패칭 |
-| Analysis Pipeline | `src/ops/observer/analysis/` | ✅ 완료 | 분석 서브시스템 |
+Observer 모듈은 독립 프로젝트로 분리되었습니다 (2026-01-28).
+해당 프로젝트에서 별도 운영됩니다.
 
-**평가:** Observer 인프라는 문서화된 대로 완전히 구현됨
+**평가:** Observer는 QTS와 독립적으로 운영됨
 
 ---
 

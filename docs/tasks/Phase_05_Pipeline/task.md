@@ -5,7 +5,7 @@
     - [x] Connect `ETEDARunner` to `StrategyEngine` (if separate) or Strategy Logic
 
 - [x] **Pipeline Stages Implementation**
-    - [x] **Extract**: Implement data fetching from `Observer` snapshot
+    - [x] **Extract**: Implement data fetching from external input (Dict)
     - [x] **Transform**: convert raw snapshot to Strategy Input format
     - [x] **Evaluate**: Run strategy logic (Signal Generation)
     - [x] **Decide**: Validate signals against Risk Gates (Guard)

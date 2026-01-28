@@ -161,20 +161,17 @@ The system has a **solid technical foundation** and is well-architected for long
 
 ---
 
-### Observer & Operations
+### Operations
 
 | Feature | Status | File Path | Notes |
 |---------|--------|-----------|-------|
-| Observer Core | ✅ **Done** | `src/ops/observer/observer.py` | Observation orchestrator |
-| Observation Snapshot | ✅ **Done** | `src/ops/observer/snapshot.py` | Snapshot data structures |
-| Pattern Record | ✅ **Done** | `src/ops/observer/pattern_record.py` | Enriched observation records |
-| Event Bus | ✅ **Done** | `src/ops/observer/event_bus.py` | Multi-sink event dispatching |
-| Analysis Pipeline | ✅ **Done** | `src/ops/observer/analysis/` | Complete analysis subsystem (38 files) |
+| Observer | ↗️ **Separated** | - | 독립 프로젝트로 분리됨 (2026-01-28) |
 | Decision Pipeline | ✅ **Done** | `src/ops/decision_pipeline/` | Full ETEDA decision pipeline |
 | Backup Manager | ✅ **Done** | `src/ops/backup/manager.py` | Backup management |
 | Maintenance Coordinator | ✅ **Done** | `src/ops/maintenance/coordinator.py` | Maintenance coordination |
+| Safety Guard | ✅ **Done** | `src/ops/safety/guard.py` | Safety guard |
 
-**Assessment:** Observer and operations infrastructure is comprehensive and well-implemented.
+**Assessment:** Operations infrastructure is well-implemented. Observer has been separated into an independent project.
 
 ---
 
@@ -323,7 +320,7 @@ The QTS project demonstrates **strong architectural discipline** and **excellent
 **Key Strengths:**
 - Solid technical foundation with proper abstractions
 - Well-separated concerns (Runtime vs Ops)
-- Comprehensive observer and analysis capabilities
+- Comprehensive operations and decision pipeline capabilities (Observer separated to independent project)
 - Multi-broker support architecture in place
 
 **Key Gaps:**

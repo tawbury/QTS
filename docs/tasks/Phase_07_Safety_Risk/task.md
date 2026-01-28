@@ -7,7 +7,7 @@
 
 - [ ] **Guard System**
     - [ ] Integrate Risk Gates into `ETEDARunner` (Decide Phase)
-    - [ ] Implement `ObserverGuard` for real-time market anomaly detection (e.g., Flash Crash)
+    - [ ] Implement `AnomalyGuard` for real-time market anomaly detection (e.g., Flash Crash)
 
 - [ ] **Recovery & Fail-safe**
     - [ ] Implement "Lockdown Mode" (Cease all trading)

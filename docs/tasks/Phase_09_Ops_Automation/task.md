@@ -3,7 +3,7 @@
 - [ ] **Scheduler**
     - [ ] Implement `APScheduler` or equivalent for periodic tasks
     - [ ] Configure intervals for:
-        - [ ] Market Data Snapshot (Observer)
+        - [ ] Market Data Fetch
         - [ ] Strategy Execution (Pipeline)
         - [ ] Reporting / Dashboard Update
         - [ ] Backup / Maintenance
