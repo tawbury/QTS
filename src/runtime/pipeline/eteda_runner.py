@@ -5,7 +5,14 @@ from typing import Any, Dict, Optional
 
 from ..config.config_models import UnifiedConfig
 from ..engines.portfolio_engine import PortfolioEngine
+from ..engines.performance_engine import PerformanceEngine
 from ..engines.strategy_engine import StrategyEngine
+from ..data.google_sheets_client import GoogleSheetsClient
+from ..data.repositories.position_repository import PositionRepository
+from ..data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
+from ..data.repositories.t_ledger_repository import T_LedgerRepository
+from ..data.repositories.history_repository import HistoryRepository
+from ..data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 
 
 class ETEDARunner:
@@ -17,14 +24,34 @@ class ETEDARunner:
 
     def __init__(
         self,
-        config: UnifiedConfig,
-        portfolio_engine: PortfolioEngine,
-        strategy_engine: StrategyEngine
+        config: UnifiedConfig
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
-        self._portfolio_engine = portfolio_engine
-        self._strategy_engine = strategy_engine
+        
+        # GoogleSheetsClient 초기화
+        self._sheets_client = GoogleSheetsClient()
+        
+        # 리포지토리 초기화
+        self._position_repo = PositionRepository(self._sheets_client)
+        self._portfolio_repo = EnhancedPortfolioRepository(self._sheets_client)
+        self._t_ledger_repo = T_LedgerRepository(self._sheets_client)
+        self._history_repo = HistoryRepository(self._sheets_client)
+        self._performance_repo = EnhancedPerformanceRepository(self._sheets_client)
+        
+        # 엔진 초기화 (리포지토리 주입)
+        self._portfolio_engine = PortfolioEngine(
+            config=config,
+            position_repo=self._position_repo,
+            portfolio_repo=self._portfolio_repo,
+            t_ledger_repo=self._t_ledger_repo
+        )
+        self._performance_engine = PerformanceEngine(
+            config=config,
+            history_repo=self._history_repo,
+            performance_repo=self._performance_repo
+        )
+        self._strategy_engine = StrategyEngine(config=config)
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """

@@ -55,26 +55,35 @@ class PortfolioEngine(BaseEngine):
     포지션 관리, 자산 배분, 리스크 모니터링 등 포트폴리오 관련 기능을 제공합니다.
     """
     
-    def __init__(self, config: UnifiedConfig):
+    def __init__(
+        self,
+        config: UnifiedConfig,
+        position_repo: PositionRepository,
+        portfolio_repo: EnhancedPortfolioRepository,
+        t_ledger_repo: T_LedgerRepository
+    ):
         """
         PortfolioEngine 초기화
         
         Args:
             config: 통합 설정 객체
+            position_repo: Position 리포지토리
+            portfolio_repo: Enhanced Portfolio 리포지토리
+            t_ledger_repo: T_Ledger 리포지토리
         """
         super().__init__(config)
         
-        # 리포지토리 인스턴스 (나중에 초기화)
-        self._portfolio_repo: Optional[EnhancedPortfolioRepository] = None
-        self._position_repo: Optional[PositionRepository] = None
-        self._t_ledger_repo: Optional[T_LedgerRepository] = None
+        # 리포지토리 인스턴스 (의존성 주입)
+        self._portfolio_repo: EnhancedPortfolioRepository = portfolio_repo
+        self._position_repo: PositionRepository = position_repo
+        self._t_ledger_repo: T_LedgerRepository = t_ledger_repo
         
         # 캐시
         self._positions_cache: Dict[str, Position] = {}
         self._portfolio_summary_cache: Optional[PortfolioSummary] = None
         self._last_cache_update: Optional[datetime] = None
         
-        self.logger.info("PortfolioEngine created")
+        self.logger.info("PortfolioEngine created with injected repositories")
     
     async def initialize(self) -> bool:
         """
@@ -86,11 +95,10 @@ class PortfolioEngine(BaseEngine):
         try:
             self.logger.info("Initializing PortfolioEngine...")
             
-            # 리포지토리 초기화 (실제 구현에서는 의존성 주입 필요)
-            # 여기서는 Mock으로 처리
-            self._portfolio_repo = None  # 실제로는 의존성 주입 필요
-            self._position_repo = None
-            self._t_ledger_repo = None
+            # 리포지토리는 생성자에서 주입됨
+            # 리포지토리 유효성 검사
+            if not self._position_repo or not self._portfolio_repo or not self._t_ledger_repo:
+                raise ValueError("All repositories must be provided via constructor")
             
             self._update_state(is_running=False)
             self.logger.info("PortfolioEngine initialized successfully")
@@ -202,34 +210,44 @@ class PortfolioEngine(BaseEngine):
             PortfolioSummary: 포트폴리오 요약
         """
         try:
-            # 실제 구현에서는 PortfolioRepository를 통해 데이터 조회
-            # 여기서는 Mock 데이터 반환
-            mock_summary = PortfolioSummary(
-                total_equity=1000000.0,
-                daily_pnl=5000.0,
-                exposure=0.75,
-                cash_ratio=0.25,
-                holdings_count=15,
-                killswitch_status='ACTIVE',
-                sector_allocation={
-                    'Technology': 0.4,
-                    'Finance': 0.3,
-                    'Healthcare': 0.2,
-                    'Others': 0.1
-                },
-                strategy_allocation={
-                    'Swing': 0.6,
-                    'Scalp': 0.3,
-                    'Position': 0.1
-                }
+            # 실제 데이터로 요약 생성
+            positions = await self.get_positions()
+            
+            # 기본 지표 계산
+            total_market_value = sum(pos.market_value for pos in positions)
+            total_unrealized_pnl = sum(pos.unrealized_pnl for pos in positions)
+            total_equity = float(self.config.get('BASE_EQUITY', 1000000.0))
+            
+            # Exposure 계산
+            exposure = await self.calculate_exposure()
+            
+            # Cash ratio 계산
+            cash_ratio = 1.0 - exposure if exposure <= 1.0 else 0.0
+            
+            # 섹터/전략 배분
+            sector_allocation = await self.get_sector_allocation()
+            strategy_allocation = await self.get_strategy_allocation()
+            
+            # Killswitch 상태 (config에서 가져오기)
+            killswitch_status = self.config.get('KILLSWITCH_STATUS', 'ACTIVE')
+            
+            summary = PortfolioSummary(
+                total_equity=total_equity,
+                daily_pnl=total_unrealized_pnl,  # 일일 PnL은 별도 계산 필요
+                exposure=exposure,
+                cash_ratio=cash_ratio,
+                holdings_count=len(positions),
+                killswitch_status=killswitch_status,
+                sector_allocation=sector_allocation,
+                strategy_allocation=strategy_allocation
             )
             
-            self._portfolio_summary_cache = mock_summary
+            self._portfolio_summary_cache = summary
             self._last_cache_update = datetime.now()
             
-            await self._emit_event('portfolio_summary_updated', asdict(mock_summary))
+            await self._emit_event('portfolio_summary_updated', asdict(summary))
             
-            return mock_summary
+            return summary
             
         except Exception as e:
             self.logger.error(f"Failed to get portfolio summary: {str(e)}")
@@ -243,45 +261,55 @@ class PortfolioEngine(BaseEngine):
             List[Position]: 포지션 목록
         """
         try:
-            # 실제 구현에서는 PositionRepository를 통해 데이터 조회
-            # 여기서는 Mock 데이터 반환
-            mock_positions = [
-                Position(
-                    symbol='AAPL',
-                    name='Apple Inc.',
-                    market='NASDAQ',
-                    quantity=100,
-                    avg_price=150.0,
-                    current_price=155.0,
-                    market_value=15500.0,
-                    unrealized_pnl=500.0,
-                    unrealized_pnl_pct=0.033,
-                    strategy='Swing',
-                    sector='Technology'
-                ),
-                Position(
-                    symbol='MSFT',
-                    name='Microsoft Corp.',
-                    market='NASDAQ',
-                    quantity=50,
-                    avg_price=300.0,
-                    current_price=310.0,
-                    market_value=15500.0,
-                    unrealized_pnl=500.0,
-                    unrealized_pnl_pct=0.033,
-                    strategy='Swing',
-                    sector='Technology'
-                )
-            ]
+            # PositionRepository를 통해 실제 데이터 조회
+            raw_positions = await self._position_repo.get_all()
             
-            self._positions_cache = {pos.symbol: pos for pos in mock_positions}
+            positions = []
+            for raw_pos in raw_positions:
+                try:
+                    # 데이터 변환 및 검증
+                    qty = float(raw_pos.get('Qty', 0))
+                    avg_price = float(raw_pos.get('Avg_Price(Current_Currency)', 0))
+                    current_price = float(raw_pos.get('Current_Price(Current_Currency)', 0))
+                    
+                    # 수량이 0이면 스킵
+                    if qty == 0:
+                        continue
+                    
+                    # 미실현 손익 계산
+                    market_value = current_price * qty
+                    unrealized_pnl = (current_price - avg_price) * qty
+                    unrealized_pnl_pct = ((current_price - avg_price) / avg_price) if avg_price != 0 else 0.0
+                    
+                    position = Position(
+                        symbol=raw_pos.get('Symbol', ''),
+                        name=raw_pos.get('Name', ''),
+                        market=raw_pos.get('Market', ''),
+                        quantity=qty,
+                        avg_price=avg_price,
+                        current_price=current_price,
+                        market_value=market_value,
+                        unrealized_pnl=unrealized_pnl,
+                        unrealized_pnl_pct=unrealized_pnl_pct,
+                        strategy=raw_pos.get('Strategy', ''),
+                        sector=raw_pos.get('Sector', '')
+                    )
+                    
+                    positions.append(position)
+                    
+                except (ValueError, TypeError) as e:
+                    self.logger.warning(f"Failed to parse position {raw_pos.get('Symbol', 'UNKNOWN')}: {str(e)}")
+                    continue
+            
+            # 캐시 업데이트
+            self._positions_cache = {pos.symbol: pos for pos in positions}
             
             await self._emit_event('positions_updated', {
-                'positions': [asdict(pos) for pos in mock_positions],
-                'count': len(mock_positions)
+                'positions': [asdict(pos) for pos in positions],
+                'count': len(positions)
             })
             
-            return mock_positions
+            return positions
             
         except Exception as e:
             self.logger.error(f"Failed to get positions: {str(e)}")
@@ -298,11 +326,16 @@ class PortfolioEngine(BaseEngine):
             bool: 업데이트 성공 여부
         """
         try:
-            # 실제 구현에서는 PortfolioRepository를 통해 데이터 업데이트
-            self.logger.info(f"Updating portfolio KPI: {kpi_data}")
+            # EnhancedPortfolioRepository를 통해 KPI 업데이트
+            success = self._portfolio_repo.update_kpi_overview(kpi_data)
             
-            await self._emit_event('portfolio_kpi_updated', kpi_data)
-            return True
+            if success:
+                self.logger.info(f"Portfolio KPI updated successfully: {kpi_data}")
+                await self._emit_event('portfolio_kpi_updated', kpi_data)
+            else:
+                self.logger.error("Failed to update portfolio KPI")
+            
+            return success
             
         except Exception as e:
             self.logger.error(f"Failed to update portfolio KPI: {str(e)}")
@@ -319,9 +352,11 @@ class PortfolioEngine(BaseEngine):
             positions = await self.get_positions()
             total_market_value = sum(pos.market_value for pos in positions)
             
-            # Mock: 총 자산 대비 노출 계산
-            total_assets = 1000000.0  # Mock 값
-            exposure = total_market_value / total_assets if total_assets > 0 else 0.0
+            # 총 자산은 config에서 가져오거나 Portfolio sheet KPI에서 조회
+            # 여기서는 config의 BASE_EQUITY 사용
+            total_equity = float(self.config.get('BASE_EQUITY', 1000000.0))
+            
+            exposure = total_market_value / total_equity if total_equity > 0 else 0.0
             
             await self._emit_event('exposure_calculated', {'exposure': exposure})
             

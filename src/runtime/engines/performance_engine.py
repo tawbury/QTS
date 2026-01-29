@@ -67,18 +67,25 @@ class PerformanceEngine(BaseEngine):
     성과 추적, 수익률 계산, 리스크 지표, 통계 분석 등 성과 관련 기능을 제공합니다.
     """
     
-    def __init__(self, config: UnifiedConfig):
+    def __init__(
+        self,
+        config: UnifiedConfig,
+        history_repo: HistoryRepository,
+        performance_repo: EnhancedPerformanceRepository
+    ):
         """
         PerformanceEngine 초기화
         
         Args:
             config: 통합 설정 객체
+            history_repo: History 리포지토리 (성과 데이터 조회용)
+            performance_repo: Enhanced Performance 리포지토리 (KPI 업데이트용)
         """
         super().__init__(config)
         
-        # 리포지토리 인스턴스 (나중에 초기화)
-        self._performance_repo: Optional[EnhancedPerformanceRepository] = None
-        self._history_repo: Optional[HistoryRepository] = None
+        # 리포지토리 인스턴스 (의존성 주입)
+        self._performance_repo: EnhancedPerformanceRepository = performance_repo
+        self._history_repo: HistoryRepository = history_repo
         
         # 캐시
         self._performance_cache: Optional[PerformanceMetrics] = None
@@ -90,7 +97,7 @@ class PerformanceEngine(BaseEngine):
         self._risk_free_rate = 0.02  # 무위험 이자율 (연 2%)
         self._trading_days_per_year = 252
         
-        self.logger.info("PerformanceEngine created")
+        self.logger.info("PerformanceEngine created with injected repositories")
     
     async def initialize(self) -> bool:
         """
@@ -102,10 +109,10 @@ class PerformanceEngine(BaseEngine):
         try:
             self.logger.info("Initializing PerformanceEngine...")
             
-            # 리포지토리 초기화 (실제 구현에서는 의존성 주입 필요)
-            # 여기서는 Mock으로 처리
-            self._performance_repo = None  # 실제로는 의존성 주입 필요
-            self._history_repo = None
+            # 리포지토리는 생성자에서 주입됨
+            # 리포지토리 유효성 검사
+            if not self._history_repo or not self._performance_repo:
+                raise ValueError("All repositories must be provided via constructor")
             
             self._update_state(is_running=False)
             self.logger.info("PerformanceEngine initialized successfully")
@@ -221,10 +228,22 @@ class PerformanceEngine(BaseEngine):
             PerformanceMetrics: 성과 지표
         """
         try:
-            # 실제 구현에서는 HistoryRepository를 통해 데이터 조회
-            # 여기서는 Mock 데이터로 계산
-            daily_returns = self._generate_mock_daily_returns()
+            # HistoryRepository를 통해 실제 데이터 조회 (1년 데이터)
+            perf_data = await self._history_repo.get_performance_metrics(days=252)
+            history_data = await self._history_repo.get_execution_history(days=252)
             
+            # 일별 수익률 추출
+            daily_returns = []
+            for record in history_data:
+                try:
+                    return_str = record.get('Daily_Return', '0%')
+                    # '%' 제거하고 숫자로 변환
+                    return_val = float(str(return_str).replace('%', '').replace(',', '')) / 100.0
+                    daily_returns.append(return_val)
+                except (ValueError, TypeError):
+                    continue
+            
+            # 지표 계산
             total_return = self._calculate_total_return(daily_returns)
             mdd = self._calculate_max_drawdown_from_returns(daily_returns)
             volatility = self._calculate_volatility(daily_returns)
@@ -251,6 +270,18 @@ class PerformanceEngine(BaseEngine):
             self._performance_cache = metrics
             self._last_cache_update = datetime.now()
             
+            # Performance 대시보드에 KPI 업데이트
+            kpi_data = {
+                'total_return': total_return,
+                'mdd': mdd,
+                'daily_vol': volatility,
+                'sharpe': sharpe_ratio,
+                'win_rate': win_rate,
+                'avg_win': avg_win,
+                'avg_loss': avg_loss
+            }
+            self._performance_repo.update_kpi_summary(kpi_data)
+            
             await self._emit_event('performance_metrics_calculated', asdict(metrics))
             
             return metrics
@@ -272,18 +303,46 @@ class PerformanceEngine(BaseEngine):
             List[DailyPerformance]: 일별 성과 목록
         """
         try:
-            # 실제 구현에서는 HistoryRepository를 통해 데이터 조회
-            # 여기서는 Mock 데이터 반환
-            mock_daily_perf = self._generate_mock_daily_performance(start_date, end_date)
+            # HistoryRepository를 통해 실제 데이터 조회
+            # 날짜 범위 계산
+            if start_date is None:
+                start_date = date.today() - timedelta(days=30)
+            if end_date is None:
+                end_date = date.today()
             
-            self._daily_performance_cache = mock_daily_perf
+            days = (end_date - start_date).days
+            history_data = await self._history_repo.get_execution_history(days=days)
+            
+            # DailyPerformance 형식으로 변환
+            daily_perf = []
+            for record in history_data:
+                try:
+                    record_date = datetime.strptime(record.get('Date', ''), '%Y-%m-%d').date()
+                    if start_date <= record_date <= end_date:
+                        perf = DailyPerformance(
+                            date=record_date,
+                            total_equity=float(record.get('Total_Equity', 0)),
+                            daily_pnl=float(record.get('Daily_PnL', 0)),
+                            daily_return=float(str(record.get('Daily_Return', '0%')).replace('%', '').replace(',', '')) / 100.0,
+                            cumulative_return=float(str(record.get('Cumulative_Return', '0%')).replace('%', '').replace(',', '')) / 100.0,
+                            volatility_20d=float(str(record.get('Volatility_20D', '0%')).replace('%', '').replace(',', '')) / 100.0 if record.get('Volatility_20D') else 0.0,
+                            high_watermark=float(record.get('High_Watermark', 0)),
+                            drawdown=float(str(record.get('Drawdown', '0%')).replace('%', '').replace(',', '')) / 100.0 if record.get('Drawdown') else 0.0,
+                            mdd=float(str(record.get('MDD', '0%')).replace('%', '').replace(',', '')) / 100.0 if record.get('MDD') else 0.0
+                        )
+                        daily_perf.append(perf)
+                except (ValueError, TypeError) as e:
+                    self.logger.warning(f"Failed to parse daily performance for {record.get('Date')}: {str(e)}")
+                    continue
+            
+            self._daily_performance_cache = daily_perf
             
             await self._emit_event('daily_performance_updated', {
-                'count': len(mock_daily_perf),
+                'count': len(daily_perf),
                 'period': f"{start_date} to {end_date}"
             })
             
-            return mock_daily_perf
+            return daily_perf
             
         except Exception as e:
             self.logger.error(f"Failed to get daily performance: {str(e)}")
@@ -303,18 +362,50 @@ class PerformanceEngine(BaseEngine):
             if year is None:
                 year = datetime.now().year
             
-            # 실제 구현에서는 HistoryRepository를 통해 데이터 조회
-            # 여기서는 Mock 데이터 반환
-            mock_monthly_perf = self._generate_mock_monthly_performance(year)
+            # HistoryRepository를 통해 연도별 데이터 조회 및 월별 집계
+            history_data = await self._history_repo.get_all()
             
-            self._monthly_performance_cache = mock_monthly_perf
+            # 월별 데이터 그룹화
+            monthly_data = {}
+            for record in history_data:
+                try:
+                    record_date = datetime.strptime(record.get('Date', ''), '%Y-%m-%d').date()
+                    if record_date.year == year:
+                        month_key = f"{year}-{record_date.month:02d}"
+                        if month_key not in monthly_data:
+                            monthly_data[month_key] = []
+                        monthly_data[month_key].append(record)
+                except (ValueError, TypeError):
+                    continue
+            
+            # 월별 성과 계산
+            monthly_perf = []
+            for month_key in sorted(monthly_data.keys()):
+                records = monthly_data[month_key]
+                # 월별 수익률 계산 (간단하게 첫날과 마지막날 비교)
+                if records:
+                    first_equity = float(records[0].get('Total_Equity', 0))
+                    last_equity = float(records[-1].get('Total_Equity', 0))
+                    monthly_return = ((last_equity - first_equity) / first_equity) if first_equity > 0 else 0.0
+                    
+                    perf = MonthlyPerformance(
+                        month=month_key,
+                        monthly_return=monthly_return,
+                        cumulative_monthly_return=0.0,  # 별도 계산 필요
+                        mom_change=0.0,  # 별도 계산 필요
+                        volatility=0.15,  # 별도 계산 필요
+                        sharpe_ratio=monthly_return / 0.15 if 0.15 != 0 else 0.0
+                    )
+                    monthly_perf.append(perf)
+            
+            self._monthly_performance_cache = monthly_perf
             
             await self._emit_event('monthly_performance_updated', {
                 'year': year,
-                'count': len(mock_monthly_perf)
+                'count': len(monthly_perf)
             })
             
-            return mock_monthly_perf
+            return monthly_perf
             
         except Exception as e:
             self.logger.error(f"Failed to get monthly performance: {str(e)}")
@@ -331,9 +422,32 @@ class PerformanceEngine(BaseEngine):
             bool: 업데이트 성공 여부
         """
         try:
-            # 실제 구현에서는 PerformanceRepository를 통해 데이터 업데이트
-            self.logger.info(f"Updating performance KPI: {kpi_data}")
+            # HistoryRepository를 통해 일일 성과 로깅
+            if 'total_equity' in kpi_data and 'daily_pnl' in kpi_data:
+                await self._history_repo.log_execution(
+                    total_equity=kpi_data.get('total_equity', 0.0),
+                    daily_pnl=kpi_data.get('daily_pnl', 0.0),
+                    daily_return=kpi_data.get('daily_return', 0.0),
+                    cumulative_return=kpi_data.get('cumulative_return', 0.0),
+                    volatility=kpi_data.get('volatility'),
+                    high_watermark=kpi_data.get('high_watermark'),
+                    drawdown=kpi_data.get('drawdown')
+                )
             
+            # EnhancedPerformanceRepository를 통해 Performance 대시보드 업데이트
+            if 'total_return' in kpi_data:
+                dashboard_kpi = {
+                    'total_return': kpi_data.get('total_return', 0.0),
+                    'mdd': kpi_data.get('mdd', 0.0),
+                    'daily_vol': kpi_data.get('daily_vol', 0.0),
+                    'sharpe': kpi_data.get('sharpe', 0.0),
+                    'win_rate': kpi_data.get('win_rate', 0.0),
+                    'avg_win': kpi_data.get('avg_win', 0.0),
+                    'avg_loss': kpi_data.get('avg_loss', 0.0)
+                }
+                self._performance_repo.update_kpi_summary(dashboard_kpi)
+            
+            self.logger.info(f"Performance KPI updated successfully: {kpi_data}")
             await self._emit_event('performance_kpi_updated', kpi_data)
             return True
             
