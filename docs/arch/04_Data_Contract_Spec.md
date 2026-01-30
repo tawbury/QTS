@@ -665,7 +665,8 @@ ExecutionResult = {
 
 # **7. UI Contract Specification**
 
-UI Contract는 대시보드(R_Dash)를 업데이트하기 위한 구조.
+UI Contract는 대시보드(R_Dash)를 업데이트하기 위한 구조.  
+**필드·버전 정책·단일 빌더 원칙**은 **[UI_Contract_Schema.md](./UI_Contract_Schema.md)** 에 고정되어 있다.
 
 ## **7.1 목적**
 
