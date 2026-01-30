@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Dict, Any, List
 
 from ops.retention.policy import RetentionPolicy
+
+_log = logging.getLogger("ops.runtime.maintenance_runner")
 from ops.retention.scanner import DatasetScanner
 from ops.retention.cleaner import RetentionCleaner
 from ops.backup.manager import BackupManager
@@ -80,7 +83,7 @@ def run_maintenance_automation(
         }
 
     except Exception as e:
-        # 백업 실패 시 → 삭제 절대 금지
+        _log.warning("Backup failed (no deletion): %s", e, exc_info=True)
         summary["status"] = "backup_failed"
         summary["error"] = str(e)
         summary["deletion"]["executed"] = False

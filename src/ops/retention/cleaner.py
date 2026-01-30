@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import List, Optional
 
 from .policy import RetentionPolicy
+
+_log = logging.getLogger("ops.retention.cleaner")
 
 
 class RetentionCleaner:
@@ -98,8 +101,9 @@ class RetentionCleaner:
             try:
                 path.unlink()
                 deleted.append(path)
-            except Exception:
-                # fail-safe: never crash retention
+            except Exception as e:
+                _log.warning("Retention apply: failed to unlink %s: %s", path, e)
+                # fail-safe: never crash retention; continue with next file
                 continue
 
         return deleted
