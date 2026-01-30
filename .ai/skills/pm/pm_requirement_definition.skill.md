@@ -1,27 +1,65 @@
-[Optimized: 2026-01-09]
+[Optimized: 2026-01-16]
 
 # PM Requirement Definition Skill
 
+<!-- BLOCK:CORE_LOGIC -->
 ## Core Logic
-- 요구사항 식별/명세화/문서화 (다양 이해관계자/소스)
-- 비즈니스 요구/사용자 피드백 → 명확 실행 가능 명세
-- 요구사항 수집/분석/문서화 (이해관계자 요구 정확 포획)
+- Requirement identification/specification/documentation (diverse stakeholders/sources)
+- Business requirements/user feedback → clear executable specifications
+- Requirement collection/analysis/documentation (stakeholder requirements accurate capture)
+<!-- END_BLOCK -->
 
-## Scope & Constraints
-### IN Scope
-- 이해관계자 요구사항 수집
-- 비즈니스 요구 분석
-- 사용자 스토리 생성
-- 수용 기준 정의
-- 요구사항 우선순위화
-- 명세 문서화
-- 요구사항 검증/확인
-- 변경 요청 관리
+<!-- BLOCK:INPUT_OUTPUT -->
+## Input/Output
+### Input
+- Business objectives & strategies
+- Stakeholder requirements
+- User feedback & data
+- Market & competitive analysis
 
+### Output
+- Requirement specification documents
+- User stories & acceptance criteria
+- Requirement priority lists
+- Change request management plans
+<!-- END_BLOCK -->
+<!-- BLOCK:EXECUTION_LOGIC -->
+## Execution Logic
+1. Stakeholder identification & requirement collection planning establishment
+2. Business requirement analysis & user feedback integration
+3. Requirement classification & priority evaluation
+4. User story creation & acceptance criteria definition
+5. Requirement specification document writing & structuring
+6. Stakeholder verification & feedback collection
+7. Change request process design & management
+8. Requirement traceability assurance & documentation
+<!-- END_BLOCK -->
+
+<!-- BLOCK:TECHNICALREQUIREMENTS -->
+## Technical Requirements
+- Requirement management tools (JIRA, Confluence, etc.)
+- User story templates
+- Stakeholder interview techniques
+- Prototyping tools
+<!-- END_BLOCK -->
+
+<!-- BLOCK:CONSTRAINTS -->
+## Constraints
 ### OUT Scope
-- 기술 솔루션 설계 ❌
-- 구현 계획 ❌
-- 품질 보증 테스트 ❌
-- 고객 지원 활동 ❌
-- 재무 분석/예산 ❌
-- 팀 조정/관리 ❌
+- Technical solution design ❌
+- Implementation planning ❌
+- Quality assurance testing ❌
+- Customer support activities ❌
+- Financial analysis/budget ❌
+- Team coordination/management ❌
+
+### Requirement Constraints
+- Business value compliance
+- Executability guarantee
+- Stakeholder agreement
+- Clarity & measurability
+<!-- END_BLOCK -->
+
+## Related Skills
+- Prerequisite: pm_planning.skill.md or pm_roadmap_management.skill.md
+- Related Skills: pm_planning.skill.md, pm_roadmap_management.skill.md (planning context)

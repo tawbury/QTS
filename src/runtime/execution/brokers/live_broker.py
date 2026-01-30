@@ -16,7 +16,6 @@ class LiveBroker(BrokerEngine):
 
     - Adapter is injected
     - Fail-safe based on consecutive failures
-    - Observer hooks are optional (no-op if None)
     - ExecutionResponse contract is strictly preserved
     """
 
@@ -25,21 +24,13 @@ class LiveBroker(BrokerEngine):
         *,
         adapter,
         max_consecutive_failures: int = 3,
-        observer=None,
     ) -> None:
         self._adapter = adapter
-        self._observer = observer
         self._guard = ConsecutiveFailureGuard(
             ConsecutiveFailurePolicy(max_failures=max_consecutive_failures)
         )
 
     def submit_intent(self, intent: ExecutionIntent) -> ExecutionResponse:
-        from runtime.observer.live_events import emit
-
-        emit(self._observer, "order_intent", {
-            "intent_id": getattr(intent, "id", "unknown"),
-        })
-
         if self._guard.blocked:
             resp = ExecutionResponse(
                 intent_id=getattr(intent, "id", "unknown"),
@@ -47,20 +38,9 @@ class LiveBroker(BrokerEngine):
                 broker="failsafe",
                 message="blocked: consecutive failures exceeded",
             )
-            emit(self._observer, "failsafe_blocked", {
-                "intent_id": resp.intent_id,
-                "reason": resp.message,
-            })
             return resp
 
         resp = self._adapter.submit_intent(intent)
-
-        emit(self._observer, "order_response", {
-            "intent_id": resp.intent_id,
-            "accepted": resp.accepted,
-            "broker": resp.broker,
-            "message": resp.message,
-        })
 
         if resp.accepted:
             self._guard.on_success()

@@ -1,49 +1,73 @@
-[Optimized: 2026-01-09]
+[Optimized: 2026-01-16]
 
 # HR Level Check Skill
 
+<!-- BLOCK:CORE_LOGIC -->
 ## Core Logic
-- Task 본문 기준 Level 판단
-- 결과: L1 | L2 | PENDING
+- Task text-based Level determination
+- Result: L1 | L2 | PENDING
+<!-- END_BLOCK -->
 
+<!-- BLOCK:INPUT_OUTPUT -->
 ## Input/Output
 ### Input
-- Task 문서 내용 (Meta section 제외)
+- Task document contents (Meta section excluded)
 
 ### Output
 - Level Result (L1/L2/PENDING)
 - Decision Basis Summary
+<!-- END_BLOCK -->
 
-## Decision Rules
-### Common Criteria
-- **L1 (Junior):** 지도/감독 필요, 학습 중, 제한된 책임
-- **L2 (Senior):** 독립적 수행, 멘토링, 복잡한 문제 해결, 의사결정권
+<!-- BLOCK:EXECUTION_LOGIC -->
+## Execution Logic
+### Decision Rules
+#### Common Criteria
+- **L1 (Junior):** Guidance/supervision required, learning phase, limited responsibility
+- **L2 (Senior):** Independent execution, mentoring, complex problem solving, decision-making authority
 
-### Department Keywords
-- **Dev:** L2=아키텍처 설계, 기술 부채 관리, 코드 리뷰 주도 | L1=기능 구현, 버그 수정
-- **Content:** L2=전략 수립, 브랜드 가이드라인 제정, 파이프라인 최적화 | L1=단순 편집, 애셋 제작
+#### Department Keywords
+- **Dev:** 
+  - L2=architecture design, technical debt management, code review leadership, system design, API design, security architecture, performance strategy
+  - L1=function implementation, bug fixes, basic testing, code documentation, basic integration
 
-### PENDING Criteria
-- 기준 불명확/부족
-- L1/L2 구분 모호
-- 판단 정보 부족
-- 모호/일반적 기술만 존재
+- **contents-creator**: 
+  - L2=strategy establishment, brand guideline formulation, pipeline optimization, contents architecture, revenue strategy, cross-media integration
+  - L1=simple editing, asset creation, template usage, basic writing, basic formatting
 
-## Judgment Logic
-1. Task 본문 `Provided Criteria` 섹션만 분석 (Meta 제외)
-2. `Department` 필드 기반 특화 키워드 가중치 적용
-3. L1 기준에 가까우면 L1 판정
-4. L2 기준에 가까우면 L2 판정
-5. 명확하지 않으면 PENDING 판정
+- **pm**: 
+  - L2=strategic planning, market analysis, product vision, growth strategy, roadmap leadership, stakeholder coordination
+  - L1=task execution, backlog management, basic planning, milestone tracking, basic documentation
 
+- **finance**: 
+  - L2=strategic financial planning, risk management, investment analysis, financial system design, business advisory
+  - L1=basic analysis, budget tracking, data entry, basic reporting, compliance checking
+
+#### PENDING Criteria
+- Criteria unclear/insufficient
+- L1/L2 distinction ambiguous
+- Judgment information insufficient
+- Vague/general skills only present
+
+### Judgment Logic
+1. Analyze Task text `Provided Criteria` section only (Meta excluded)
+2. Apply specialized keyword weighting based on `Department` field
+3. Judge as L1 if closer to L1 criteria
+4. Judge as L2 if closer to L2 criteria
+5. Judge as PENDING if unclear
+<!-- END_BLOCK -->
+
+<!-- BLOCK:TECHNICAL_REQUIREMENTS -->
+## Technical Requirements
+- Task document parsing capability
+- Keyword matching algorithms
+- Department-specific criteria database
+- Judgment result formatting
+<!-- END_BLOCK -->
+
+<!-- BLOCK:CONSTRAINTS -->
 ## Constraints
-- Task 본문 기준 ONLY
-- Meta 정보 사용 절대 금지
-- L1/L2/PENDING 결과만 허용
-- 추론/가정 금지
-
-## Return Format
-```
-Level: L1|L2|PENDING
-Basis: [판단 근거 요약]
-```
+- Meta information interpretation prohibited
+- Task text-based judgment ONLY
+- PENDING processing when clear criteria absent
+- Objective keyword-based judgment
+<!-- END_BLOCK -->

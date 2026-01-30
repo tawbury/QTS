@@ -51,7 +51,7 @@ def load_local_config(project_root: Path) -> ConfigLoadResult:
         )
     
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
         
         if not isinstance(data, list):

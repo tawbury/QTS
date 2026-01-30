@@ -42,11 +42,6 @@ google_token.json
 logs/
 log/
 
-# **[중요]** Observer 실행 로그 (config/observer/ 경로)
-config/observer/*.jsonl
-**/usage_*_test*.jsonl
-**/usage_rotation_test*.jsonl
-
 # ------------------------------------------------------------
 # [OS/IDE] 운영체제 및 IDE 시스템 파일
 # ------------------------------------------------------------

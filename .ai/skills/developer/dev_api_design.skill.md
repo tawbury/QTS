@@ -1,27 +1,66 @@
-[Optimized: 2026-01-09]
+[Optimized: 2026-01-16]
 
 # Dev API Design Skill
 
+<!-- BLOCK:CORE_LOGIC -->
 ## Core Logic
-- API 설계 및 구조화 (소프트웨어 컴포넌트 간 통신)
-- 명확/일관/효율적 API 생성 (Frontend-Backend 계약)
-- 인터페이스 설계, 데이터 구조 정의, 통신 프로토콜 수립
+- API design & structuring (software component communication)
+- Clear/consistent/efficient API creation (Frontend-Backend contract)
+- Interface design, data structure definition, communication protocol establishment
+<!-- END_BLOCK -->
 
-## Scope & Constraints
-### IN Scope
-- API 인터페이스 설계
-- 데이터 구조 정의
-- 통신 프로토콜 명세
-- API 문서화 생성
-- 버전 관리 전략
-- 보안 프로토콜 설계
-- 에러 처리 명세
-- 성능 요구사항 정의
+<!-- BLOCK:INPUT_OUTPUT -->
+## Input/Output
+### Input
+- System architecture definition
+- Data model specifications
+- Frontend/Backend communication requirements
+- Security policy definition
 
+### Output
+- API specifications (OpenAPI/Swagger)
+- Endpoint definitions
+- Data transfer object (DTO) specifications
+- Error handling standards
+- API management strategy (version in Meta section)
+<!-- END_BLOCK -->
+
+<!-- BLOCK:EXECUTION_LOGIC -->
+## Execution Logic
+1. Analyze system components & identify communication points
+2. Design API resources & endpoints
+3. Define request/response data structures
+4. Standardize HTTP methods & status codes
+5. Design authentication/authorization protocols
+6. Define error handling & exception scenarios
+7. API management & compatibility strategy (version in Meta section)
+8. Reflect performance & security requirements
+<!-- END_BLOCK -->
+
+<!-- BLOCK:TECHNICAL_REQUIREMENTS -->
+## Technical Requirements
+- API specification standards (OpenAPI 3.0, RAML)
+- HTTP/HTTPS protocols
+- Data formats (JSON, XML)
+- Authentication standards (OAuth2, JWT, API Key)
+- API documentation tools
+- Automated testing tools
+<!-- END_BLOCK -->
+
+<!-- BLOCK:CONSTRAINTS -->
+## Constraints
 ### OUT Scope
-- API 구현/코딩 ❌
-- 데이터베이스 설계/관리 ❌
-- Frontend 인터페이스 개발 ❌
-- 시스템 인프라 관리 ❌
-- 사용자 경험 설계 ❌
-- 프로젝트 관리 활동 ❌
+- API implementation/coding ❌
+- Database design/management ❌
+- Frontend interface development ❌
+- System infrastructure management ❌
+- User experience design ❌
+- Project management activities ❌
+
+### Design Constraints
+- RESTful principles compliance
+- Stateless design
+- Consistent error response format
+- Backward compatibility guarantee
+- Rate limiting & security consideration
+<!-- END_BLOCK -->
