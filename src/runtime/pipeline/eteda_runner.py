@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..config.config_models import UnifiedConfig
+from .safety_hook import PipelineSafetyHook
 from ..config.execution_mode import ExecutionMode, decide_execution_mode
 from ..execution.interfaces.broker import BrokerEngine
 from ..execution.models.intent import ExecutionIntent
@@ -41,6 +42,7 @@ class ETEDARunner:
     - sheets_client: optional. If None, created from config/env.
     - project_root: optional. If None, resolved via paths.project_root() or cwd.
     - broker: optional BrokerEngine. If provided, Act 단계에서 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용.
+    - safety_hook: optional PipelineSafetyHook. If provided, run_once 시작 시 should_run() 확인, Act 단계 Broker Fail-Safe 시 record_fail_safe() 호출.
     """
 
     def __init__(
@@ -50,6 +52,7 @@ class ETEDARunner:
         sheets_client: Optional[GoogleSheetsClient] = None,
         project_root: Optional[Path] = None,
         broker: Optional[BrokerEngine] = None,
+        safety_hook: Optional[PipelineSafetyHook] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
@@ -88,6 +91,7 @@ class ETEDARunner:
         )
         self._strategy_engine = StrategyEngine(config=config)
         self._broker = broker
+        self._safety_hook = safety_hook
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -100,6 +104,13 @@ class ETEDARunner:
             Dict[str, Any]: Pipeline result
         """
         try:
+            # Safety Hook: Kill Switch / pipeline_state 확인 (Phase 7)
+            if self._safety_hook is not None and not self._safety_hook.should_run():
+                return {
+                    "status": "skipped",
+                    "reason": "safety",
+                    "pipeline_state": self._safety_hook.pipeline_state(),
+                }
             # 1. Extract
             market_data = self._extract(snapshot)
             if not market_data:
@@ -131,7 +142,8 @@ class ETEDARunner:
                 "decision": decision,
                 "act_result": act_result
             }
-            
+            if self._safety_hook is not None:
+                result["pipeline_state"] = self._safety_hook.pipeline_state()
             self._log.info(f"Pipeline Result: {result}")
             return result
             
@@ -224,6 +236,9 @@ class ETEDARunner:
                     metadata={"decision": decision, "mode": gate.mode.value},
                 )
                 resp = self._broker.submit_intent(intent)
+                # Phase 7: Broker Fail-Safe(ConsecutiveFailureGuard) 시 Safety Layer 기록
+                if not resp.accepted and resp.broker == "failsafe" and self._safety_hook is not None:
+                    self._safety_hook.record_fail_safe("FS040", resp.message or "blocked: consecutive failures exceeded", "Act")
                 ts = getattr(resp.timestamp, "isoformat", lambda: str(resp.timestamp))()
                 out = {
                     "status": "executed" if resp.accepted else "rejected",
