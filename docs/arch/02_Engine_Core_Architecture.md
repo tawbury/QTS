@@ -70,6 +70,17 @@ QTS_Python_Calculation_Spec.md 및 QTS_Data_Contract_Spec.md 와 함께 사용�
 
 ---
 
+## **1.4 관련 문서**
+
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **Schema Automation**: [01_Schema_Auto_Architecture.md](./01_Schema_Auto_Architecture.md)
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
+- **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
+- **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+
+---
+
 ## **1.3 Engine-Oriented Architecture 철학**
 
 QTS의 엔진 계층은 다음 철학 위에서 설계된다.
@@ -157,11 +168,20 @@ QTS 엔진 레이어는 다음 다섯 엔진으로 구성된다.
 ## **2.5 Performance Engine**
 
 - 거래별/일별/전략별 성과 계산
-    
+
 - PnL, MDD, CAGR 등 성과지표 생성
-    
+
 - 리포트/대시보드 입력값 생성
-    
+
+
+---
+
+## **2.6 Capital Engine (참조)**
+
+Capital allocation across strategy pools (Scalp/Swing/Portfolio).
+3-Track Capital Strategy의 자본 흐름 및 풀 관리를 담당한다.
+
+See: [sub/14_Capital_Flow_Architecture.md](./sub/14_Capital_Flow_Architecture.md)
 
 ---
 

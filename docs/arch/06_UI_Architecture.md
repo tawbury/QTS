@@ -73,6 +73,15 @@ UI Architecture의 목적은 다음과 같다.
 
 ---
 
+## **1.6 관련 문서**
+
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **Architecture Summary**: [12_Architecture_Summary.md](./12_Architecture_Summary.md)
+
+---
+
 ## **1.3 UI Layer의 역할**
 
 UI는 다음 기능을 수행한다.

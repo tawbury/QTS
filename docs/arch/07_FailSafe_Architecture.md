@@ -74,6 +74,16 @@ Safety Layer는 다음 목표를 수행한다.
 
 ---
 
+## **1.6 관련 문서**
+
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
+- **Ops & Automation**: [09_Ops_Automation_Architecture.md](./09_Ops_Automation_Architecture.md)
+- **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+
+---
+
 ## **1.3 Safety Layer의 역할**
 
 Safety Layer는 QTS에서 다음 기능을 수행한다.
@@ -224,6 +234,9 @@ Fail-Safe 발동 시:
 |FS060|ETEDA 사이클 시간 초과|
 |FS070|Position-Ledger 불일치|
 |FS080|시스템 메모리 부족|
+|FS080-089|Capital Pool Errors|
+|FS090-099|Scalp Execution Errors|
+|FS100-109|Micro Risk Loop Errors|
 
 ---
 
@@ -320,6 +333,9 @@ Fail-Safe보다 한 단계 낮은 수준의 “경계 보호(Soft Protection)”
 |GR020|DailyLoss Warning|
 |GR030|신호 충돌 감지|
 |GR040|포지션 불일치 감지|
+|GR050-059|Capital Pool Violations|
+|GR060-069|Scalp Execution Violations|
+|GR070-079|Micro Risk Loop Violations|
 
 ---
 
@@ -445,6 +461,16 @@ Fail-Safe (치명적 오류 시)
 |WARNING|경고 상태|
 |FAIL|치명 오류, 매매 중단|
 |LOCKDOWN|영구적 차단(운영자 승인 필요)|
+
+**Operating States (Safety State와 직교):**
+
+|상태|설명|
+|---|---|
+|AGGRESSIVE|Scalp-heavy mode (60-80% Scalp)|
+|BALANCED|Scalp + Swing mix (Default)|
+|DEFENSIVE|Portfolio-focused (Capital preservation)|
+
+See: [sub/18_System_State_Promotion_Architecture.md](./sub/18_System_State_Promotion_Architecture.md)
 
 ---
 

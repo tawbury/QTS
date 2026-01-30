@@ -74,6 +74,16 @@ QTS Broker Integration Layer는 다음 목표를 수행한다.
 
 ---
 
+## **1.6 관련 문서**
+
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
+- **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+
+---
+
 ## **1.3 브로커 통합(Broker Integration)의 역할**
 
 Broker Integration Layer는 Trading Engine이 다음을 할 수 있도록 구조화한다.

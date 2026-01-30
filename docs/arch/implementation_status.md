@@ -3,8 +3,8 @@
 **Analysis Date:** January 27, 2025  
 **Reference Documents:**
 - QTS Master Plan (`docs/QTS_master_plan_251211.md`)
-- QTS Main Architecture (`docs/architecture/00QTS_Architecture.md`)
-- Architecture Sub-documents (Schema, Engine, Pipeline, UI, FailSafe, Broker, Ops)
+- QTS Main Architecture ([00_Architecture.md](./00_Architecture.md))
+- Architecture Sub-documents: [Schema](./01_Schema_Auto_Architecture.md), [Engine](./02_Engine_Core_Architecture.md), [Pipeline](./03_Pipeline_ETEDA_Architecture.md), [UI](./06_UI_Architecture.md), [FailSafe](./07_FailSafe_Architecture.md), [Broker](./08_Broker_Integration_Architecture.md), [Ops](./09_Ops_Automation_Architecture.md)
 
 **Status:** Comprehensive Analysis Complete
 

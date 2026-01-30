@@ -98,6 +98,15 @@ Ops 레이어와 Runtime 레이어 간 연동:
 
 ---
 
+## 6. 관련 문서
+
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
+- **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+- **Change Management**: [11_Architecture_Change_Management.md](./11_Architecture_Change_Management.md)
+
+---
+
 ## 변경 이력
 
 | 날짜 | 버전 | 변경 내용 |

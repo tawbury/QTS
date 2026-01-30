@@ -69,6 +69,15 @@ Dividend DB의 목적:
 
 ---
 
+## **1.6 관련 문서**
+
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Config 3분할**: [13_Config_3분할_Architecture.md](./13_Config_3분할_Architecture.md)
+
+---
+
 ## **1.3 Dividend DB의 역할**
 
 1. **현금 흐름(Cash Flow) 직접 반영**

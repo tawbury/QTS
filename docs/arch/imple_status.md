@@ -5,6 +5,7 @@
 **참조 문서:**
 - QTS 로드맵 (`docs/architecture/roadmap/QTS Roadmap.md`)
 - 구현 상태 문서 (`docs/architecture/implementation_status.md`)
+- **아키텍처 문서:** [00_Architecture.md](./00_Architecture.md) 및 관련 서브 문서들
 
 **상태:** 코드베이스 실제 구현 분석 완료
 

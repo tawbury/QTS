@@ -67,8 +67,19 @@ ETEDA Pipeline을 문서화하는 목적:
     
 - 계산 수식 상세 (→ QTS_Python_Calculation_Spec)
     
-- Schema Engine 상세 구조 (→ Schema Architecture)
+- Schema Engine 상세 구조 (→ [Schema Architecture](./01_Schema_Auto_Architecture.md))
     
+
+---
+
+## **1.6 관련 문서**
+
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **Schema Automation**: [01_Schema_Auto_Architecture.md](./01_Schema_Auto_Architecture.md)
+- **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
+- **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
+- **Ops & Automation**: [09_Ops_Automation_Architecture.md](./09_Ops_Automation_Architecture.md)
 
 ---
 
@@ -577,6 +588,15 @@ else:
 
 ---
 
+## **7.7 Scalp Execution Extension (참조)**
+
+For Scalp strategy, Act phase extends into 6-stage micro-architecture:
+PreCheck → OrderSplit → AsyncSend → PartialFillMonitor → AdaptiveAdjust → EmergencyEscape
+
+See: [sub/15_Scalp_Execution_Micro_Architecture.md](./sub/15_Scalp_Execution_Micro_Architecture.md)
+
+---
+
 # **8. Pipeline Error Handling & Fail-Safe Integration**
 
 ## **8.1 단계별 오류 분류**
@@ -933,8 +953,20 @@ def run_ETEDA():
 예: Extract 단계에서 Position 데이터 누락 →
 
 - 원인: 시트 정리 중 행 삭제
-    
+
 - 대응: 시트 복원, Schema 재빌드 → 파이프라인 재가동
-    
+
+
+---
+
+# **14. Event Priority Architecture (참조)**
+
+QTS Event Priority Architecture defines latency isolation across 4 priority levels:
+- P0 (Critical): Execution & Fill events - <10ms
+- P1 (High): Orderbook/Price updates - <50ms
+- P2 (Medium): Strategy evaluation - <500ms
+- P3 (Low): UI & Logging - Best effort
+
+See: [sub/17_Event_Priority_Architecture.md](./sub/17_Event_Priority_Architecture.md)
 
 ---

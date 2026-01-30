@@ -1,13 +1,5 @@
-예외 규칙 호출 확인했다.  
-요청대로 **“QTS 아키텍처 생성” 세션의 내용을 참조하는 것을 1회 예외적으로 허용**하고,  
-지금 세션(ARCH_DESIGN 모드)에서 **QTS Main Architecture 문서의 본문 0장부터 작성**을 진행한다.
 
-아래는 **최종 템플릿 구조(v1.0.1)** 기준으로 작성된  
-**0. Document Overview**의 완성도 높은 설계 본문이다.
-
----
-
-# **0. Document Overview**
+# **0. 문서 개요**
 
 QTS Main Architecture는 QTS(Qualitative Trading System)의 전체 구조를  
 단일 기준(Single Source of Truth, SSoT)으로 정의하기 위한 상위 문서이다.  
@@ -20,9 +12,10 @@ QTS는 단순 자동매매 프로그램이 아니라,
 
 이를 위해 본 문서는 다음 네 가지 목적을 갖는다.
 
+
 ---
 
-## **0.1 Purpose of This Document**
+## **0.1 문서 목적**
 
 1. **QTS의 전체 구조를 하나의 일관된 기준(SSoT)으로 정의하기 위함**
     
@@ -31,7 +24,7 @@ QTS는 단순 자동매매 프로그램이 아니라,
         
 2. **데이터·엔진·파이프라인·UI·운영 레이어의 관계 및 의존성을 명확히 규정**
     
-    - Google Sheets 9개 시트 기반 Data Layer
+    - 총 11개 시트 기반 Data Layer (Google Spreadsheet 10개 + Repo 1개)
         
     - Schema Automation Engine
         
@@ -57,17 +50,18 @@ QTS는 단순 자동매매 프로그램이 아니라,
         시스템 구조는 붕괴하지 않는 방향으로 설계 철학을 고정한다.
         
 
+
 ---
 
-## **0.2 Scope**
+## **0.2 범위**
 
 본 문서는 다음 범위를 포함한다.
 
-### **Included**
+### **포함**
 
 - **QTS 전체 계층(Layer) 아키텍처 정의**
     
-- **Data Layer & 9 Sheets 구조 상세**
+- **Data Layer & 11 Sheets 구조 상세**
     
 - **Schema Automation Engine의 동작 원리·데이터 플로우·자동 매핑 규칙**
     
@@ -86,7 +80,7 @@ QTS는 단순 자동매매 프로그램이 아니라,
 - **아키텍처 변경 관리 프로세스**
     
 
-### **Excluded**
+### **제외**
 
 - 전략의 구체적 수학적 공식  
     (단, Strategy Engine Interface 및 Data Contract는 포함)
@@ -95,12 +89,42 @@ QTS는 단순 자동매매 프로그램이 아니라,
     (해당 내용은 Engine Spec 또는 Code Repository로 분리)
     
 - 브로커 API별 인증/통신 상세 스펙  
-    (Broker Adapter 문서에 별도 관리)
-    
+  (해당 내용은 Broker Adapter 문서에 별도 관리)
+  
+
 
 ---
 
-## **0.3 Target Audience**
+## **0.3 관련 문서**
+
+- **Schema Automation**: [01_Schema_Auto_Architecture.md](./01_Schema_Auto_Architecture.md)
+- **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
+- **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
+- **UI Architecture**: [06_UI_Architecture.md](./06_UI_Architecture.md)
+- **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
+- **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
+- **Ops & Automation**: [09_Ops_Automation_Architecture.md](./09_Ops_Automation_Architecture.md)
+- **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+- **Change Management**: [11_Architecture_Change_Management.md](./11_Architecture_Change_Management.md)
+- **Architecture Summary**: [12_Architecture_Summary.md](./12_Architecture_Summary.md)
+- **Config 3분할**: [13_Config_3분할_Architecture.md](./13_Config_3분할_Architecture.md)
+
+---
+
+### **Architecture Extension (v1.1.0)**
+
+Sub-architecture extensions located in `docs/arch/sub/`:
+- **Capital Flow**: [sub/14_Capital_Flow_Architecture.md](./sub/14_Capital_Flow_Architecture.md) - L4 Engine Extension
+- **Scalp Execution**: [sub/15_Scalp_Execution_Micro_Architecture.md](./sub/15_Scalp_Execution_Micro_Architecture.md) - L5 Pipeline Extension
+- **Micro Risk Loop**: [sub/16_Micro_Risk_Loop_Architecture.md](./sub/16_Micro_Risk_Loop_Architecture.md) - L7 Safety Extension
+- **Event Priority**: [sub/17_Event_Priority_Architecture.md](./sub/17_Event_Priority_Architecture.md) - Cross-cutting Concern
+- **System State & Promotion**: [sub/18_System_State_Promotion_Architecture.md](./sub/18_System_State_Promotion_Architecture.md) - L7 Safety Extension
+
+
+---
+
+## **0.4 대상 독자**
 
 - **QTS 시스템 개발자**  
     Trading/Risk/Strategy/Schema/Engine 개발 담당자
@@ -117,9 +141,10 @@ QTS는 단순 자동매매 프로그램이 아니라,
 이 문서는 개발자만을 위한 문서가 아니다.  
 QTS 전체의 협업 구조가 명확해지도록 모든 이해관계자가 참고하는 기준 문서이다.
 
+
 ---
 
-## **0.4 Relationship With Other Documents**
+## **0.5 다른 문서와의 관계**
 
 본 문서는 아래 문서를 상위에서 통제한다.
 
@@ -127,16 +152,17 @@ QTS 전체의 협업 구조가 명확해지도록 모든 이해관계자가 참�
 |---|---|---|
 |**QTS Main Architecture (본 문서)**|최상위 구조·철학|모든 하위 문서의 기준|
 |**Architecture_SubDocs** (Schema / Engine / Pipeline / Autogen)|계층별 상세 설계|본 문서의 Layer Model을 따름|
-|**Sheet Spec Docs**|9개 시트 정의|Data Layer Architecture의 영향 아래 있음|
+|**Sheet Spec Docs**|11개 시트 정의|Data Layer Architecture의 영향 아래 있음|
 |**Engine Spec Docs**|Trading/Risk/Strategy 엔진 구현 정의|Engine Layer Architecture를 기준으로 작성|
 |**Test Spec**|테스트 기준|Testability Architecture에 종속|
 |**Ops / Automation Spec**|운영 자동화 기준|Ops Layer Architecture를 기준으로 작성|
 
 모든 문서는 상위 아키텍처 변경 시 재검토되어야 한다.
 
+
 ---
 
-## **0.5 Document Versioning Rules**
+## **0.6 문서 버전 관리 규칙**
 
 - **v1.x** : QTS 구조의 안정화 버전
     
@@ -148,9 +174,10 @@ QTS 전체의 협업 구조가 명확해지도록 모든 이해관계자가 참�
     구조 변경이 확정될 경우 동일하게 major version을 증가시킨다.
     
 
+
 ---
 
-## **0.6 How This Document Should Be Used**
+## **0.7 문서 사용 방법**
 
 1. **설계·코딩·운영·테스트 전 반드시 본 문서를 먼저 확인**  
     절차가 바뀌지 않도록 중앙 기준을 유지한다.
@@ -166,14 +193,15 @@ QTS 전체의 협업 구조가 명확해지도록 모든 이해관계자가 참�
 6. **설계 변경 시 → Architecture Change Management 절차 준수**
     
 
+
 ---
 
-## **0.7 High-Level Summary of QTS**
+## **0.8 QTS 상위 요약**
 
 QTS는 다음 세 요소를 핵심 정체성으로 갖는다.
 
 1. **Data-Driven System**  
-    모든 판단은 9개 시트 기반 Data Contract로 결정된다.  
+    모든 판단은 11개 시트(구글 스프레드시트 10 + 레포 1) 기반 Data Contract로 결정된다.  
     전략, 리스크, 포트폴리오 모두 데이터 구조에 종속된다.
     
 2. **Pipeline-Oriented Execution**  
@@ -182,8 +210,9 @@ QTS는 다음 세 요소를 핵심 정체성으로 갖는다.
     반복 파이프라인으로 설계된다.
     
 3. **Multi-Engine Architecture**  
-    Trading, Strategy, Risk, Portfolio, Performance  
-    각 엔진은 독립적이지만 데이터 계약(Data Contract)로 단단히 연결된다.
+    Strategy, Risk, Portfolio, Performance  
+    4대 엔진은 독립적이지만 데이터 계약(Data Contract)로 단단히 연결된다.
+    Broker Layer는 별도로 주문 실행을 담당한다.
     
 4. **Schema Automation Engine 중심의 자가 회복 구조**  
     시트 구조가 변해도 시스템이 멈추지 않도록  
@@ -191,12 +220,13 @@ QTS는 다음 세 요소를 핵심 정체성으로 갖는다.
     
 5. **Zero-Formula UI**  
     모든 계산은 Python에서 이루어지며  
-    Sheets는 UI 역할만 담당한다.
+    시트는 UI 역할만 담당한다.
     
+
 
 ---
 
-# **1. System Philosophy & Design Principles**
+# **1. 시스템 철학 및 설계 원칙**
 
 QTS(Qualitative Trading System)는  
 “데이터 구조 변화에도 멈추지 않고 스스로 회복하는 자동매매 시스템”을  
@@ -279,8 +309,6 @@ QTS는 엔진 기반 구조이다.
 
 각 엔진은 다음 역할을 가진다:
 
-- Trading Engine: 주문 실행
-    
 - Strategy Engine: 진입·청산 판단
     
 - Risk Engine: 리스크 승인·거부
@@ -289,6 +317,7 @@ QTS는 엔진 기반 구조이다.
     
 - Performance Engine: 손익·성과 분석
     
+- **Broker Layer**: 주문 실행 및 브로커 API 통합 (Engine이 아닌 별도 Layer)
 
 엔진은 독립적이지만 데이터 계약을 통해 정교하게 연결된다.
 
@@ -355,11 +384,11 @@ QTS는 설계가 가장 중요한 시스템이다.
 
 ---
 
-# **2. High-Level System Architecture**
+# **2. 상위 시스템 아키텍처**
 
 QTS는 다음 네 가지 축을 중심으로 설계된 **멀티 레이어 자동매매 시스템**이다.
 
-1. **Data Layer (Google Sheets 기반 9-Sheet 구조)**
+1. **Data Layer (총 11개 시트: Google Spreadsheet 10개 + Repo 1개)**
     
 2. **Engine Layer (Trading/Strategy/Risk/Portfolio/Performance)**
     
@@ -375,29 +404,29 @@ QTS는 다음 네 가지 축을 중심으로 설계된 **멀티 레이어 자동
 
 ---
 
-## **2.1 System Overview Diagram (Conceptual)**
+## **2.1 시스템 개념도(요약)**
 
 텍스트 기반 개념도 (QTS 전체 흐름 요약):
 
 ```
                  ┌─────────────────────────────┐
-                 │       UI / Sheets Layer     │
+                 │         UI / 시트 레이어     │
                  │    (Zero-Formula Dashboard) │
                  └──────────────┬──────────────┘
                                 │
                                 ▼
 ┌──────────────────────────────────────────────────────────┐
-│                   Data Layer (11 Sheets)               │
-│ Config_Local │ Config_Scalp │ Config_Swing │ Position   │
-│ T_Ledger │ DI_DB │ Dividend │ DT_Report │ History   │
-│ Strategy │ R_Dash                                         │
+│           Data Layer (11 Sheets: GSheet 10 + Repo 1)      │
+│ (GSheet) Config_Scalp │ Config_Swing │ Position │ Strategy │
+│ (GSheet) T_Ledger │ Dividend │ Portfolio │ Performance │ R_Dash │
+│ (GSheet) History                                              │
+│ (Repo)   Config_Local                                         │
 └───────────────────────┬──────────────────────────────────┘
                         │ Schema Automation Engine
                         ▼
 ┌──────────────────────────────────────────────────────────┐
-│                 Engine Layer (6 Engines)                 │
-│ ScalpEngine │ SwingEngine │ Trading │ Risk │ Portfolio │
-│ Performance                                              │
+│                 Engine Layer (4 Engines)                │
+│ Strategy │ Risk │ Portfolio │ Performance                │
 └───────────────────────┬──────────────────────────────────┘
                         │
                         ▼
@@ -436,23 +465,25 @@ QTS 전체를 지탱하는 세 가지 기둥은 다음과 같다.
 
 ### **(3) Engine-Modular**
 
-- Trading, Strategy, Risk, Portfolio, Performance  
-    5개 엔진이 독립적 모듈로 구성되어 있으며  
+- Strategy, Risk, Portfolio, Performance  
+    4개 엔진이 독립적 모듈로 구성되어 있으며  
     데이터 계약(Data Contract)으로 연결된다.
+    
+- Broker Layer는 별도 Execution Layer로 주문 실행을 담당한다.
     
 
 ---
 
-## **2.3 High-Level Layer Model**
+## **2.3 상위 Layer 모델**
 
 QTS는 아래와 같은 7 Layer 모델로 작동한다.
 
 |Layer|설명|
 |---|---|
 |**L1. UI Layer**|Zero-formula 기반 Dashboard, R_Dash 시각화|
-|**L2. Data Layer**|Google Sheets 기반 9-Sheet 구조|
+|**L2. Data Layer**|총 11개 시트(구글 스프레드시트 10 + 레포 1) 기반|
 |**L3. Schema Layer**|스키마 자동화 엔진, 데이터 계약, 필드 매핑|
-|**L4. Engine Layer**|Trading/Strategy/Risk/Portfolio/Performance 엔진|
+|**L4. Engine Layer**|Strategy/Risk/Portfolio/Performance 엔진 (4대 엔진)|
 |**L5. Pipeline Layer**|ETEDA Execution Pipeline|
 |**L6. Broker Layer**|한국투자증권 → 키움증권 → 다중 브로커 확장|
 |**L7. Ops & Safety Layer**|이상 감지·로그·모니터링·Fail-Safe 구조|
@@ -489,7 +520,11 @@ QTS는 아래와 같은 7 Layer 모델로 작동한다.
 
 ### **4) 파이프라인 → 브로커**
 
-- Act 단계에서 브로커로 주문 요청
+- Act 단계에서 ExecutionIntent를 Broker Layer로 전달
+    
+- BrokerEngine은 ExecutionIntent를 받아 ExecutionResponse 반환
+    
+- LiveBroker/MockBroker/NoopBroker 패턴으로 Fail-Safe 기능 내장
     
 - Multi-Broker Adapter 패턴을 사용하여 브로커 확장 용이
     
@@ -531,7 +566,7 @@ QTS의 설계는 다음 “실전적 문제”를 해결하기 위해 탄생했�
 
 ## **2.6 Architecture Integrity Rules (변경 금지 원칙)**
 
-QTS는 아래 네 가지 원칙을 절대 훼손할 수 없다.
+QTS는 아래 다섯 가지 원칙을 절대 훼손할 수 없다.
 
 1. **Data Layer > Engine Layer > Pipeline Layer 순서가 바뀌면 안 된다.**
     
@@ -541,8 +576,10 @@ QTS는 아래 네 가지 원칙을 절대 훼손할 수 없다.
     
 4. **파이프라인은 반드시 ETEDA 원칙을 따른다.**
     
+5. **주문 실행은 반드시 Broker Layer를 통해 ExecutionIntent/Response Contract를 따른다.**
+    
 
-이 네 가지는 설계 철학의 핵심이자 시스템 안정성의 기반이다.
+이 다섯 가지는 설계 철학의 핵심이자 시스템 안정성의 기반이다.
 
 ---
 
@@ -937,57 +974,72 @@ Core Layer 없이는
 
 ---
 
-# **4. Data Layer Architecture**
+# **4. Data Layer 아키텍처**
 
 Data Layer는 QTS의 모든 판단이 시작되는 출발점이다.  
 전략, 리스크, 포트폴리오, 파이프라인, UI 모두  
 이 레이어가 제공하는 **정규화된 데이터 모델(Data Contract)** 을 기반으로 동작한다.
 
-QTS는 Google Sheets 기반 **9개의 핵심 시트(9-Sheet Model)** 을  
-데이터 레이크(Data Lake)처럼 사용하며,  
-Schema Automation Engine이 이 시트들을 자동 분석하여  
+QTS는 총 **11개 시트(데이터 소스)** 를  
+단일 데이터 레이크(Data Lake)처럼 사용하며,  
+Schema Automation Engine이 이 구조를 자동 분석하여  
 하나의 통합 데이터 모델로 변환한다.
+
+구성 요약:
+
+- Google Spreadsheet 시트 10개
+    - `Portfolio`, `Performance`, `R_Dash`, `Dividend`, `T_Ledger`, `History`, `Strategy`, `Position`, `Config_Swing`, `Config_Scalp`
+        
+- Repo에 포함되는 시트 1개
+    - `Config_Local` (전역/보호 영역)
+
+**현재 구현된 리포지토리:**
+- `PositionRepository` - Position 시트
+- `EnhancedPortfolioRepository` - 포트폴리오 집계
+- `T_LedgerRepository` - T_Ledger 시트  
+- `HistoryRepository` - History 시트
+- `EnhancedPerformanceRepository` - 성과 집계
 
 ---
 
-# **4.1 QTS 9-Sheet Data Layer**
+# **4.1 QTS 11-Sheet Data Layer**
 
-9개의 시트는 각각 명확한 역할을 갖고 있으며  
+11개의 시트는 각각 명확한 역할을 갖고 있으며  
 서로 중복되는 책임이 없도록 설계되었다.
 
-아래는 9-Sheet 구조의 전체 개념도다.
+아래는 11-Sheet 구조의 전체 개념도다.
 
 ```
 ┌──────────┬────────────────────────────────────────────────────┐
 │ Sheet    │ 역할                                               │
 ├──────────┼────────────────────────────────────────────────────┤
-│ Config_Local │ 시스템 제어 · 전역 파라미터 (전략 불변)          │
 │ Config_Scalp │ Scalp 전략 튜닝 파라미터 (전략 전용)            │
-│ Config_Swing │ Swing 전략 튜닝 파라미터 (전략 전용)             │
+│ Config_Swing │ Swing 전략 튜닝 파라미터 (전략 전용)            │
+│ Config_Local │ 시스템 제어 · 전역 파라미터 (전략 불변, Repo)    │
 │ Position │ 현재 보유 포지션                                   │
+│ Strategy │ 전략 구성값 및 파라미터                              │
 │ T_Ledger │ 실시간 거래 원장 (체결/주문 기록)                  │
-│ DI_DB    │ 종목 정보 DB · 시세 연동                           │
-│ Dividend │ 배당 일정 · 배당률 DB                              │
-│ DT_Report│ 데일리 트레이딩 보고서 (리포트 데이터)              │
 │ History  │ 전략별 거래 히스토리                               │
-│ Strategy │ 전략 구성값 및 파라미터 (향후 재검토)               │
+│ Dividend │ 배당 데이터(결정 필요: 시트 유지 vs API 자동 수급)   │
+│ Portfolio │ 포트폴리오 집계/상태                                │
+│ Performance │ 성과/손익 집계                                    │
 │ R_Dash   │ UI 대시보드 (Zero-Formula 표시용)                  │
 └──────────┴────────────────────────────────────────────────────┘
 ```
 
-**참고**: Config 시트는 전략별 리스크 분리를 위해 3개의 시트(Config_Local, Config_Scalp, Config_Swing)로 분리되었다.  
-기존 단일 Config 시트 운영은 종료되었다.
+**참고**: Config는 전략별 리스크 분리를 위해 3개의 시트(`Config_Local`, `Config_Scalp`, `Config_Swing`)로 분리되었다.  
+이 중 `Config_Local`은 Repo에 포함되며, 나머지 2개는 Google Spreadsheet에 존재한다.
 
 각 시트는 엔진이나 UI가 아니라  
 **Schema Automation Engine의 입력값(Input Layer)** 이다.
 
 ---
 
-## **4.1.1 Role of Each Sheet**
+## **4.1.1 시트별 역할**
 
 ### **1) Config 시트 (3분할 구조)**
 
-**Config_Local (시스템 제어탑)**:
+**Config_Local (시스템 제어탑, Repo 포함)**:
 시스템 운영 모드와 전역 파라미터를 관리한다. 전략에 의해 override 되지 않는 보호 영역이다.
 
 예:
@@ -1024,36 +1076,39 @@ Swing 전략의 튜닝 파라미터를 관리한다. 중장기·저회전 실행
 매수/매도 체결 정보  
 → 포트폴리오 엔진 / 성과 엔진이 참조함.
 
-### **4) DI_DB (종목 정보 DB)**
-
-브로커 API의 종목정보 기반  
-티커, 시장, 최소단위, 거래단위 등 관리.
-
-### **5) Dividend (배당 DB)**
+### **4) Dividend (배당 데이터)**
 
 배당락일, 배당금, 배당률 등 분배 관련 데이터.
 
-### **6) DT_Report (데일리 보고서)**
+결정 필요:
 
-매일 단위 리포트 생성에 필요한 정규화된 기록 공간
+1. **Dividend를 Google Spreadsheet 시트로 유지**
+    - 운영자가 직접 수정/검증 가능
+        
+2. **Dividend를 API로 자동 수급**
+    - API 수급 + 로컬/깃 캐시(버전 관리)로 운용
 
-### **7) History (전략별 거래 기록)**
+### **5) Portfolio / Performance**
+
+Portfolio/Performance는 포트폴리오 상태와 성과/손익 집계를 저장한다.
+
+### **6) History (전략별 거래 기록)**
 
 전략 엔진의 판단과 실제 체결을 연결하는 기록.
 
-### **8) Strategy (전략 파라미터)**
+### **7) Strategy (전략 파라미터)**
 
 전략 이름, 기간 값, 임계값 등  
 전략 엔진의 입력값.
 
-### **9) R_Dash (UI 전용 Layer)**
+### **8) R_Dash (UI 전용 Layer)**
 
 Zero-Formula UI 구조를 위해  
 Python이 계산한 정규화된 출력값만 저장.
 
 ---
 
-# **4.2 Update Mode Architecture**
+# **4.2 Update Mode 아키텍처**
 
 QTS Data Layer는 “업데이트 모드”를 통해 데이터 변화를 통제한다.
 
@@ -1097,7 +1152,7 @@ Auto Mode는 Python이 자동으로 시트를 업데이트하는 모드다.
 
 - 체결 → Position 업데이트
     
-- 손익 계산 → DT_Report 작성
+- 손익 계산 → Performance 업데이트
     
 - 전략 판단 → History 기록
     
@@ -1198,13 +1253,17 @@ normalized_signal = 1 if strategy_signal == "BUY" else -1
 
 ---
 
-# **4.4 Dividend Local/Git DB Architecture**
+# **4.4 Dividend 데이터 소스 아키텍처**
 
-배당 데이터는 변동성이 높고  
-일반적인 API에서 배당 DB를 완전히 제공하지 않기 때문에  
-QTS는 **배당 로컬 DB(Local JSON)** 와  
-**Git 버전 관리용 배당 DB(Git-Tracked JSON)**  
-두 가지 구조를 사용한다.
+배당 데이터는 운용 안정성과 정합성이 중요한 데이터이며, 운영 방식에 따라 데이터 소스 전략이 달라질 수 있다.
+
+결정 필요:
+
+1. **Dividend를 Google Spreadsheet 시트로 유지**
+    - 운영자가 직접 수정/검증
+        
+2. **Dividend를 API로 자동 수급**
+    - API 수급 + 로컬/깃 캐시(버전 관리) 조합
 
 ---
 
@@ -1264,21 +1323,21 @@ Git DB → Local DB → Schema Engine → Dividend Contract → Engines
 
 ---
 
-# **4.5 Data Layer Summary**
+# **4.5 Data Layer 요약**
 
 |구성 요소|목적|
 |---|---|
-|9-Sheet Layer|모든 원천 데이터|
-|Update Mode Architecture|데이터 갱신 통제|
-|Data Contracts|엔진 입력 기준|
-|Dividend DB Local/Git|배당 데이터 안정적 공급|
+|11-Sheet Layer|모든 원천 데이터(구글 스프레드시트 10 + 레포 1)|
+|Update Mode 아키텍처|데이터 갱신 통제|
+|Data Contract|엔진 입력 기준|
+|Dividend 데이터 소스|배당 데이터 공급 및 버전 관리(정책 선택)|
 
 Data Layer는 QTS 전체의 출발점이며  
 스키마와 엔진의 기반이 되는 단일 진실의 원천(SSoT)이다.
 
 ---
 
-# **5. Engine Layer Architecture**
+# **5. Engine Layer 아키텍처**
 
 Engine Layer는 QTS의 “두뇌(BRAIN)”에 해당한다.  
 모든 판단·승인·계산·실행은 이 계층에서 이루어진다.
@@ -1333,11 +1392,11 @@ ScalpEngine은 QTS의 "단기 판단자(Short-term Decision Maker)"다.
 
 ---
 
-## **5.1.2 Input / Output**
+## **5.1.2 입력 / 출력**
 
-Input:
+입력:
 
-- DI_DB(실시간 가격/종목 정보)
+- 가격/종목 정보(브로커/데이터 피드)
     
 - Position(현재 보유 상태)
     
@@ -1348,7 +1407,7 @@ Input:
 - 실시간 시계열 데이터(필요 시)
     
 
-Output:
+출력:
 
 - scalp_signal (BUY/SELL/NEUTRAL)
     
@@ -1412,11 +1471,11 @@ SwingEngine은 QTS의 "중장기 판단자(Medium-to-long-term Decision Maker)"�
     
 ---
 
-## **5.2.2 Input / Output**
+## **5.2.2 입력 / 출력**
 
-Input:
+입력:
 
-- DI_DB(가격/종목 정보)
+- 가격/종목 정보(브로커/데이터 피드)
     
 - Position(현재 보유 상태)
     
@@ -1427,7 +1486,7 @@ Input:
 - History Sheet(과거 거래 히스토리, 필요 시)
     
 
-Output:
+출력:
 
 - swing_signal (BUY/SELL/NEUTRAL)
     
@@ -1555,9 +1614,9 @@ Risk Engine은 “안전 승인(Safety Approver)” 역할을 한다.
 
 ---
 
-## **5.4.2 Input / Output**
+## **5.4.2 입력 / 출력**
 
-Input:
+입력:
 
 - Position Data Contract
     
@@ -1567,10 +1626,10 @@ Input:
     
 - Config Risk Params
     
-- DI_DB(거래 단위/최소 단위)
+- 브로커/시장 메타 데이터(거래 단위/최소 단위)
     
 
-Output:
+출력:
 
 - risk_approval (True/False)
     
@@ -1642,7 +1701,7 @@ Portfolio Engine의 출력은 Trading Engine의 “입력”이 된다.
 
 Performance Engine은 QTS의 “기록자(Reporter)” 역할이다.  
 성과, 손익, 효율성 지표를 정리해서  
-DT_Report와 UI(R_Dash)에 전달한다.
+Performance와 UI(R_Dash)에 전달한다.
 
 ---
 
@@ -1661,24 +1720,26 @@ DT_Report와 UI(R_Dash)에 전달한다.
 
 ---
 
-## **5.5.2 Input / Output**
+## **5.5.2 입력 / 출력**
 
-Input:
+입력:
 
 - T_Ledger
     
 - Position
     
-- DI_DB
-    
 - Dividend
     
+- Portfolio
+    
+- Performance
+    
 
-Output:
+출력:
 
 - PnL Summary
     
-- Daily Report
+- Performance 업데이트
     
 - Strategy Performance Report
     
@@ -1712,7 +1773,7 @@ Strategy → Risk → Portfolio → Trading → Performance
 
 ---
 
-# **5.7 Engine Layer Summary**
+# **5.7 Engine Layer 요약**
 
 |엔진|역할|
 |---|---|
@@ -1727,7 +1788,7 @@ Pipeline Layer와 결합하여 자동매매를 완성한다.
 
 ---
 
-# **6. Execution Pipeline Architecture (ETEDA)**
+# **6. 실행 파이프라인 아키텍처(ETEDA)**
 
 QTS의 자동매매는 **파이프라인(Pipeline)** 개념을 기반으로 설계된다.  
 즉, 한 번의 매매는 “신호 → 승인 → 계산 → 실행 → 기록”이라는 연속적 흐름이며  
@@ -1744,7 +1805,7 @@ Extract → Transform → Evaluate → Decide → Act**
 
 ---
 
-# **6.1 Why ETEDA? (설계 배경)**
+# **6.1 ETEDA 채택 배경**
 
 실전 트레이딩 환경에서 가장 위험한 상황은 다음과 같다:
 
@@ -1772,34 +1833,36 @@ QTS는 이를 방지하기 위해
 ETEDA는 아래와 같은 5가지 단계로 구성된다.
 
 ```
-1. Extract
-2. Transform
-3. Evaluate
-4. Decide
-5. Act
+1. Extract(추출)
+2. Transform(변환)
+3. Evaluate(평가)
+4. Decide(결정)
+5. Act(실행)
 ```
 
 각 단계의 목적은 다음과 같다.
 
 ---
 
-## **6.2.1 Step 1: Extract (데이터 추출)**
+## **6.2.1 1단계: 데이터 추출(Extract)**
 
 Extract 단계는 Data Layer의 원천 데이터들을 스키마 기반으로 읽어와  
 RawData Contract로 변환하는 단계다.
 
 입력:
 
-- Google Sheets 9개
+- 구글 스프레드시트 시트 10개
     
-- Dividend Local/Git DB
+- 레포 시트 1개(`Config_Local`)
+    
+- Dividend 데이터 소스(시트 또는 API/캐시)
     
 - Broker 계좌 상태(Optional)
     
 
 출력:
 
-- RawDataContract(Position, DI_DB, Strategy, T_Ledger, Config…)
+- RawDataContract(Position, Strategy, T_Ledger, Config, Portfolio, Performance, Dividend, History, R_Dash…)
     
 
 주요 원칙:
@@ -3008,7 +3071,7 @@ Sheets ↔ Python ↔ Local DB 간 데이터 동기화를 책임진다.
     
 3. T_Ledger → Position 자동 갱신
     
-4. DI_DB / Dividend Local DB 갱신
+4. Dividend 데이터 갱신(시트 또는 API/캐시)
     
 5. Git DB와 Local DB 간 주기적 동기화
     
