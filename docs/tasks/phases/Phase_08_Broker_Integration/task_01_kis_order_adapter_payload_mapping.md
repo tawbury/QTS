@@ -12,13 +12,13 @@
 
 ## 작업
 
-- [ ] Request Normalization 규칙 구현
-  - [ ] BUY/SELL/order_type/시장 코드 등 매핑 규칙 확정
-- [ ] Response Normalization 규칙 구현
-  - [ ] ExecutionResult로의 변환 규칙 고정
-- [ ] 코드 품질 개선(필수)
-  - [ ] `order_adapter.py`의 TODO/예시 호출(`place_order`, `get_order`)을 실제 메서드 계약으로 정리
+- [x] Request Normalization 규칙 구현
+  - [x] BUY/SELL/order_type/시장 코드 등 매핑 규칙 확정 (`payload_mapping.py`: SIDE_TO_KIS, ORDER_TYPE_TO_KIS, build_kis_order_payload)
+- [x] Response Normalization 규칙 구현
+  - [x] ExecutionResult(OrderResponse)로의 변환 규칙 고정 (`parse_kis_place_response`, `parse_kis_order_response`, `raw_to_order_response`)
+- [x] 코드 품질 개선(필수)
+  - [x] `order_adapter.py`의 TODO 제거, `KISOrderClientProtocol` 계약 정의, place_order/get_order/cancel_order 실제 정규화 로직 적용
 
 ## 완료 조건
 
-- [ ] 주문 요청/응답 변환 규칙이 문서/코드/테스트에서 일치한다.
+- [x] 주문 요청/응답 변환 규칙이 문서/코드/테스트에서 일치한다.

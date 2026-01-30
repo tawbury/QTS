@@ -1,3 +1,10 @@
+"""
+Mock Broker — tests only.
+
+Production path MUST NOT use MockBroker. Use create_broker_for_execution()
+which returns LiveBroker or NoopBroker only. MockBroker is for pytest and
+test doubles only; never instantiate in main/execution_loop/production wiring.
+"""
 from __future__ import annotations
 
 from runtime.execution.interfaces.broker import BrokerEngine
@@ -7,10 +14,11 @@ from runtime.execution.models.response import ExecutionResponse
 
 class MockBroker(BrokerEngine):
     """
-    Mock Broker
+    Mock Broker (tests only).
 
     - 규칙 기반 응답
     - 외부 시스템과 절대 통신하지 않음
+    - 프로덕션 경로에서 사용 금지: create_broker_for_execution() 사용
     """
 
     NAME = "mock-broker"

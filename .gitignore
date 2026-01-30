@@ -72,6 +72,7 @@ cache/
 tmp/
 temp/
 !src/runtime/data/
+!tests/runtime/data/
 
 # 검증 및 리포트 파일
 validation_report.json

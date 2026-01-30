@@ -31,3 +31,7 @@ if str(SRC) not in sys.path:
 def pytest_configure(config):
     """Register custom marks (e.g. live_sheets for tests requiring real API)."""
     config.addinivalue_line("markers", "live_sheets: mark test to run only when Google Sheets env is set (skip in CI)")
+    config.addinivalue_line(
+        "markers",
+        "real_broker: mark test as real broker smoke (opt-in; run with -m real_broker or env QTS_RUN_REAL_BROKER=1)",
+    )
