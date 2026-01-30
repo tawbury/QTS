@@ -1,145 +1,89 @@
+"""
+Sheet 기반 Config 로딩 (Config_Scalp / Config_Swing).
+
+- ConfigScalpRepository / ConfigSwingRepository를 사용해 시트 데이터 조회.
+- SCALP/SWING 스코프별 로딩 경로·실패 처리: docs/arch/13_Config_3분할_Architecture.md
+"""
+
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
 from typing import Any, List
 
+from .config_constants import (
+    COL_CATEGORY,
+    COL_DESCRIPTION,
+    COL_KEY,
+    COL_SUB_CATEGORY,
+    COL_TAG,
+    COL_VALUE,
+    SHEET_NAME_CONFIG_SCALP,
+    SHEET_NAME_CONFIG_SWING,
+)
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
 
 
-async def _fetch_sheet_as_rows(sheet_name: str) -> List[List[Any]]:
-    """Fetch sheet range A:Z via GoogleSheetsClient (env-based)."""
-    from ..data.google_sheets_client import GoogleSheetsClient
-
-    client = GoogleSheetsClient()
-    await client.authenticate()
-    return await client.get_sheet_data(f"{sheet_name}!A:Z")
-
-
-def _row_to_dict(row: List[Any], headers: List[str]) -> dict:
-    """Map a row list to dict by headers; align with BaseSheetRepository._row_to_dict."""
-    result = {}
-    for i, header in enumerate(headers):
-        value = row[i] if i < len(row) else ""
-        if value == "" or value is None:
-            result[header] = None
-        elif isinstance(value, str) and value.lower() in ("true", "false"):
-            result[header] = value.lower() == "true"
-        else:
-            try:
-                s = str(value).strip()
-                if "." in s:
-                    result[header] = float(s)
-                else:
-                    result[header] = int(s)
-            except (ValueError, TypeError):
-                result[header] = value
-    return result
+def _scope_to_sheet_name(scope: ConfigScope) -> str:
+    """ConfigScope -> 시트 이름 (SCALP -> Config_Scalp, SWING -> Config_Swing)."""
+    if scope == ConfigScope.SCALP:
+        return SHEET_NAME_CONFIG_SCALP
+    if scope == ConfigScope.SWING:
+        return SHEET_NAME_CONFIG_SWING
+    raise ValueError(f"Invalid scope for sheet config: {scope}. Use SCALP or SWING.")
 
 
-def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResult:
+async def _load_sheet_config_async(scope: ConfigScope) -> ConfigLoadResult:
     """
-    Load Config_Scalp or Config_Swing from Google Sheet.
-    
-    Config_Scalp and Config_Swing are:
-    - Google Sheet tabs within a single spreadsheet
-    - Sheet name defines scope (Sheet = Scope)
-    - Sheet structure and column headers are finalized
-    - Sheets are edited manually by operator and treated as read-only by code
-    
-    Expected columns:
-    - CATEGORY
-    - SUB_CATEGORY
-    - KEY
-    - VALUE
-    - DESCRIPTION
-    - TAG
-    
-    Args:
-        project_root: Project root path
-        scope: ConfigScope.SCALP or ConfigScope.SWING
-    
-    Behavior:
-    - Sheet not found -> ok=False
-    - Sheet exists but empty (no data rows) -> ok=True with entries=[]
-    - Empty config is treated as valid
-    
-    Returns:
-        ConfigLoadResult with scope=SCALP or SWING
+    Config_Scalp 또는 Config_Swing 시트를 Repository로 조회.
+
+    실패 케이스:
+    - 시트 미존재(404): ok=False, error에 시트명 포함
+    - 인증 실패: ok=False, error에 Authentication 메시지
+    - 필드/파싱 오류: ok=False, error에 행/필드 정보
     """
-    if scope not in (ConfigScope.SCALP, ConfigScope.SWING):
-        return ConfigLoadResult(
-            ok=False,
-            scope=scope,
-            entries=[],
-            error=f"Invalid scope for sheet config: {scope}. Must be SCALP or SWING.",
-            source_path=None,
-        )
-    
-    # Determine sheet name from scope
-    sheet_name = f"Config_{scope.value.capitalize()}"
+    sheet_name = _scope_to_sheet_name(scope)
+
+    from ..data.google_sheets_client import APIError, AuthenticationError, GoogleSheetsClient
+    from ..data.repositories.config_scalp_repository import ConfigScalpRepository
+    from ..data.repositories.config_swing_repository import ConfigSwingRepository
 
     try:
-        # Fetch via GoogleSheetsClient (env: GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_KEY)
-        raw_values = asyncio.run(_fetch_sheet_as_rows(sheet_name))
+        client = GoogleSheetsClient()
+        await client.authenticate()
+        spreadsheet_id = client.spreadsheet_id
 
-        if not raw_values:
-            return ConfigLoadResult(
-                ok=True,
-                scope=scope,
-                entries=[],
-                error=None,
-                source_path=sheet_name,
-            )
+        if scope == ConfigScope.SCALP:
+            repo = ConfigScalpRepository(client, spreadsheet_id)
+        else:
+            repo = ConfigSwingRepository(client, spreadsheet_id)
 
-        # Index-aligned with row columns (same rule as BaseSheetRepository)
-        headers = [str(c).strip() if c else "" for c in raw_values[0]]
-        if not any(h for h in headers):
-            return ConfigLoadResult(
-                ok=True,
-                scope=scope,
-                entries=[],
-                error=None,
-                source_path=sheet_name,
-            )
-
-        data_rows = raw_values[1:]
-        entries: List[ConfigEntry] = []
-        for idx, row in enumerate(data_rows):
-            row_dict = _row_to_dict(row if isinstance(row, list) else [], headers)
-            try:
-                entry = ConfigEntry(
-                    category=str(row_dict.get("CATEGORY") or ""),
-                    subcategory=str(row_dict.get("SUB_CATEGORY") or ""),
-                    key=str(row_dict.get("KEY") or ""),
-                    value=str(row_dict.get("VALUE") or ""),
-                    description=str(row_dict.get("DESCRIPTION") or ""),
-                    tag=str(row_dict.get("TAG") or ""),
-                )
-                entries.append(entry)
-            except Exception as e:
-                return ConfigLoadResult(
-                    ok=False,
-                    scope=scope,
-                    entries=[],
-                    error=f"Failed to parse sheet '{sheet_name}' row {idx}: {e}",
-                    source_path=sheet_name,
-                )
-
-        return ConfigLoadResult(
-            ok=True,
-            scope=scope,
-            entries=entries,
-            error=None,
-            source_path=sheet_name,
-        )
-
+        records = await repo.get_all()
     except ImportError as e:
         return ConfigLoadResult(
             ok=False,
             scope=scope,
             entries=[],
-            error=f"Google Sheets client not available: {e}",
+            error=f"Google Sheets client or repository not available: {e}",
+            source_path=sheet_name,
+        )
+    except AuthenticationError as e:
+        return ConfigLoadResult(
+            ok=False,
+            scope=scope,
+            entries=[],
+            error=f"Authentication failed for sheet config: {e}",
+            source_path=sheet_name,
+        )
+    except APIError as e:
+        msg = str(e)
+        if getattr(e, "status_code", None) == 404:
+            msg = f"Sheet not found: '{sheet_name}' (404)"
+        return ConfigLoadResult(
+            ok=False,
+            scope=scope,
+            entries=[],
+            error=f"Sheet config load failed: {msg}",
             source_path=sheet_name,
         )
     except Exception as e:
@@ -151,17 +95,73 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
             source_path=sheet_name,
         )
 
+    entries: List[ConfigEntry] = []
+    for idx, rec in enumerate(records):
+        try:
+            entry = ConfigEntry(
+                category=str(rec.get(COL_CATEGORY) or ""),
+                subcategory=str(rec.get(COL_SUB_CATEGORY) or ""),
+                key=str(rec.get(COL_KEY) or ""),
+                value=str(rec.get(COL_VALUE) or ""),
+                description=str(rec.get(COL_DESCRIPTION) or ""),
+                tag=str(rec.get(COL_TAG) or ""),
+            )
+            entries.append(entry)
+        except Exception as e:
+            return ConfigLoadResult(
+                ok=False,
+                scope=scope,
+                entries=[],
+                error=f"Failed to parse sheet '{sheet_name}' row {idx}: {e}",
+                source_path=sheet_name,
+            )
+
+    return ConfigLoadResult(
+        ok=True,
+        scope=scope,
+        entries=entries,
+        error=None,
+        source_path=sheet_name,
+    )
+
+
+def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResult:
+    """
+    Config_Scalp 또는 Config_Swing을 Google Sheet(Repository)에서 로드.
+
+    - Sheet = Scope: Config_Scalp / Config_Swing 시트 이름으로 스코프 구분.
+    - 구현: ConfigScalpRepository / ConfigSwingRepository 사용 (GoogleSheetsClient 공유).
+
+    실패 처리:
+    - 시트 미존재(404): ok=False
+    - 인증 실패: ok=False
+    - 필드 누락/파싱 오류: ok=False, error에 위치 정보
+
+    Args:
+        project_root: 프로젝트 루트 (현재 구현에서는 Sheet ID가 env에서 로드되므로 미사용, 호출부 호환용)
+        scope: ConfigScope.SCALP 또는 ConfigScope.SWING
+
+    Returns:
+        ConfigLoadResult (scope=SCALP|SWING)
+    """
+    if scope not in (ConfigScope.SCALP, ConfigScope.SWING):
+        return ConfigLoadResult(
+            ok=False,
+            scope=scope,
+            entries=[],
+            error=f"Invalid scope for sheet config: {scope}. Must be SCALP or SWING.",
+            source_path=None,
+        )
+
+    return asyncio.run(_load_sheet_config_async(scope))
+
 
 def validate_sheet_config_entries(entries: List[ConfigEntry]) -> tuple[bool, str]:
     """
-    Validate Config_Scalp/Swing entries for required fields.
-    
-    Rules:
-    - category, subcategory, key must be non-empty
-    - value may be empty (valid for some configs)
-    
-    Returns:
-        (is_valid, error_message)
+    Config_Scalp/Swing 엔트리 필수 필드 검증.
+
+    - category, subcategory, key 비어 있으면 안 됨.
+    - value는 비어 있어도 됨.
     """
     for idx, entry in enumerate(entries):
         if not entry.category.strip():
@@ -170,5 +170,4 @@ def validate_sheet_config_entries(entries: List[ConfigEntry]) -> tuple[bool, str
             return False, f"Entry {idx}: subcategory is empty"
         if not entry.key.strip():
             return False, f"Entry {idx}: key is empty"
-    
     return True, ""

@@ -16,24 +16,25 @@ from .sheet_config import load_sheet_config
 def load_unified_config(project_root: Path, scope: ConfigScope) -> ConfigMergeResult:
     """
     Load and merge Config_Local with strategy config (Scalp or Swing).
-    
-    This is the unified loading orchestrator for the 3-way config system.
-    
-    Merge Precedence Rules:
-    - Config_Local is immutable (cannot be overridden by strategy)
-    - Strategy config may only extend (add new keys)
-    - Conflict on existing key -> Local value preserved, conflict logged
-    
-    Process Flow:
+
+    Unified loading orchestrator for the 3-way config system.
+    Merge rules SSOT: docs/arch/13_Config_3분할_Architecture.md (Local immutable).
+
+    Merge / Precedence (Local immutable):
+    - Config_Local is protected; strategy sheet MUST NOT override Local keys.
+    - Strategy config may only extend (add keys not present in Local).
+    - Same key in both: Local value wins, key recorded in conflicts.
+
+    Process:
     1. Load Config_Local from file
-    2. Load Config_Scalp or Config_Swing from Google Sheet
+    2. Load Config_Scalp or Config_Swing from Sheet (via Repository)
     3. Merge with precedence (Local wins)
-    4. Produce UnifiedConfig object
-    
+    4. Return UnifiedConfig
+
     Args:
         project_root: Project root path
         scope: ConfigScope.SCALP or ConfigScope.SWING (NOT LOCAL)
-    
+
     Returns:
         ConfigMergeResult with unified_config or error
     """
@@ -147,21 +148,16 @@ def _merge_configs(
     strategy_entries: List[ConfigEntry],
 ) -> tuple[Dict[str, str], List[str]]:
     """
-    Merge Config_Local and strategy config with precedence.
-    
-    Precedence Rules:
-    - Local is immutable (always wins)
-    - Strategy may only extend (add new keys)
-    - Conflict -> Local value preserved, key logged
-    
-    Args:
-        local_entries: Config_Local entries
-        strategy_entries: Strategy config entries
-    
+    Merge Config_Local and strategy config. Local immutable (Local wins).
+
+    SSOT: docs/arch/13_Config_3분할_Architecture.md §3.3 충돌 규칙.
+    - Local is immutable; strategy must not override Local keys.
+    - Conflict: Local value kept, key appended to conflicts.
+
     Returns:
         (config_map, conflicts)
-        - config_map: Dict[str, str] mapping "category.subcategory.key" -> "value"
-        - conflicts: List[str] of keys where Local overrode Strategy
+        - config_map: "category.subcategory.key" -> "value"
+        - conflicts: keys where Local overrode Strategy
     """
     config_map: Dict[str, str] = {}
     conflicts: List[str] = []

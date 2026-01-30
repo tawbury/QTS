@@ -3,16 +3,33 @@ Dividend Configuration Management
 
 로컬 배당 정보 데이터베이스를 관리합니다.
 DI_DB 시트를 로컬 JSON 파일로 마이그레이션한 기능입니다.
+로깅/오류 처리 규칙: local_config.py와 동일한 패턴(ConfigLoadResult, 로깅).
 """
 
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from datetime import datetime, date
 
+from .config_constants import (
+    DIVIDEND_DB_FILENAME,
+    LOCAL_CONFIG_DIR,
+    LOCAL_CONFIG_SUBDIR,
+)
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
+
+_LOG = logging.getLogger(__name__)
+
+
+def _dividend_json_error(exc: json.JSONDecodeError) -> str:
+    """JSONDecodeError를 사용자 친화적 메시지로 변환 (dividend DB용)."""
+    msg = f"JSON 형식 오류 (줄 {exc.lineno}, 열 {exc.colno})"
+    if getattr(exc, "msg", None):
+        msg += f": {exc.msg}"
+    return msg
 
 
 class DividendConfig:
@@ -30,7 +47,9 @@ class DividendConfig:
             project_root: 프로젝트 루트 경로
         """
         self.project_root = project_root
-        self.config_path = project_root / "config" / "local" / "dividend_db.json"
+        self.config_path = (
+            project_root / LOCAL_CONFIG_DIR / LOCAL_CONFIG_SUBDIR / DIVIDEND_DB_FILENAME
+        )
         self._ensure_config_dir()
     
     def _ensure_config_dir(self) -> None:
@@ -54,7 +73,7 @@ class DividendConfig:
                     source_path=str(self.config_path)
                 )
             
-            with open(self.config_path, 'r', encoding='utf-8') as f:
+            with open(self.config_path, "r", encoding="utf-8-sig") as f:
                 data = json.load(f)
             
             # JSON 데이터를 ConfigEntry 리스트로 변환
@@ -91,21 +110,38 @@ class DividendConfig:
                 source_path=str(self.config_path)
             )
             
-        except json.JSONDecodeError as e:
+        except OSError as e:
+            err = (
+                f"배당 DB 파일을 읽을 수 없습니다 (인코딩/경로 확인): {e}. "
+                f"경로: {self.config_path}"
+            )
+            _LOG.warning("%s", err)
             return ConfigLoadResult(
                 ok=False,
                 scope=ConfigScope.LOCAL,
                 entries=[],
-                error=f"JSON decode error: {str(e)}",
-                source_path=str(self.config_path)
+                error=err,
+                source_path=str(self.config_path),
+            )
+        except json.JSONDecodeError as e:
+            err = f"배당 DB {_dividend_json_error(e)}. 파일 형식을 확인하세요."
+            _LOG.warning("%s", err)
+            return ConfigLoadResult(
+                ok=False,
+                scope=ConfigScope.LOCAL,
+                entries=[],
+                error=err,
+                source_path=str(self.config_path),
             )
         except Exception as e:
+            err = f"배당 DB 로드 중 오류: {e}"
+            _LOG.warning("%s", err)
             return ConfigLoadResult(
                 ok=False,
                 scope=ConfigScope.LOCAL,
                 entries=[],
-                error=f"Failed to load dividend DB: {str(e)}",
-                source_path=str(self.config_path)
+                error=err,
+                source_path=str(self.config_path),
             )
     
     def save_dividend_db(self, entries: List[ConfigEntry]) -> bool:
@@ -138,7 +174,7 @@ class DividendConfig:
             return True
             
         except Exception as e:
-            print(f"Failed to save dividend DB: {str(e)}")
+            _LOG.error("Failed to save dividend DB: %s", e, exc_info=True)
             return False
     
     def get_dividend_info(self, ticker: str) -> Optional[Dict[str, Any]]:
@@ -272,7 +308,7 @@ class DividendConfig:
             return self.save_dividend_db(entries)
             
         except Exception as e:
-            print(f"Failed to add dividend info: {str(e)}")
+            _LOG.error("Failed to add dividend info: %s", e, exc_info=True)
             return False
     
     def update_dividend_info(self, ticker: str, **kwargs) -> bool:
@@ -312,7 +348,7 @@ class DividendConfig:
             return False  # 티커를 찾지 못함
             
         except Exception as e:
-            print(f"Failed to update dividend info: {str(e)}")
+            _LOG.error("Failed to update dividend info: %s", e, exc_info=True)
             return False
     
     def delete_dividend_info(self, ticker: str) -> bool:
@@ -340,7 +376,7 @@ class DividendConfig:
             return self.save_dividend_db(filtered_entries)
             
         except Exception as e:
-            print(f"Failed to delete dividend info: {str(e)}")
+            _LOG.error("Failed to delete dividend info: %s", e, exc_info=True)
             return False
     
     def get_upcoming_dividends(self, days: int = 30) -> List[Dict[str, Any]]:
@@ -376,7 +412,7 @@ class DividendConfig:
             return upcoming_dividends
             
         except Exception as e:
-            print(f"Failed to get upcoming dividends: {str(e)}")
+            _LOG.error("Failed to get upcoming dividends: %s", e, exc_info=True)
             return []
     
     def get_dividend_summary(self) -> Dict[str, Any]:
@@ -415,7 +451,7 @@ class DividendConfig:
             return summary
             
         except Exception as e:
-            print(f"Failed to get dividend summary: {str(e)}")
+            _LOG.error("Failed to get dividend summary: %s", e, exc_info=True)
             return {}
     
     def search_dividend_info(self, query: str) -> List[Dict[str, Any]]:
@@ -444,7 +480,7 @@ class DividendConfig:
             return search_results
             
         except Exception as e:
-            print(f"Failed to search dividend info: {str(e)}")
+            _LOG.error("Failed to search dividend info: %s", e, exc_info=True)
             return []
 
 
