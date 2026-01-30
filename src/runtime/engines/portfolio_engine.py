@@ -216,7 +216,7 @@ class PortfolioEngine(BaseEngine):
             # 기본 지표 계산
             total_market_value = sum(pos.market_value for pos in positions)
             total_unrealized_pnl = sum(pos.unrealized_pnl for pos in positions)
-            total_equity = float(self.config.get('BASE_EQUITY', 1000000.0))
+            total_equity = float(self.config.get_flat('BASE_EQUITY', 1000000.0))
             
             # Exposure 계산
             exposure = await self.calculate_exposure()
@@ -229,7 +229,7 @@ class PortfolioEngine(BaseEngine):
             strategy_allocation = await self.get_strategy_allocation()
             
             # Killswitch 상태 (config에서 가져오기)
-            killswitch_status = self.config.get('KILLSWITCH_STATUS', 'ACTIVE')
+            killswitch_status = self.config.get_flat('KILLSWITCH_STATUS', 'ACTIVE')
             
             summary = PortfolioSummary(
                 total_equity=total_equity,
@@ -354,7 +354,7 @@ class PortfolioEngine(BaseEngine):
             
             # 총 자산은 config에서 가져오거나 Portfolio sheet KPI에서 조회
             # 여기서는 config의 BASE_EQUITY 사용
-            total_equity = float(self.config.get('BASE_EQUITY', 1000000.0))
+            total_equity = float(self.config.get_flat('BASE_EQUITY', 1000000.0))
             
             exposure = total_market_value / total_equity if total_equity > 0 else 0.0
             

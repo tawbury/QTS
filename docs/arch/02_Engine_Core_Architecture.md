@@ -322,7 +322,7 @@ Strategy Engine은 다음 기능을 수행한다.
 
 StrategyInput 주요 필드:
 
-- 가격/지표 데이터 (DI_DB, History 기반)
+- 가격/지표 데이터 (History 기반)
     
 - 현재 포지션 정보 (Position Contract)
     
@@ -610,7 +610,7 @@ PortfolioInput:
     
 - Target Allocation (Config or Portfolio Policy)
     
-- 가격 정보 (DI_DB)
+- 가격 정보 (History 등)
     
 - **scope_id** (포트폴리오 스코프 식별자, 전체 계좌 스코프 시 생략 가능)
 
@@ -860,7 +860,7 @@ PerformanceInput:
     
 - Dividend 정보
     
-- 종목 가격 정보(DI_DB)
+- 종목 가격 정보(History)
     
 
 ---
@@ -916,7 +916,7 @@ T_Ledger에 전략 태그가 있는 경우:
 
 ## **8.6 리포트 생성 규칙**
 
-- Daily Report → DT_Report 시트에 기록
+- Daily Report 기록 (Performance 등)
     
 - Summary Metrics → R_Dash 및 별도 리포트 구조
     

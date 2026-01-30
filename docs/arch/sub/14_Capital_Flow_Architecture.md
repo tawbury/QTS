@@ -62,6 +62,8 @@ Capital Flow Architecture는 다음 목표를 수행한다.
 4. **Capital Engine ≠ Portfolio Engine**
    Capital Engine은 풀 수준 배분, Portfolio Engine은 종목 수준 배분을 담당한다.
 
+**Capital Flow vs Execution Boundary.** Capital Flow는 자본 배분 및 프로모션만 담당한다. Execution 레이어는 다음을 수행해서는 안 된다: 자본 풀 배분 변경, 자본 상태 영속화, 프로모션/디모션 로직 수행. 책임 혼선을 막기 위해 Capital와 Execution 경계를 엄격히 유지한다.
+
 ---
 
 ## **1.4 관련 문서**

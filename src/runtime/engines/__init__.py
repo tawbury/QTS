@@ -1,15 +1,22 @@
 """
-QTS Trading Engines
+QTS Engine Layer
 
-거래 엔진 모듈 포트폴리오 관리, 성과 추적, 리스크 관리 등 핵심 비즈니스 로직을 구현합니다.
+Strategy, Risk, Portfolio, Trading, Performance 엔진 및 BaseEngine.
+Trading Engine은 Broker Layer(BrokerEngine)와 분리되어 ExecutionIntent/Response Contract로 연동.
 """
 
+from .base_engine import BaseEngine, EngineState, EngineMetrics
 from .portfolio_engine import PortfolioEngine
 from .performance_engine import PerformanceEngine
-from .base_engine import BaseEngine
+from .strategy_engine import StrategyEngine
+from .trading_engine import TradingEngine
 
 __all__ = [
-    'BaseEngine',
-    'PortfolioEngine', 
-    'PerformanceEngine'
+    "BaseEngine",
+    "EngineState",
+    "EngineMetrics",
+    "PortfolioEngine",
+    "PerformanceEngine",
+    "StrategyEngine",
+    "TradingEngine",
 ]

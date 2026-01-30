@@ -73,7 +73,7 @@ class TestLocalConfig:
             assert result.ok is False
             assert result.scope == ConfigScope.LOCAL
             assert len(result.entries) == 0
-            assert "file not found" in result.error.lower()
+            assert result.error and ("찾을 수 없습니다" in result.error or "file not found" in result.error.lower())
     
     def test_load_local_config_empty_file(self):
         """빈 파일 테스트"""
@@ -109,7 +109,7 @@ class TestLocalConfig:
             assert result.ok is False
             assert result.scope == ConfigScope.LOCAL
             assert len(result.entries) == 0
-            assert "invalid json" in result.error.lower()
+            assert result.error and ("json" in result.error.lower() or "형식 오류" in result.error)
     
     def test_load_local_config_not_array(self):
         """JSON이 배열이 아닐 때 테스트"""
@@ -127,7 +127,7 @@ class TestLocalConfig:
             assert result.ok is False
             assert result.scope == ConfigScope.LOCAL
             assert len(result.entries) == 0
-            assert "must be a json array" in result.error.lower()
+            assert result.error and ("json 배열" in result.error.lower() or "배열" in result.error)
     
     def test_load_local_config_invalid_entry(self):
         """잘못된 엔트리 테스트"""
@@ -263,7 +263,7 @@ class TestLocalConfig:
             assert is_valid, f"Validation failed: {error}"
         else:
             # 파일이 없는 경우도 테스트
-            assert "file not found" in result.error.lower()
+            assert result.error and ("찾을 수 없습니다" in result.error or "file not found" in result.error.lower())
 
 
 if __name__ == "__main__":

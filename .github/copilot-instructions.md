@@ -3,8 +3,8 @@
 ## Big Picture Architecture
 - QTS is organized by phases, each representing a major architectural or workflow milestone. See `docs/tasks/README.md` for phase breakdowns and status.
 - Core logic is in `src/` (ops, runtime, shared), with configuration in `config/` and documentation in `docs/`.
-- Observer and validation logic are in top-level files (`observer.py`, `main.py`, `paths.py`) and `tests/observer_block_nan.py`.
-- Data flows from configuration (`config/observer/*.jsonl`) through runtime and ops modules, with reporting to `docs/reports/`.
+- Observer is a **separate project**; this repo does not contain Observer implementation. QTS consumes Observer outputs at ETEDA pipeline (snapshot), Decision pipeline (context), and Retention (dataset_root). See `docs/tasks/phases/Phase_00_Observer/Observer_Boundary.md`.
+- Data flows from runtime and ops modules, with reporting to `docs/reports/`. Observer dataset paths (e.g. `config/observer/`) are provided by deployment/config when used.
 
 ## Developer Workflows
 - Tasks are managed in `docs/tasks/` using templates. Automated workflows:
@@ -26,11 +26,11 @@
 - Agent context and workflow are defined in `agents/hr/hr.agent.md`.
 - Document templates and constraints are in `.ai/.cursorrules`.
 - Data contracts and architecture specs are in `docs/arch/` and `docs/spec/`.
-- Observer and usage data are in `config/observer/*.jsonl`.
+- Observer outputs (when integrated) are under a configurable path; see Observer_Boundary.md. This repo does not ship `config/observer/` by default.
 
 ## Key Files & Directories
 - `src/` – main codebase (ops, runtime, shared)
-- `config/observer/` – observer and usage data
+- Observer dataset path – configurable at deploy time (see Observer_Boundary.md)
 - `docs/tasks/` – phase/task management
 - `docs/reports/` – evaluation outputs
 - `.ai/.cursorrules` – agent rules and language policy

@@ -33,7 +33,7 @@ class LiveBroker(BrokerEngine):
     def submit_intent(self, intent: ExecutionIntent) -> ExecutionResponse:
         if self._guard.blocked:
             resp = ExecutionResponse(
-                intent_id=getattr(intent, "id", "unknown"),
+                intent_id=intent.intent_id,
                 accepted=False,
                 broker="failsafe",
                 message="blocked: consecutive failures exceeded",

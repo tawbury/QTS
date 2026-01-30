@@ -372,7 +372,7 @@ daily_loss_warning_pct = -0.03
     
 - 거래량 이상
     
-- DI_DB 빈값 또는 누락
+- 종목/가격 데이터 누락 (History 등)
     
 - PnL 급변
     
@@ -432,7 +432,7 @@ Fail-Safe (치명적 오류 시)
 |코드|설명|
 |---|---|
 |AN001|가격 급등락|
-|AN010|DI_DB 누락|
+|AN010|종목/가격 데이터 누락|
 |AN020|PnL 급변|
 |AN030|Ledger inconsistency|
 |AN040|ETEDA Cycle Time 급증|
@@ -693,7 +693,7 @@ Exposure 초과, 신호 충돌 등 테스트.
 
 ## **10.3 Anomaly Detection 테스트**
 
-가격 급변, DI_DB 누락 등.
+가격 급변, 데이터 누락 등.
 
 ## **10.4 Lockdown 상태 테스트**
 

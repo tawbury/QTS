@@ -150,7 +150,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ## **2.2 시트별 Raw Contract 구조**
 
-아래는 9개 시트 기반 Contract이다.
+아래는 10+1 시트 기반 Contract이다.
 
 ---
 
@@ -185,23 +185,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ---
 
-### **2.2.3 DI_DB Contract**
-
-|필드|타입|설명|
-|---|---|---|
-|symbol|str||
-|price|float||
-|change_pct|float||
-|volatility|float||
-|ma20|float||
-|ma60|float||
-|volume|float||
-
-전략 엔진에서 핵심적으로 참조한다.
-
----
-
-### **2.2.4 History Contract**
+### **2.2.3 History Contract**
 
 일봉/분봉 기록 기반 RawData.
 
@@ -216,7 +200,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ---
 
-### **2.2.5 Strategy Contract**
+### **2.2.4 Strategy Contract**
 
 전략 파라미터 관리.
 
@@ -228,7 +212,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ---
 
-### **2.2.6 Config Contract**
+### **2.2.5 Config Contract**
 
 |필드|타입|예시|
 |---|---|---|
@@ -239,7 +223,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ---
 
-### **2.2.7 Risk Config Contract**
+### **2.2.6 Risk Config Contract**
 
 리스크 제한 정의.
 
@@ -252,7 +236,7 @@ RawDataContract는 각 시트의 구조를 기반으로 생성된다.
 
 ---
 
-### **2.2.8 Dividend DB Contract**
+### **2.2.7 Dividend DB Contract**
 
 |필드|타입|
 |---|---|
@@ -406,7 +390,7 @@ Engine Layer는 Contract 기반으로만 동작한다.
 
 |필드|타입|
 |---|---|
-|symbol_data|DI_DB Contract|
+|symbol_data|History/가격 Contract|
 |position_data|Position Contract|
 |strategy_params|Strategy Contract|
 |market_context|dict|
@@ -582,7 +566,7 @@ OrderDecision은 Evaluate 결과를 기반으로
 
 ## **5.5 가격 소스 규칙**
 
-- MARKET 주문은 DI_DB 가격 사용
+- MARKET 주문은 History 등 가격 데이터 사용
     
 - LIMIT 주문은 Portfolio/Strategy에서 제공된 limit_price 사용
     

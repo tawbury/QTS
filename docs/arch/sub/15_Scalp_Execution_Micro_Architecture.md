@@ -68,6 +68,8 @@ Scalp Execution Micro-Architecture는 다음 목표를 수행한다.
 5. **P0 우선순위로 실행된다.**
    Scalp 실행 이벤트는 최고 우선순위(P0)로 처리된다.
 
+**Execution vs Risk Authority.** Execution은 Risk 권한 하에 동작한다. Micro Risk Loop가 긴급 액션을 트리거하면 Execution은 즉시 제어를 양보해야 하며, 부분 체결 처리도 안전하게 중단해야 한다. 우선순위 규칙: **Micro Risk Loop > Execution > ETEDA**.
+
 ---
 
 ## **1.4 관련 문서**

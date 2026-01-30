@@ -93,13 +93,14 @@ class BaseEngine(ABC):
     @abstractmethod
     async def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        엔진 실행
-        
-        Args:
-            data: 실행 데이터
-            
-        Returns:
-            Dict[str, Any]: 실행 결과
+        엔진 실행 (Engine I/O Contract — ETEDA Evaluate/Decide/Act와 정합)
+
+        Input Contract:
+            data: Dict with required key "operation" (str); operation별 추가 키는 각 엔진 명세.
+
+        Output Contract:
+            성공: {"success": True, "data": <result>, "execution_time": float}
+            실패: {"success": False, "error": str, "execution_time": float}
         """
         pass
     
@@ -186,15 +187,27 @@ class BaseEngine(ABC):
         if error:
             self.state.last_error = error
     
+    def _state_kind(self) -> str:
+        """
+        엔진 상태 종류 (Engine State Model — docs/arch/02_Engine_Core_Architecture.md §9).
+        FAULT: Safety 연동·매매 중단 고려. WARNING: 경고 표시. OK: 정상.
+        """
+        if self.state.error_count >= 10:
+            return "FAULT"
+        if self.state.error_count >= 1:
+            return "WARNING"
+        return "OK"
+
     async def get_status(self) -> Dict[str, Any]:
         """
         엔진 상태 조회
         
         Returns:
-            Dict[str, Any]: 상태 정보
+            Dict[str, Any]: 상태 정보 (state_kind: OK | WARNING | FAULT)
         """
         return {
             'engine_type': self.__class__.__name__,
+            'state_kind': self._state_kind(),
             'state': {
                 'is_running': self.state.is_running,
                 'last_updated': self.state.last_updated.isoformat() if self.state.last_updated else None,
@@ -237,6 +250,7 @@ class BaseEngine(ABC):
             return {
                 'status': 'healthy' if is_healthy else 'unhealthy',
                 'engine': self.__class__.__name__,
+                'state_kind': self._state_kind(),
                 'timestamp': datetime.now().isoformat(),
                 'details': status
             }
@@ -245,6 +259,7 @@ class BaseEngine(ABC):
             return {
                 'status': 'unhealthy',
                 'engine': self.__class__.__name__,
+                'state_kind': 'FAULT',
                 'timestamp': datetime.now().isoformat(),
                 'error': str(e)
             }

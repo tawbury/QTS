@@ -378,25 +378,43 @@ class PerformanceEngine(BaseEngine):
                 except (ValueError, TypeError):
                     continue
             
-            # 월별 성과 계산
-            monthly_perf = []
+            # 월별 수익률 먼저 계산 (실제 데이터 기반)
+            monthly_returns_ordered: List[Tuple[str, float]] = []
             for month_key in sorted(monthly_data.keys()):
                 records = monthly_data[month_key]
-                # 월별 수익률 계산 (간단하게 첫날과 마지막날 비교)
                 if records:
                     first_equity = float(records[0].get('Total_Equity', 0))
                     last_equity = float(records[-1].get('Total_Equity', 0))
                     monthly_return = ((last_equity - first_equity) / first_equity) if first_equity > 0 else 0.0
-                    
-                    perf = MonthlyPerformance(
-                        month=month_key,
-                        monthly_return=monthly_return,
-                        cumulative_monthly_return=0.0,  # 별도 계산 필요
-                        mom_change=0.0,  # 별도 계산 필요
-                        volatility=0.15,  # 별도 계산 필요
-                        sharpe_ratio=monthly_return / 0.15 if 0.15 != 0 else 0.0
-                    )
-                    monthly_perf.append(perf)
+                    monthly_returns_ordered.append((month_key, monthly_return))
+            
+            # 연도 내 월별 수익률의 표준편차 (실제 데이터 기반)
+            returns_only = [r for _, r in monthly_returns_ordered]
+            vol_monthly = statistics.stdev(returns_only) if len(returns_only) >= 2 else 0.0
+            risk_free_monthly = self._risk_free_rate / 12.0
+            
+            # cumulative, mom_change, volatility, sharpe 산출
+            monthly_perf: List[MonthlyPerformance] = []
+            cumulative = 1.0
+            prev_return: Optional[float] = None
+            for month_key, monthly_return in monthly_returns_ordered:
+                cumulative *= 1.0 + monthly_return
+                cumulative_monthly_return = cumulative - 1.0
+                mom_change = (monthly_return - prev_return) if prev_return is not None else 0.0
+                prev_return = monthly_return
+                sharpe = (
+                    (monthly_return - risk_free_monthly) / (vol_monthly or 1e-10)
+                    if vol_monthly else 0.0
+                )
+                perf = MonthlyPerformance(
+                    month=month_key,
+                    monthly_return=monthly_return,
+                    cumulative_monthly_return=cumulative_monthly_return,
+                    mom_change=mom_change,
+                    volatility=vol_monthly,
+                    sharpe_ratio=sharpe
+                )
+                monthly_perf.append(perf)
             
             self._monthly_performance_cache = monthly_perf
             
@@ -454,81 +472,6 @@ class PerformanceEngine(BaseEngine):
         except Exception as e:
             self.logger.error(f"Failed to update performance KPI: {str(e)}")
             raise
-    
-    def _generate_mock_daily_returns(self) -> List[float]:
-        """Mock 일별 수익률 데이터 생성"""
-        # Mock: 252일 데이터 (1년)
-        import random
-        random.seed(42)
-        
-        returns = []
-        for _ in range(252):
-            # 정규분포에서 수익률 생성 (평균 0.001, 표준편차 0.02)
-            daily_return = random.gauss(0.001, 0.02)
-            returns.append(daily_return)
-        
-        return returns
-    
-    def _generate_mock_daily_performance(self, start_date: Optional[date], 
-                                       end_date: Optional[date]) -> List[DailyPerformance]:
-        """Mock 일별 성과 데이터 생성"""
-        if start_date is None:
-            start_date = date.today() - timedelta(days=30)
-        if end_date is None:
-            end_date = date.today()
-        
-        daily_perf = []
-        current_date = start_date
-        equity = 1000000.0  # 초기 자산
-        cumulative_return = 0.0
-        
-        while current_date <= end_date:
-            # Mock 일별 변동
-            daily_pnl = equity * 0.001  # 0.1% 일별 변동
-            equity += daily_pnl
-            daily_return = daily_pnl / (equity - daily_pnl) if (equity - daily_pnl) != 0 else 0.0
-            cumulative_return += daily_return
-            
-            perf = DailyPerformance(
-                date=current_date,
-                total_equity=equity,
-                daily_pnl=daily_pnl,
-                daily_return=daily_return,
-                cumulative_return=cumulative_return,
-                volatility_20d=0.02,  # Mock 값
-                high_watermark=max(equity, 1000000.0),
-                drawdown=max(0, 1000000.0 - equity),
-                mdd=0.05  # Mock 값
-            )
-            
-            daily_perf.append(perf)
-            current_date += timedelta(days=1)
-        
-        return daily_perf
-    
-    def _generate_mock_monthly_performance(self, year: int) -> List[MonthlyPerformance]:
-        """Mock 월별 성과 데이터 생성"""
-        monthly_perf = []
-        
-        for month in range(1, 13):
-            # Mock 월별 수익률
-            monthly_return = 0.01 + (month - 7) * 0.005  # -2% ~ 3%
-            cumulative_return = sum([
-                0.01 + (m - 7) * 0.005 for m in range(1, month + 1)
-            ])
-            
-            perf = MonthlyPerformance(
-                month=f"{year}-{month:02d}",
-                monthly_return=monthly_return,
-                cumulative_monthly_return=cumulative_return,
-                mom_change=monthly_return - (0.01 + (month - 8) * 0.005) if month > 1 else 0.0,
-                volatility=0.15,  # Mock 값
-                sharpe_ratio=monthly_return / 0.15 if 0.15 != 0 else 0.0
-            )
-            
-            monthly_perf.append(perf)
-        
-        return monthly_perf
     
     def _calculate_total_return(self, returns: List[float]) -> float:
         """총 수익률 계산"""

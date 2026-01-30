@@ -191,3 +191,27 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 | ETEDA Runner의 리포지토리 생성/의존성 주입 정합성 확보 | 🟡 |  |
 | Ops 스케줄링(automation) 구현 범위 확정 및 최소 기능 구현 | 🟡 |  |
 | Dashboard(Zero-Formula UI) 구현 범위 확정 및 최소 렌더링 경로 정의 | 🟡 |  |
+
+---
+
+## 4. Architecture Alignment Notes (Post-Session)
+
+최근 추가된 아키텍처 문서(`docs/arch/sub/`)는 기존 메인 페이즈와 개념적으로 다음과 같이 대응된다.
+
+| 문서 | 개념적 대응 |
+|------|-------------|
+| 14_Capital_Flow_Architecture.md | 자본 흐름 분리; 풀 배분·프로모션 관련 (Engine/Capital) |
+| 15_Scalp_Execution_Micro_Architecture.md | 마이크로 실행 파이프라인; Phase 5 (ETEDA) 실행 서브단계 |
+| 16_Micro_Risk_Loop_Architecture.md | 마이크로 리스크 루프; Phase 7 (Safety & Risk Core) |
+| 17_Event_Priority_Architecture.md | 이벤트 우선순위; Phase 5 (ETEDA) 및 파이프라인 순서 |
+| 18_System_State_Promotion_Architecture.md | 시스템 상태 프로모션; 페이즈 전이 및 상태 생명주기 |
+
+이 문서들은 **페이즈 완료를 나타내지 않으며**, 아키텍처 준비 상태만을 반영한다.
+
+### 4.1 Phase Dependency Clarification
+
+일부 페이즈는 위 아키텍처 문서에서 기술한 **명시적 아키텍처 전제**를 갖는다. 예: Phase 5 (ETEDA)는 파이프라인 순서를 위해 Event Priority Architecture를 전제하고, Phase 7 (Safety & Risk Core)은 고주기 리스크 제어를 위해 Micro Risk Loop를 전제하며, 페이즈 전이 및 상태 생명주기는 System State Promotion 모델을 전제한다. 위 매핑은 설명 목적이며, 작업 지시나 순서 명령을 도입하지 않는다.
+
+### 4.2 Roadmap Interpretation Guardrail
+
+본 Roadmap은 **구조적 준비 상태**를 반영하며, 실행 순서를 규정하지 않는다. 아키텍처 문서의 완성은 구현 완료를 의미하지 않는다. 페이즈 상태(✅ 🟡 ↗️)는 아키텍처 문서 존재만으로 변경되지 않는다. 이 구분은 Roadmap 오해를 방지하기 위한 것이다.

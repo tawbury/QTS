@@ -1,10 +1,13 @@
 """
 Strategy Engine
+
+Engine I/O Contract: execute(data) — data.operation; output {success, data|error, execution_time}.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Dict, Any, Optional
 
 from .base_engine import BaseEngine
@@ -48,8 +51,29 @@ class StrategyEngine(BaseEngine):
         return True
         
     async def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute engine operation"""
-        return {}
+        """
+        Execute engine operation (Engine I/O Contract aligned with ETEDA).
+        operation 'calculate_signal' => data: market_data, position_data.
+        """
+        start_time = datetime.now()
+        try:
+            operation = data.get("operation")
+            if operation == "calculate_signal":
+                market_data = data.get("market_data") or data.get("market") or {}
+                position_data = data.get("position_data") or data.get("position")
+                pos = position_data if isinstance(position_data, dict) else {}
+                result = self.calculate_signal(market_data, pos)
+                execution_time = (datetime.now() - start_time).total_seconds()
+                self._update_metrics(execution_time, success=True)
+                return {"success": True, "data": result, "execution_time": execution_time}
+            execution_time = (datetime.now() - start_time).total_seconds()
+            self._update_metrics(execution_time, success=False)
+            return {"success": False, "error": f"Unknown operation: {operation}", "execution_time": execution_time}
+        except Exception as e:
+            execution_time = (datetime.now() - start_time).total_seconds()
+            self._update_metrics(execution_time, success=False)
+            self._update_state(self.state.is_running, error=str(e))
+            return {"success": False, "error": str(e), "execution_time": execution_time}
 
     def calculate_signal(self, market_data: Dict[str, Any], position_data: Dict[str, Any]) -> Dict[str, Any]:
         """

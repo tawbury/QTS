@@ -1,10 +1,31 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import List
 
+from .config_constants import (
+    LOCAL_CONFIG_DIR,
+    LOCAL_CONFIG_FILENAME,
+    LOCAL_CONFIG_SUBDIR,
+)
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
+
+_LOG = logging.getLogger(__name__)
+
+
+def _user_friendly_json_error(exc: json.JSONDecodeError) -> str:
+    """JSONDecodeError를 사용자 친화적 한 줄 메시지로 변환."""
+    msg = f"JSON 형식 오류 (줄 {exc.lineno}, 열 {exc.colno})"
+    if getattr(exc, "msg", None):
+        msg += f": {exc.msg}"
+    if getattr(exc, "doc", None) and getattr(exc, "pos", None) is not None:
+        doc = exc.doc or ""
+        pos = exc.pos
+        snippet = doc[max(0, pos - 20) : pos + 20].replace("\n", " ")
+        msg += f" — '{snippet}' 근처를 확인하세요."
+    return msg
 
 
 def load_local_config(project_root: Path) -> ConfigLoadResult:
@@ -39,27 +60,53 @@ def load_local_config(project_root: Path) -> ConfigLoadResult:
     Returns:
         ConfigLoadResult with scope=LOCAL
     """
-    config_path = project_root / "config" / "local" / "config_local.json"
+    config_path = project_root / LOCAL_CONFIG_DIR / LOCAL_CONFIG_SUBDIR / LOCAL_CONFIG_FILENAME
     
     if not config_path.exists():
+        err = (
+            f"Config_Local 파일을 찾을 수 없습니다: {config_path}. "
+            f"경로 {LOCAL_CONFIG_DIR}/{LOCAL_CONFIG_SUBDIR}/{LOCAL_CONFIG_FILENAME} 를 확인하세요."
+        )
+        _LOG.warning("%s", err)
         return ConfigLoadResult(
             ok=False,
             scope=ConfigScope.LOCAL,
             entries=[],
-            error=f"Config_Local file not found: {config_path}",
+            error=err,
             source_path=str(config_path),
         )
     
     try:
         with open(config_path, "r", encoding="utf-8-sig") as f:
             data = json.load(f)
-        
+    except OSError as e:
+        err = f"Config_Local 파일을 읽을 수 없습니다 (인코딩/경로 확인): {e}"
+        _LOG.warning("%s", err)
+        return ConfigLoadResult(
+            ok=False,
+            scope=ConfigScope.LOCAL,
+            entries=[],
+            error=err,
+            source_path=str(config_path),
+        )
+    except json.JSONDecodeError as e:
+        err = f"Config_Local {_user_friendly_json_error(e)}"
+        _LOG.warning("%s", err)
+        return ConfigLoadResult(
+            ok=False,
+            scope=ConfigScope.LOCAL,
+            entries=[],
+            error=err,
+            source_path=str(config_path),
+        )
+
+    try:
         if not isinstance(data, list):
             return ConfigLoadResult(
                 ok=False,
                 scope=ConfigScope.LOCAL,
                 entries=[],
-                error="Config_Local must be a JSON array",
+                error="Config_Local 내용은 JSON 배열이어야 합니다. 최상위가 [...] 형태인지 확인하세요.",
                 source_path=str(config_path),
             )
         
@@ -89,7 +136,7 @@ def load_local_config(project_root: Path) -> ConfigLoadResult:
                     ok=False,
                     scope=ConfigScope.LOCAL,
                     entries=[],
-                    error=f"Failed to parse Config_Local entry {idx}: {e}",
+                    error=f"Config_Local 항목 {idx} 파싱 실패: {e}. category/subcategory/key 등 필드 형식을 확인하세요.",
                     source_path=str(config_path),
                 )
         
@@ -100,21 +147,14 @@ def load_local_config(project_root: Path) -> ConfigLoadResult:
             error=None,
             source_path=str(config_path),
         )
-    
-    except json.JSONDecodeError as e:
-        return ConfigLoadResult(
-            ok=False,
-            scope=ConfigScope.LOCAL,
-            entries=[],
-            error=f"Invalid JSON in Config_Local: {e}",
-            source_path=str(config_path),
-        )
     except Exception as e:
+        err = f"Config_Local 로드 중 오류: {e}"
+        _LOG.warning("%s", err)
         return ConfigLoadResult(
             ok=False,
             scope=ConfigScope.LOCAL,
             entries=[],
-            error=f"Failed to load Config_Local: {e}",
+            error=err,
             source_path=str(config_path),
         )
 

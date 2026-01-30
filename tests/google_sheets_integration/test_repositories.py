@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
 """
-Portfolio 및 Performance 리포지토리 기능 검증 스크립트
+Portfolio 및 Performance 리포지토리 기능 검증 스크립트.
+
+실제 인터페이스: EnhancedPortfolioRepository, EnhancedPerformanceRepository
+(client, spreadsheet_id, project_root). 실 스프레드시트 연동은 env 설정 시에만 실행.
 """
 
 import sys
-sys.path.append('src')
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 from runtime.data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
 from runtime.data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 import gspread
 import os
 from dotenv import load_dotenv
+
 
 def test_portfolio_repository():
     """Portfolio 리포지토리 테스트"""
@@ -33,8 +39,9 @@ def test_portfolio_repository():
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc  # 직접 클라이언트 설정
         
-        # Portfolio 리포지토리 초기화
-        portfolio_repo = PortfolioRepository(gs_client, os.getenv('GOOGLE_SHEET_KEY'))
+        # Enhanced Portfolio 리포지토리 초기화 (client, spreadsheet_id, project_root)
+        project_root = Path(os.getenv("PROJECT_ROOT", "."))
+        portfolio_repo = EnhancedPortfolioRepository(gs_client, os.getenv('GOOGLE_SHEET_KEY'), project_root)
         
         # 현재 KPI 데이터 조회
         current_kpi = portfolio_repo.get_kpi_overview()
@@ -89,8 +96,9 @@ def test_performance_repository():
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc  # 직접 클라이언트 설정
         
-        # Performance 리포지토리 초기화
-        performance_repo = PerformanceRepository(gs_client, os.getenv('GOOGLE_SHEET_KEY'))
+        # Enhanced Performance 리포지토리 초기화 (client, spreadsheet_id, project_root)
+        project_root = Path(os.getenv("PROJECT_ROOT", "."))
+        performance_repo = EnhancedPerformanceRepository(gs_client, os.getenv('GOOGLE_SHEET_KEY'), project_root)
         
         # 현재 KPI 데이터 조회
         current_performance_kpi = performance_repo.get_kpi_summary()
@@ -118,34 +126,6 @@ def test_performance_repository():
         print('\n📊 업데이트된 Performance KPI 데이터:')
         for key, value in updated_kpi.items():
             print(f'  {key}: {value}')
-        
-        # Summary Table 데이터 조회
-        summary_data = performance_repo.get_summary_table()
-        print(f'\n📋 Summary Table 데이터: {len(summary_data)}개 레코드')
-        if summary_data:
-            print('최근 3개 레코드:')
-            for i, record in enumerate(summary_data[-3:], 1):
-                date_str = record.get('date', 'N/A')
-                pnl_val = record.get('daily_pnl', 0)
-                print(f'  {i}. {date_str}: PnL={pnl_val}')
-        
-        # Summary Table 업데이트 테스트 (샘플 데이터)
-        test_summary_data = [
-            {
-                'date': '2025-01-24',
-                'daily_pnl': 5000.0,
-                'cum_pnl': 150000.0,
-                'return_pct': 0.015,
-                'mdd': -0.08,
-                'exposure': 0.75,
-                'drawdown': -0.02,
-                'notes': 'Test data'
-            }
-        ]
-        
-        print('\n🔄 Summary Table 업데이트 테스트...')
-        summary_update_result = performance_repo.update_summary_table(test_summary_data)
-        print(f'업데이트 결과: {"성공" if summary_update_result else "실패"}')
         
         return True
         
