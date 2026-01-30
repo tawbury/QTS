@@ -22,7 +22,7 @@
 - ✅ **브로커 연동:** KIS 브로커 어댑터 기본 구현 완료
 - ✅ **전략/리스크 인터페이스:** 기본 인터페이스 및 레지스트리 구현
 - ⚠️ **핵심 엔진:** Portfolio, Performance 엔진 미구현
-- ❌ **데이터 연동:** Google Sheets 9-Sheet 연동 미구현
+- ⚠️ **데이터 연동:** Google Sheets 10+1 시트 Base 리포지토리 등록 (연동 검증 보강 가능)
 - ❌ **실행 파이프라인:** ETEDA 파이프라인 부분 구현
 - ❌ **UI 레이어:** Zero-Formula UI 미구현
 
@@ -195,7 +195,7 @@ Observer 모듈은 독립 프로젝트로 분리되었습니다 (2026-01-28).
 
 | 갭 | 영향 | 우선순위 | 예상 노력 |
 |---|------|----------|----------|
-| **Google Sheets 9-Sheet 연동** | 데이터 레이어 작동 불가 | **치명적** | 높음 (3-4주) |
+| **Google Sheets 10+1 시트 연동** | Base 리포 등록됨. 연동 검증 보강 | **높음** | 중간 (1-2주) |
 | **Portfolio Engine** | 포지션 관리 불가 | **치명적** | 높음 (2-3주) |
 | **Performance Engine** | 성과 추적 불가 | **치명적** | 높음 (2-3주) |
 | **UI Rendering Layer** | 사용자 시각화 불가 | **높음** | 중간 (2-3주) |
@@ -236,7 +236,7 @@ Observer 모듈은 독립 프로젝트로 분리되었습니다 (2026-01-28).
 
 1. **Google Sheets 연동 완성**
    - Google Sheets 클라이언트 구현 (`src/runtime/data/google_sheets_client.py`)
-   - 9개 시트 리포지토리 구현
+   - 10+1 시트 리포지토리 (Position, History, T_Ledger, Dividend, Strategy, R_Dash 등) 구현·정합
    - 스키마 기반 필드 매핑
    - **영향:** 아키텍처의 핵심 데이터 레이어 활성화
 

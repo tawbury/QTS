@@ -2,7 +2,7 @@
 Dividend Configuration Management
 
 로컬 배당 정보 데이터베이스를 관리합니다.
-DI_DB 시트를 로컬 JSON 파일로 마이그레이션한 기능입니다.
+로컬 JSON 파일 기반 Dividend 설정 기능입니다.
 로깅/오류 처리 규칙: local_config.py와 동일한 패턴(ConfigLoadResult, 로깅).
 """
 

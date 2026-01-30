@@ -30,7 +30,7 @@ QTS 시스템의 근간이 되는 **Schema Automation Engine**의 구조·역할
 
 ## **1.1 목적**
 
-QTS는 Google Sheets 기반의 9개 시트를 사용한다.  
+QTS는 Google Sheets 기반의 10+1 시트(Google 10 + Config_Local 1)를 사용한다.  
 그러나 시트는 언제든지 사람이 직접 수정하거나 구조가 바뀔 수 있는 환경이다.
 
 Schema Automation Engine의 목적은:
@@ -379,7 +379,7 @@ Fail-Safe로 전환할 수 있다.
     
 2. T_Ledger
     
-3. DI_DB
+3. History (가격/지표)
     
 4. Strategy
     

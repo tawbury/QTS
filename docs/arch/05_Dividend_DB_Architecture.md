@@ -475,7 +475,7 @@ v2024.01-dividend-snapshot
 
 ## **7.3 symbol 정합성**
 
-Dividend DB의 symbol은 DI_DB·Position의 symbol 목록과 일치해야 한다.
+Dividend DB의 symbol은 Position(및 History 등)의 symbol 목록과 일치해야 한다.
 
 ---
 

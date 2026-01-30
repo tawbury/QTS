@@ -146,7 +146,7 @@ Core Layer
   ├─ Logging/Monitoring Core
 
 Data Layer
-  ├─ 9-Sheet 구조 (Portfolio, Position, RawData 등)
+  ├─ 10+1 시트 구조 (Google 10 + Config_Local 1: Portfolio, Position, RawData 등)
   ├─ Raw → Calc Contract 변환
   ├─ Dividend Local/Git DB
 
@@ -317,9 +317,9 @@ ETEDA는 QTS의 모든 계산·판단·실행을 담당하는 5단계 자동매�
 
 # **5. Data Layer Summary**
 
-## **5.1 9-Sheet 구조 개요**
+## **5.1 10+1 시트 구조 개요**
 
-Portfolio / Position / RawData / CalcData / Ledger / Config / Dividend / Report 등
+Google 10: Portfolio, Performance, R_Dash, Dividend, T_Ledger, History, Strategy, Position, Config_Swing, Config_Scalp. 로컬 1: Config_Local.
 
 ---
 

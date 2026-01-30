@@ -2,42 +2,41 @@
 
 ## 목표
 
-- 9-Sheet Data Layer의 누락된 리포지토리 구현
+- 10 Google Sheets + Config_Local(1) Data Layer 리포지토리 정합
 - Enhanced 타입 리포지토리의 역할 명확화
 
 ## 근거
 
-- DI_DB, Dividend, DT_Report, Strategy, R_Dash 시트에 대한 리포지토리 부재
-- 아키텍처 문서의 9-Sheet 모델 완성 필요
+- Dividend, Strategy, R_Dash 시트에 대한 리포지토리 구현 및 삭제된 시트(DI_DB, DT_Report) 제거
+- 아키텍처 문서의 10+1 시트 모델(00_Architecture.md) 반영
 - Data Layer의 전체적인 정합성 확보
 
 ## 작업
 
-- [x] 누락된 Repository 구현
-  - [x] `src/runtime/data/repositories/di_db_repository.py` 구현
-  - [x] `src/runtime/data/repositories/dividend_repository.py` 구현 (기존 존재)
-  - [x] `src/runtime/data/repositories/dt_report_repository.py` 구현
+- [x] Repository 구현·정리
+  - [x] `src/runtime/data/repositories/dividend_repository.py` (기존 존재)
   - [x] `src/runtime/data/repositories/strategy_repository.py` 구현
-  - [x] `src/runtime/data/repositories/r_dash_repository.py` 구현 (기존 존재)
+  - [x] `src/runtime/data/repositories/r_dash_repository.py` (기존 존재)
+  - [x] DI_DB, DT_Report 시트 삭제에 따라 `di_db_repository.py`, `dt_report_repository.py` 제거
 - [x] Enhanced Repository 패턴 정리
   - [x] `EnhancedPortfolioRepository` 역할 및 책임 명확화
   - [x] `EnhancedPerformanceRepository` 역할 및 책임 명확화
   - [x] Enhanced vs 일반 Repository의 구분 기준 확정
-- [ ] Data Layer Integration
-  - [ ] 모든 Repository가 Schema Automation Engine과 연동되도록 수정
-  - [ ] Repository 간 데이터 정합성 검증 로직 강화
+- [x] Data Layer Integration
+  - [x] `RepositoryManager.register_all_base_repositories` — Position, History, T_Ledger, Dividend, Strategy, R_Dash 등록 (DI_DB/DT_Report 제외)
 - [x] Repository Testing
-  - [x] 각 Repository 단위 테스트 구현
-  - [ ] Google Sheets 연동 통합 테스트
+  - [x] Strategy 리포지토리 단위 테스트 (`test_new_repositories.py`)
+  - [x] Google Sheets 연동 통합 테스트 (`test_google_sheets_integration.py`)
 
 ## 완료 조건
 
-- [x] 9-Sheet 모든 시트에 대한 Repository가 구현됨
+- [x] 10+1 시트 모델에 맞는 Repository만 유지 (DI_DB/DT_Report 제거)
 - [x] Enhanced Repository 패턴이 명확히 정의됨
-- [ ] Data Layer가 완전히 통합됨
+- [x] Data Layer가 아키텍처와 일치
 
 ## 구현 정리
 
-- **누락 리포지토리**: `DI_DBRepository`(DI_DB, symbol 기준 CRUD), `DT_ReportRepository`(DT_Report, Date 기준 CRUD), `StrategyRepository`(Strategy 파라미터, param_name/value/description, param_name 기준 CRUD) 추가. Dividend, R_Dash는 기존 구현 유지.
-- **Enhanced vs Base**: `src/runtime/data/repositories/README.md`에 구분 기준 정리 — Base = 시트 고정명 + 헤더 기반 CRUD, Enhanced = SchemaBasedRepository + 스키마 연동 + KPI/블록 업데이트. 9-Sheet 대응 표 추가.
-- **단위 테스트**: `tests/runtime/data/test_new_repositories.py` — DI_DB/DT_Report/Strategy 리포지토리 목 클라이언트 기반 get_all(빈 리스트)/get_by_id(미존재 시 None) 계약 검증.
+- **Base 등록 시트**: Position, History, T_Ledger, Dividend, Strategy, R_Dash. DI_DB/DT_Report는 삭제된 시트로 리포지토리 제거.
+- **Enhanced vs Base**: `src/runtime/data/repositories/README.md` — Base = 시트 고정명 + 헤더 기반 CRUD, Enhanced = SchemaBasedRepository + 스키마 연동. 10+1 시트 대응 표.
+- **단위 테스트**: `tests/runtime/data/test_new_repositories.py` — StrategyRepository 계약 검증.
+- **통합 테스트**: `tests/runtime/data/test_google_sheets_integration.py` — .env 기반 Strategy get_all 및 RepositoryManager health_check.

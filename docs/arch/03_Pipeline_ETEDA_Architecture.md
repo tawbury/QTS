@@ -225,7 +225,7 @@ Extract가 실패하면
 
 ## **3.2 입력 소스**
 
-- Google Sheets (9-Sheet Layer)
+- Google Sheets (10+1 시트 Layer)
     
 - Dividend Local DB / Git DB
     

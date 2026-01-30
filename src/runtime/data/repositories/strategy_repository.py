@@ -20,8 +20,8 @@ class StrategyRepository(BaseSheetRepository):
     ID = param_name.
     """
 
-    def __init__(self, client, spreadsheet_id: str):
-        super().__init__(client, spreadsheet_id, "Strategy")
+    def __init__(self, client, spreadsheet_id: str, sheet_name: str = "Strategy"):
+        super().__init__(client, spreadsheet_id, sheet_name)
         self.required_fields = ["param_name", "value"]
         self.logger.info(f"StrategyRepository initialized for sheet '{self.sheet_name}'")
 

@@ -14,6 +14,29 @@ from .repositories.base_repository import BaseSheetRepository
 from .mappers.field_mapper import FieldMapper
 
 
+def register_all_base_repositories(manager: "RepositoryManager") -> None:
+    """
+    10 Google Sheets Base 리포지토리 일괄 등록 (Schema/Engine 연동용).
+    Config_Local은 로컬 1개 시트. Enhanced(Portfolio, Performance)는 project_root 필요로 별도 생성.
+    """
+    from .repositories.position_repository import PositionRepository
+    from .repositories.history_repository import HistoryRepository
+    from .repositories.t_ledger_repository import T_LedgerRepository
+    from .repositories.dividend_repository import DividendRepository
+    from .repositories.strategy_repository import StrategyRepository
+    from .repositories.r_dash_repository import R_DashRepository
+
+    for sheet_name, repo_class in [
+        ("Position", PositionRepository),
+        ("History", HistoryRepository),
+        ("T_Ledger", T_LedgerRepository),
+        ("Dividend", DividendRepository),
+        ("Strategy", StrategyRepository),
+        ("R_Dash", R_DashRepository),
+    ]:
+        manager.register_repository(sheet_name, repo_class)
+
+
 class RepositoryManager:
     """
     리포지토리 매니저

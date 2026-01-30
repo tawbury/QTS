@@ -111,11 +111,11 @@ The system has a **solid technical foundation** and is well-architected for long
 | Schema Guard | ✅ **Done** | `src/runtime/schema/schema_guard.py` | Schema validation guard |
 | Schema Extract Gate | ✅ **Done** | `src/runtime/schema/schema_extract_gate.py` | Extraction validation |
 | Repository Base | ✅ **Done** | `src/runtime/data/repository_base.py` | Repository pattern base class |
-| **Google Sheets 9-Sheet Integration** | ⚠️ **Missing** | Not found in codebase | Architecture defined but actual Sheets reading/writing not implemented |
+| **Google Sheets 10+1 시트 Integration** | ⚠️ **Partial** | `src/runtime/data/repositories/`, `repository_manager.py` | 10 Google Sheets + Config_Local. Base repos: Position, History, T_Ledger, Dividend, Strategy, R_Dash 등록. |
 | **Sheet Scanner (Auto Header Detection)** | ⚠️ **Missing** | Not found | Schema automation requires automatic sheet structure scanning |
 | **Data Contract Builders** | ⚠️ **Partial** | Referenced in docs | RawData/CalcData contract builders may be incomplete |
 
-**Assessment:** Schema automation foundation is solid, but the critical Google Sheets integration layer is missing. The system cannot yet automatically read from or write to the 9-sheet data model as specified in the architecture.
+**Assessment:** Schema automation foundation is solid, but the critical Google Sheets integration layer is missing. The system uses a 10+1 sheet data model (10 Google Sheets + Config_Local) as specified in the architecture.
 
 ---
 
@@ -202,7 +202,7 @@ The system has a **solid technical foundation** and is well-architected for long
 
 | Gap | Impact | Priority | Estimated Effort |
 |-----|--------|----------|------------------|
-| **Google Sheets 9-Sheet Integration** | System cannot read/write to data layer | **Critical** | High (2-3 weeks) |
+| **Google Sheets 10+1 시트 Integration** | Base repos 등록됨. 연동 검증 보강 가능 | **High** | Medium (1-2 weeks) |
 | **Portfolio Engine** | Cannot manage positions, weights, or rebalancing | **Critical** | High (2-3 weeks) |
 | **Performance Engine** | Cannot track PnL, generate reports, or measure success | **Critical** | Medium-High (1-2 weeks) |
 | **UI Rendering Layer** | Cannot display results to users | **High** | Medium (1-2 weeks) |
@@ -249,7 +249,7 @@ The system has a **solid technical foundation** and is well-architected for long
 
 1. **Complete Google Sheets Integration**
    - Implement Sheet Scanner for automatic header detection
-   - Create repositories for all 9 sheets (Config, Position, T_Ledger, DI_DB, Dividend, DT_Report, History, Strategy, R_Dash)
+   - Repositories for 10+1 sheets (Position, History, T_Ledger, Dividend, Strategy, R_Dash, Config_Swing, Config_Scalp, Portfolio, Performance, Config_Local)
    - Implement read/write operations with schema-based field mapping
    - **Business Impact:** Enables the core data layer as specified in architecture
 
