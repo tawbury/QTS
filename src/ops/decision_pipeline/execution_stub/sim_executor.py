@@ -8,6 +8,7 @@ from src.ops.decision_pipeline.contracts.order_decision import OrderDecision
 from src.ops.decision_pipeline.contracts.execution_hint import ExecutionHint
 
 from .execution_context import ExecutionContext
+from .execution_guards import apply_execution_guards
 from .execution_mode import ExecutionMode
 from .execution_result import ExecutionResult, ExecutionStatus
 from .iexecution import IExecution
@@ -32,9 +33,9 @@ class SimExecutor(IExecution):
     """
     Phase 9: SIM Executor (FINAL)
 
-    - Execution Guard 사용 안 함
-    - ExecutionHint.constraints 를 확장 슬롯으로 사용
-    - 시장 로그/검증용 시뮬레이션만 수행
+    - Act stage policy: Guard/Fail-Safe 연계로 apply_execution_guards 사용.
+    - ExecutionHint.constraints 를 확장 슬롯으로 사용.
+    - 시장 로그/검증용 시뮬레이션만 수행(부작용 없음).
     """
 
     DEFAULT_SLIPPAGE_RATE = 0.0002
@@ -50,20 +51,21 @@ class SimExecutor(IExecution):
         decision_id = getattr(order, "decision_id", None) or getattr(order, "id", None) or "UNKNOWN"
         fp = _fingerprint(order, hint)
 
-        # 1️⃣ kill switch
-        if getattr(context, "kill_switch", False):
+        # 1) Guard/Fail-Safe 연계 (execution_guards와 동일 정책)
+        gd = apply_execution_guards(order=order, context=context)
+        if gd.blocked_by:
             return ExecutionResult(
                 mode=ExecutionMode.SIM.value,
                 status=ExecutionStatus.REJECTED.value,
                 executed=False,
                 decision_id=str(decision_id),
                 order_fingerprint=fp,
-                blocked_by="G_KILL_SWITCH",
-                reason="kill switch enabled",
-                audit={},
+                blocked_by=gd.blocked_by,
+                reason=gd.reason,
+                audit=gd.audit or {},
             )
 
-        # 2️⃣ action NONE
+        # 2) action NONE
         action = getattr(order, "action", None)
         if action in (None, "NONE"):
             return ExecutionResult(
@@ -77,25 +79,7 @@ class SimExecutor(IExecution):
                 audit={},
             )
 
-        # 3️⃣ qty 검증
-        try:
-            requested_qty = int(getattr(order, "qty", 0))
-        except Exception:
-            requested_qty = 0
-
-        if requested_qty <= 0:
-            return ExecutionResult(
-                mode=ExecutionMode.SIM.value,
-                status=ExecutionStatus.REJECTED.value,
-                executed=False,
-                decision_id=str(decision_id),
-                order_fingerprint=fp,
-                blocked_by="G_INVALID_QTY",
-                reason="qty must be positive",
-                audit={},
-            )
-
-        # 4️⃣ reference price (ExecutionHint.constraints)
+        # 3) reference price (ExecutionHint.constraints)
         ref_price = None
         constraints = getattr(hint, "constraints", {})
         if isinstance(constraints, dict):
@@ -115,7 +99,7 @@ class SimExecutor(IExecution):
                 audit={},
             )
 
-        # 5️⃣ simulate fill
+        # 4) simulate fill
         sim = self._simulate_fill(order, context, ref_price)
 
         return ExecutionResult(

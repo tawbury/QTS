@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
+import uuid
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..config.config_models import UnifiedConfig
+from ..config.execution_mode import ExecutionMode, decide_execution_mode
+from ..execution.interfaces.broker import BrokerEngine
+from ..execution.models.intent import ExecutionIntent
+from ..execution.models.response import ExecutionResponse
 from ..engines.portfolio_engine import PortfolioEngine
 from ..engines.performance_engine import PerformanceEngine
 from ..engines.strategy_engine import StrategyEngine
@@ -15,29 +22,57 @@ from ..data.repositories.history_repository import HistoryRepository
 from ..data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 
 
+def _default_project_root() -> Path:
+    try:
+        from paths import project_root
+        return project_root()
+    except ImportError:
+        return Path.cwd()
+
+
 class ETEDARunner:
     """
     ETEDA Pipeline Runner
 
     Executes the Extract-Transform-Evaluate-Decide-Act pipeline.
+
+    Dependency injection contract:
+    - config: UnifiedConfig (required). Config keys: RUN_MODE, LIVE_ENABLED, SPREADSHEET_ID, CREDENTIALS_PATH (optional; env fallback).
+    - sheets_client: optional. If None, created from config/env.
+    - project_root: optional. If None, resolved via paths.project_root() or cwd.
+    - broker: optional BrokerEngine. If provided, Act 단계에서 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용.
     """
 
     def __init__(
         self,
-        config: UnifiedConfig
+        config: UnifiedConfig,
+        *,
+        sheets_client: Optional[GoogleSheetsClient] = None,
+        project_root: Optional[Path] = None,
+        broker: Optional[BrokerEngine] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
-        
-        # GoogleSheetsClient 초기화
-        self._sheets_client = GoogleSheetsClient()
-        
-        # 리포지토리 초기화
-        self._position_repo = PositionRepository(self._sheets_client)
-        self._portfolio_repo = EnhancedPortfolioRepository(self._sheets_client)
-        self._t_ledger_repo = T_LedgerRepository(self._sheets_client)
-        self._history_repo = HistoryRepository(self._sheets_client)
-        self._performance_repo = EnhancedPerformanceRepository(self._sheets_client)
+        self._project_root = project_root if project_root is not None else _default_project_root()
+
+        # GoogleSheetsClient: inject or create from Config contract (SPREADSHEET_ID, CREDENTIALS_PATH; env fallback)
+        if sheets_client is not None:
+            self._sheets_client = sheets_client
+        else:
+            spreadsheet_id = config.get_flat("SPREADSHEET_ID") or os.getenv("GOOGLE_SHEET_KEY")
+            credentials_path = config.get_flat("CREDENTIALS_PATH") or os.getenv("GOOGLE_CREDENTIALS_FILE")
+            self._sheets_client = GoogleSheetsClient(
+                credentials_path=credentials_path,
+                spreadsheet_id=spreadsheet_id,
+            )
+        sid = self._sheets_client.spreadsheet_id
+
+        # Repositories: spreadsheet_id from client; sheet names from repo classes (single responsibility)
+        self._position_repo = PositionRepository(self._sheets_client, sid)
+        self._portfolio_repo = EnhancedPortfolioRepository(self._sheets_client, sid, self._project_root)
+        self._t_ledger_repo = T_LedgerRepository(self._sheets_client, sid)
+        self._history_repo = HistoryRepository(self._sheets_client, sid)
+        self._performance_repo = EnhancedPerformanceRepository(self._sheets_client, sid, self._project_root)
         
         # 엔진 초기화 (리포지토리 주입)
         self._portfolio_engine = PortfolioEngine(
@@ -52,6 +87,7 @@ class ETEDARunner:
             performance_repo=self._performance_repo
         )
         self._strategy_engine = StrategyEngine(config=config)
+        self._broker = broker
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -147,19 +183,63 @@ class ETEDARunner:
         return decision
 
     async def _act(self, decision: Dict[str, Any]) -> Dict[str, Any]:
-        """Execute the decision"""
+        """
+        Execute the decision. Act Input = decision (action, symbol, qty/final_qty, approved).
+        Act Output = ExecutionResponse Contract as dict (status, intent_id, accepted, broker, message).
+        broker 주입 시 ExecutionIntent → BrokerEngine.submit_intent() → ExecutionResponse 반환.
+        """
         action = decision.get("action", "HOLD")
-        
+
         if action == "HOLD" or not decision.get("approved"):
             return {"status": "skipped", "action": "HOLD"}
 
-        # Check RUN_MODE
-        # For now, we assume PAPER mode if not explicitly set to LIVE logic
-        # You might want to read this from self._config in the future
-        run_mode = "PAPER" 
-        
-        if run_mode == "PAPER":
-            self._log.info(f"[PAPER ORDER] Action: {action}, Symbol: {decision.get('symbol')}")
-            return {"status": "executed", "mode": "PAPER", "details": decision}
-        
-        return {"status": "skipped", "reason": "LIVE mode not implemented"}
+        # Guard/Fail-Safe 연계: Config로 Act 비활성화 시 run_once 없이 skip
+        if self._config.get_flat("trading_enabled") in ("0", "false", "False"):
+            return {"status": "skipped", "reason": "trading_enabled=False"}
+        if self._config.get_flat("KILLSWITCH_STATUS") in ("ON", "ACTIVE", "1", "true"):
+            return {"status": "skipped", "reason": "kill_switch"}
+        if self._config.get_flat("PIPELINE_PAUSED") in ("1", "true", "True"):
+            return {"status": "skipped", "reason": "pipeline_paused"}
+        if self._config.get_flat("safe_mode") in ("1", "true", "True"):
+            return {"status": "skipped", "reason": "safe_mode"}
+
+        gate = decide_execution_mode(
+            sheet_execution_mode=self._config.get_flat("RUN_MODE"),
+            sheet_live_enabled=self._config.get_flat("LIVE_ENABLED"),
+            env_live_ack=os.environ.get("QTS_LIVE_ACK"),
+        )
+
+        if gate.mode != ExecutionMode.PAPER and not (gate.mode == ExecutionMode.LIVE and gate.live_allowed):
+            return {"status": "skipped", "reason": gate.reason}
+
+        # Broker 주입 시 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용
+        if self._broker is not None:
+            try:
+                intent = ExecutionIntent(
+                    intent_id=str(uuid.uuid4()),
+                    symbol=str(decision.get("symbol", "")),
+                    side=str(action).upper(),
+                    quantity=float(decision.get("qty") or decision.get("final_qty") or 0),
+                    intent_type="MARKET",
+                    metadata={"decision": decision, "mode": gate.mode.value},
+                )
+                resp = self._broker.submit_intent(intent)
+                ts = getattr(resp.timestamp, "isoformat", lambda: str(resp.timestamp))()
+                out = {
+                    "status": "executed" if resp.accepted else "rejected",
+                    "intent_id": resp.intent_id,
+                    "accepted": resp.accepted,
+                    "broker": resp.broker,
+                    "message": resp.message,
+                    "timestamp": ts,
+                    "mode": gate.mode.value,
+                }
+                self._log.info(f"[{gate.mode.value}] Act result: {out}")
+                return out
+            except Exception as e:
+                self._log.exception("Act submit_intent failed: %s", e)
+                return {"status": "error", "error": str(e), "mode": gate.mode.value}
+
+        # broker 미주입: 기존 동작(로그만, Contract 없음)
+        self._log.info(f"[{gate.mode.value}] Action: {action}, Symbol: {decision.get('symbol')}")
+        return {"status": "executed", "mode": gate.mode.value, "details": decision}
