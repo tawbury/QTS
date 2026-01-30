@@ -88,7 +88,16 @@ class UnifiedConfig:
         """
         lookup_key = f"{category}.{subcategory}.{key}"
         return self.config_map.get(lookup_key, default)
-    
+
+    def get_flat(self, key: str, default: Any = None) -> Any:
+        """
+        Single-key lookup for engine use (e.g. BASE_EQUITY, KILLSWITCH_STATUS).
+        config_map may use flat keys; returns default when key is missing.
+        """
+        if key not in self.config_map:
+            return default
+        return self.config_map[key]
+
     def get_all_in_category(self, category: str) -> Dict[str, str]:
         """
         Retrieve all config entries in a category.
