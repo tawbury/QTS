@@ -124,7 +124,23 @@ reports/schema/**/*.md
 !docs/
 
 # ------------------------------------------------------------
-# claude code
+# [Claude Code] AI 어시스턴트 임시 파일
 # ------------------------------------------------------------
+.ai/
 .claude/
 tmpclaude*/
+tmpclaude-*
+nul
+
+# ------------------------------------------------------------
+# [Additional Security] 추가 보안 규칙
+# ------------------------------------------------------------
+# notebook 내 secrets 폴더 (이중 방어)
+notebook/secrets/
+**/secrets/
+
+# config 내 local 설정 (개인별 상이)
+config/local/
+
+# __pycache__ 하위 모든 항목
+**/__pycache__/

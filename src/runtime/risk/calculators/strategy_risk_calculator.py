@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from ..policies.risk_policy import RiskPolicy, RiskStage
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -58,7 +61,8 @@ class StrategyRiskCalculator:
                 try:
                     iv = int(v)
                     return max(iv, 0)
-                except Exception:
+                except Exception as e:
+                    _log.debug("Failed to extract qty from %s.%s: %s", type(intent).__name__, key, e)
                     return None
         return None
 
@@ -76,14 +80,15 @@ class StrategyRiskCalculator:
         if hasattr(intent, "replace"):
             try:
                 return intent.replace(qty=allowed_qty)  # type: ignore[attr-defined]
-            except Exception:
-                pass
+            except Exception as e:
+                _log.debug("intent.replace(qty=%d) failed: %s", allowed_qty, e)
 
         for key in ("qty", "quantity", "order_qty"):
             if hasattr(intent, key):
                 try:
                     setattr(intent, key, allowed_qty)
                     return intent
-                except Exception:
+                except Exception as e:
+                    _log.debug("setattr(intent, %s, %d) failed: %s", key, allowed_qty, e)
                     return intent
         return intent

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 from ops.maintenance._types import RetentionCandidate
-from ops.maintenance.retention.policy import RetentionPolicy
+from ops.retention.policy import FileRetentionPolicy
 
 
 def _matches_any(path: Path, patterns: List[str]) -> bool:
@@ -14,7 +14,7 @@ def _matches_any(path: Path, patterns: List[str]) -> bool:
     return any(Path(s).match(p) or path.match(p) for p in patterns)
 
 
-def scan_expired(data_root: Path, policy: RetentionPolicy) -> List[RetentionCandidate]:
+def scan_expired(data_root: Path, policy: FileRetentionPolicy) -> List[RetentionCandidate]:
     """
     만료 대상 '산출'만 수행. 삭제는 cleanup에서만 수행.
     기준: 파일 mtime < now - ttl

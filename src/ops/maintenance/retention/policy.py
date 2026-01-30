@@ -1,21 +1,22 @@
+"""
+ops/maintenance/retention/policy.py
+
+DEPRECATED: 이 파일은 호환성을 위해 유지됩니다.
+실제 구현은 ops.retention.policy.FileRetentionPolicy로 이동했습니다.
+
+Migration:
+    # Before
+    from ops.maintenance.retention.policy import RetentionPolicy
+
+    # After
+    from ops.retention.policy import FileRetentionPolicy
+"""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import timedelta
-from typing import List, Optional
+# Re-export from canonical location
+from ops.retention.policy import FileRetentionPolicy
 
+# Backward compatibility alias
+RetentionPolicy = FileRetentionPolicy
 
-@dataclass(frozen=True)
-class RetentionPolicy:
-    """
-    ttl_days: mtime 기준 만료(운영 안전 최소 버전)
-    include_globs: 스캔 포함 패턴 (None이면 전체)
-    exclude_globs: 제외 패턴
-    """
-    ttl_days: int = 7
-    include_globs: Optional[List[str]] = None
-    exclude_globs: Optional[List[str]] = None
-
-    @property
-    def ttl(self) -> timedelta:
-        return timedelta(days=int(self.ttl_days))
+__all__ = ["RetentionPolicy", "FileRetentionPolicy"]

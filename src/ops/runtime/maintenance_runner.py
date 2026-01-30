@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import Dict, Any, List
 
-from ops.retention.policy import RetentionPolicy
+from ops.retention.policy import DataRetentionPolicy
 
 _log = logging.getLogger("ops.runtime.maintenance_runner")
 from ops.retention.scanner import DatasetScanner
@@ -16,7 +16,7 @@ def run_maintenance_automation(
     *,
     dataset_root: Path,
     backup_root: Path,
-    policy: RetentionPolicy,
+    policy: DataRetentionPolicy,
 ) -> Dict[str, Any]:
     """
     Fully automated maintenance routine (backup-first retention).
