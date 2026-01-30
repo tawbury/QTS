@@ -5,52 +5,45 @@
 ## 테스트 파일
 
 ### `test_repositories.py`
-- 기본 Repository 기능 테스트
-- Portfolio 및 Performance 리포지토리 기본 동작 검증
-- Google Sheets 연동 기본 기능 테스트
+- Enhanced Portfolio / Performance 리포지토리 기능 테스트 (실제 인터페이스: `EnhancedPortfolioRepository`, `EnhancedPerformanceRepository`)
+- **실 스프레드시트 연동은 env 설정 시에만 실행** (CI에서는 스킵 가능)
 
-### `test_enhanced_repositories.py`
-- Enhanced Repository 기능 테스트 (이전 버전)
-- 스키마 기반 기능 초기 테스트
+### `test_base_repository.py`
+- BaseSheetRepository 추상 메서드·초기화 검증 (Mock 기반)
+
+### `test_repository_manager.py`
+- RepositoryManager 등록/조회/캐시/헬스체크 (Mock 기반)
 
 ### `test_enhanced_repositories_fixed.py`
-- Enhanced Repository 기능 테스트 (수정 버전)
-- 스키마 기반 기능 완전 테스트
-- Google Sheets API 연동 및 데이터 업데이트 검증
+- 스키마 기반 Enhanced Repository 완전 테스트
+- Google Sheets API 연동 및 데이터 업데이트 검증 (env 설정 시)
+
+### `test_google_sheets_client.py`
+- 위치: `tests/runtime/data/test_google_sheets_client.py`
+- GoogleSheetsClient 예외 타입·생성자·ValidationError 시나리오 (Mock 기반, CI 기본 실행)
+- 실 API 연동: `pytest -m live_sheets` 또는 env 설정 시에만 실행
 
 ## 테스트 실행 방법
 
 ```bash
-# 기본 리포지토리 테스트
-python tests/google_sheets_integration/test_repositories.py
+# Mock 기반 단위/통합 테스트 (CI 기본, 실 API 불필요)
+pytest tests/google_sheets_integration/ tests/runtime/data/test_google_sheets_client.py -v -m "not live_sheets"
 
-# 스키마 기반 리포지토리 테스트
+# 실 스프레드시트 연동 테스트 (env 설정 시에만)
+python tests/google_sheets_integration/test_repositories.py
 python tests/google_sheets_integration/test_enhanced_repositories_fixed.py
 ```
 
 ## 테스트 환경 요구사항
 
-- Google Sheets API 인증 설정
-- `.env` 파일에 `GOOGLE_SHEET_KEY` 및 `GOOGLE_CREDENTIALS_FILE` 설정
-- 필요한 Python 패키지 설치:
-  ```bash
-  pip install gspread google-api-python-client python-dotenv
-  ```
+- **Mock 기반:** Google Sheets API/인증 불필요. CI에서 기본 실행.
+- **실 연동:** `.env`에 `GOOGLE_SHEET_KEY`, `GOOGLE_CREDENTIALS_FILE` 설정. **CI에서는 서비스 계정 키를 저장소에 넣지 않음** — env 미설정 시 실 연동 테스트 스킵.
+- 패키지: `gspread`, `google-api-python-client`, `python-dotenv`
 
-## 테스트 내용
+## 실패 시 원인 분리
 
-1. **Schema Loader 테스트**
-   - 스키마 파일 로드 및 파싱
-   - 시트 설정 및 필드 매핑 확인
+- **인증:** `AuthenticationError` / credentials 누락·만료
+- **네트워크:** `APIError`, `RateLimitError` / 타임아웃·429
+- **스키마 불일치:** `ValidationError`, 필수 필드 `ValueError` / 헤더·컬럼 불일치
 
-2. **Portfolio Repository 테스트**
-   - KPI Overview 업데이트 및 조회
-   - 스키마 기반 필드 매핑 동작 검증
-
-3. **Performance Repository 테스트**
-   - KPI Summary 업데이트 및 조회
-   - 스키마 기반 필드 매핑 동작 검증
-
-4. **Google Sheets 연동 테스트**
-   - 실제 시트 접속 및 데이터 업데이트
-   - API 제한 및 에러 핸들링 검증
+상세 범위·시나리오: `docs/tasks/phases/Phase_01_Schema_Sheet_Mapping/Repository_Integration_Test_Scope.md`

@@ -1,9 +1,40 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
-from typing import List
+from typing import Any, List
 
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
+
+
+async def _fetch_sheet_as_rows(sheet_name: str) -> List[List[Any]]:
+    """Fetch sheet range A:Z via GoogleSheetsClient (env-based)."""
+    from ..data.google_sheets_client import GoogleSheetsClient
+
+    client = GoogleSheetsClient()
+    await client.authenticate()
+    return await client.get_sheet_data(f"{sheet_name}!A:Z")
+
+
+def _row_to_dict(row: List[Any], headers: List[str]) -> dict:
+    """Map a row list to dict by headers; align with BaseSheetRepository._row_to_dict."""
+    result = {}
+    for i, header in enumerate(headers):
+        value = row[i] if i < len(row) else ""
+        if value == "" or value is None:
+            result[header] = None
+        elif isinstance(value, str) and value.lower() in ("true", "false"):
+            result[header] = value.lower() == "true"
+        else:
+            try:
+                s = str(value).strip()
+                if "." in s:
+                    result[header] = float(s)
+                else:
+                    result[header] = int(s)
+            except (ValueError, TypeError):
+                result[header] = value
+    return result
 
 
 def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResult:
@@ -47,29 +78,12 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
     
     # Determine sheet name from scope
     sheet_name = f"Config_{scope.value.capitalize()}"
-    
+
     try:
-        # Import Google Sheets client (lazy import to avoid dependency if not used)
-        from runtime.data.google_sheets_client import GoogleSheetsClient
-        
-        # Initialize client
-        client = GoogleSheetsClient(project_root=project_root)
-        
-        # Read sheet data
-        # Expected: List[Dict[str, str]] with keys matching column headers
-        data = client.read_sheet(sheet_name=sheet_name)
-        
-        if data is None:
-            return ConfigLoadResult(
-                ok=False,
-                scope=scope,
-                entries=[],
-                error=f"Sheet '{sheet_name}' not found or inaccessible",
-                source_path=sheet_name,
-            )
-        
-        # Empty sheet is valid
-        if len(data) == 0:
+        # Fetch via GoogleSheetsClient (env: GOOGLE_CREDENTIALS_FILE, GOOGLE_SHEET_KEY)
+        raw_values = asyncio.run(_fetch_sheet_as_rows(sheet_name))
+
+        if not raw_values:
             return ConfigLoadResult(
                 ok=True,
                 scope=scope,
@@ -77,27 +91,30 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
                 error=None,
                 source_path=sheet_name,
             )
-        
-        # Parse entries
+
+        # Index-aligned with row columns (same rule as BaseSheetRepository)
+        headers = [str(c).strip() if c else "" for c in raw_values[0]]
+        if not any(h for h in headers):
+            return ConfigLoadResult(
+                ok=True,
+                scope=scope,
+                entries=[],
+                error=None,
+                source_path=sheet_name,
+            )
+
+        data_rows = raw_values[1:]
         entries: List[ConfigEntry] = []
-        for idx, row in enumerate(data):
-            if not isinstance(row, dict):
-                return ConfigLoadResult(
-                    ok=False,
-                    scope=scope,
-                    entries=[],
-                    error=f"Sheet '{sheet_name}' row {idx} is not a dict",
-                    source_path=sheet_name,
-                )
-            
+        for idx, row in enumerate(data_rows):
+            row_dict = _row_to_dict(row if isinstance(row, list) else [], headers)
             try:
                 entry = ConfigEntry(
-                    category=str(row.get("CATEGORY", "")),
-                    subcategory=str(row.get("SUB_CATEGORY", "")),
-                    key=str(row.get("KEY", "")),
-                    value=str(row.get("VALUE", "")),
-                    description=str(row.get("DESCRIPTION", "")),
-                    tag=str(row.get("TAG", "")),
+                    category=str(row_dict.get("CATEGORY") or ""),
+                    subcategory=str(row_dict.get("SUB_CATEGORY") or ""),
+                    key=str(row_dict.get("KEY") or ""),
+                    value=str(row_dict.get("VALUE") or ""),
+                    description=str(row_dict.get("DESCRIPTION") or ""),
+                    tag=str(row_dict.get("TAG") or ""),
                 )
                 entries.append(entry)
             except Exception as e:
@@ -108,7 +125,7 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
                     error=f"Failed to parse sheet '{sheet_name}' row {idx}: {e}",
                     source_path=sheet_name,
                 )
-        
+
         return ConfigLoadResult(
             ok=True,
             scope=scope,
@@ -116,7 +133,7 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
             error=None,
             source_path=sheet_name,
         )
-    
+
     except ImportError as e:
         return ConfigLoadResult(
             ok=False,
