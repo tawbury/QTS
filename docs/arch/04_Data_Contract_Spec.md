@@ -77,6 +77,8 @@ Python 계산 로직, ETEDA Pipeline, Engine Layer, UI Render Layer는
 - **UI Architecture**: [06_UI_Architecture.md](./06_UI_Architecture.md)
 - **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
 - **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+- **Data Layer**: [sub/18_Data_Layer_Architecture.md](./sub/18_Data_Layer_Architecture.md)
+- **Feedback Loop**: [sub/20_Feedback_Loop_Architecture.md](./sub/20_Feedback_Loop_Architecture.md)
 
 ---
 
@@ -810,38 +812,199 @@ Contract 생성 과정 실패.
 
 ---
 
-# **10. Appendix**
+# **10. TimescaleDB-Specific Contracts**
 
-## **10.1 Contract 전체 요약 표**
+## **10.1 Time-Series Data Contracts**
+
+TimescaleDB 기반 시계열 데이터를 위한 Contract 확장.
+
+---
+
+### **10.1.1 TickData Contract**
+
+틱 데이터 저장 및 조회를 위한 Contract.
+
+|필드|타입|설명|
+|---|---|---|
+|time|timestamptz|타임스탬프 (UTC)|
+|symbol|str|종목코드|
+|price|decimal(18,8)|체결가|
+|volume|bigint|거래량|
+|bid|decimal(18,8)|매수호가|
+|ask|decimal(18,8)|매도호가|
+|source|str|데이터 소스 (broker/feed)|
+
+**Hypertable 설정:**
+- Partition Key: `time`
+- Chunk Interval: 1 day
+- Retention Policy: 7 days
+
+---
+
+### **10.1.2 OHLCV Contract (1-Minute)**
+
+분봉 데이터 Contract (Continuous Aggregate).
+
+|필드|타입|설명|
+|---|---|---|
+|bucket|timestamptz|1분 버킷 시작 시각|
+|symbol|str|종목코드|
+|open|decimal(18,8)|시가|
+|high|decimal(18,8)|고가|
+|low|decimal(18,8)|저가|
+|close|decimal(18,8)|종가|
+|volume|bigint|거래량|
+
+**Continuous Aggregate 설정:**
+- Source: `tick_data`
+- Refresh Policy: Real-time
+
+---
+
+### **10.1.3 ExecutionLog Contract**
+
+실행 로그 시계열 데이터.
+
+|필드|타입|설명|
+|---|---|---|
+|time|timestamptz|실행 시각|
+|order_id|str|주문 ID|
+|symbol|str|종목|
+|stage|str|실행 단계 (PreCheck/Send/Fill)|
+|latency_ms|float|레이턴시 (밀리초)|
+|success|bool|성공 여부|
+|error_code|str|오류 코드 (있는 경우)|
+
+**Retention Policy:** 90 days
+
+---
+
+## **10.2 Feedback Data Contract**
+
+Feedback Loop를 위한 데이터 Contract.
+
+```python
+@dataclass
+class FeedbackData:
+    """Execution → Strategy 피드백 데이터"""
+
+    # Tick Data
+    scalp_ticks: List[TickRecord]
+
+    # Execution Metrics
+    total_slippage_bps: float
+    avg_fill_latency_ms: float
+    partial_fill_ratio: float
+
+    # Market Context
+    volatility_at_execution: float
+    spread_at_execution: float
+    depth_at_execution: int
+
+    # Learning Signals
+    execution_quality_score: float  # 0.0 ~ 1.0
+    market_impact_bps: float
+
+    # Timestamps
+    execution_start: datetime
+    execution_end: datetime
+    feedback_generated_at: datetime
+
+
+@dataclass
+class TickRecord:
+    """개별 틱 레코드"""
+    timestamp: datetime
+    symbol: str
+    price: Decimal
+    volume: int
+    side: str  # BID / ASK / TRADE
+```
+
+---
+
+## **10.3 Database Adapter Contract Interface**
+
+데이터 소스 중립적 Contract 생성을 위한 Adapter 인터페이스.
+
+```python
+class DataSourceAdapter(ABC):
+    """데이터 소스 추상 인터페이스"""
+
+    @abstractmethod
+    def fetch_raw_data(self, sheet_name: str) -> RawDataContract:
+        """Raw 데이터 조회"""
+        pass
+
+    @abstractmethod
+    def store_execution_result(self, result: ExecutionResult) -> bool:
+        """실행 결과 저장"""
+        pass
+
+    @abstractmethod
+    def fetch_time_series(
+        self,
+        symbol: str,
+        start: datetime,
+        end: datetime
+    ) -> List[TickData]:
+        """시계열 데이터 조회 (TimescaleDB 전용)"""
+        pass
+```
+
+**구현체:**
+- `GoogleSheetsAdapter`: Google Sheets 연결
+- `TimescaleDBAdapter`: PostgreSQL + TimescaleDB 연결
+- `HybridAdapter`: Sheets + DB 하이브리드
+
+---
+
+## **10.4 Contract Migration Path**
+
+Google Sheets → TimescaleDB 마이그레이션 시 Contract 호환성 유지.
+
+**호환성 규칙:**
+1. RawDataContract 인터페이스는 데이터 소스 무관
+2. Adapter Layer가 소스별 변환 담당
+3. ETEDA Pipeline은 Contract만 인지
+4. Schema Version은 데이터 소스 변경 시에도 유지
+
+**마이그레이션 체크리스트:**
+- [ ] DB Adapter 구현
+- [ ] RawDataContract 호환성 검증
+- [ ] Dual-Write 모드 활성화
+- [ ] 데이터 정합성 검증
+- [ ] Read 트래픽 DB로 이동
+- [ ] Google Sheets Read-Only 전환
+
+---
+
+# **11. Appendix**
+
+## **11.1 Contract 전체 요약 표**
 
 Raw → Calc → Engine I/O → Order → ExecutionResult → UI 전체 구조 요약.
 
-## **10.2 Pseudocode 예시**
+## **11.2 Pseudocode 예시**
 
 각 Contract 생성 예시 코드.
 
-## **10.3 Contract 연결 다이어그램**
+## **11.3 Contract 연결 다이어그램**
 
 데이터 흐름 흐름도.
 
-## **10.4 계산 필드 목록**
+## **11.4 계산 필드 목록**
 
 Python Calculation Spec 링크.
 
-## **10.5 확장 가능한 Contract 구조**
+## **11.5 확장 가능한 Contract 구조**
 
 미래 확장 대응을 위한 Contract 계층화 구조.
+
+## **11.6 TimescaleDB Schema 예시**
+
+상세한 DDL 및 설정은 [sub/18_Data_Layer_Architecture.md](./sub/18_Data_Layer_Architecture.md) 참조.
 
 ---
 
 **QTS Data Contract Specification v1.0.0 — 완료됨**
-
----
-
-다음 단계는 다음 중 선택할 수 있어:
-
-### 5번 문서: **QTS_Python_Calculation_Spec.md** 스켈레톤 생성
-
-### 또는 현재 문서 보완
-
-어떻게 이어갈까?

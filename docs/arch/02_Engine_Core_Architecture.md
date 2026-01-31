@@ -78,6 +78,7 @@ QTS_Python_Calculation_Spec.md 및 QTS_Data_Contract_Spec.md 와 함께 사용�
 - **Broker Integration**: [08_Broker_Integration_Architecture.md](./08_Broker_Integration_Architecture.md)
 - **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
 - **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)
+- **Feedback Loop**: [sub/20_Feedback_Loop_Architecture.md](./sub/20_Feedback_Loop_Architecture.md)
 
 ---
 
@@ -906,25 +907,58 @@ PerformanceOutput:
 T_Ledger에 전략 태그가 있는 경우:
 
 - 전략별 거래 필터링
-    
+
 - 전략별 PnL, MDD, WinRate 계산
-    
-- “어떤 전략이 계좌에 기여/손실을 줬는지” 평가
-    
+
+- "어떤 전략이 계좌에 기여/손실을 줬는지" 평가
+
 
 ---
 
 ## **8.6 리포트 생성 규칙**
 
 - Daily Report 기록 (Performance 등)
-    
-- Summary Metrics → R_Dash 및 별도 리포트 구조
-    
-- 장기 성과 → 월/분기/연 단위 집계
-    
 
-Performance Engine은 “기록·분석”에 집중하며  
+- Summary Metrics → R_Dash 및 별도 리포트 구조
+
+- 장기 성과 → 월/분기/연 단위 집계
+
+
+Performance Engine은 "기록·분석"에 집중하며
 매매 의사결정에는 관여하지 않는다.
+
+---
+
+## **8.7 Feedback Loop Integration**
+
+Performance Engine은 실행 성과 데이터를 다음 사이클의 Strategy/Risk Engine에 피드백한다.
+
+**Feedback Data:**
+- 전략별 실행 품질 점수 (Execution Quality Score)
+- 종목별 슬리피지 이력 (Historical Slippage)
+- 시장 충격 추정치 (Market Impact Estimation)
+- 체결 지연 패턴 (Fill Latency Patterns)
+
+**Feedback Flow:**
+
+```
+Performance Engine
+    ↓ (Feedback Data)
+Strategy Engine (다음 사이클)
+    ↓
+- 슬리피지 보정 진입가
+- 실행 품질 기반 신호 조정
+- 시장 충격 인지 타이밍 조정
+```
+
+**Continuous Improvement Loop:**
+1. Execution → Performance 분석
+2. Feedback Data 생성
+3. Strategy Engine 입력 보강
+4. 개선된 Decision 생성
+5. 1번으로 복귀
+
+상세 내용은 [sub/20_Feedback_Loop_Architecture.md](./sub/20_Feedback_Loop_Architecture.md) 참조
 
 ---
 

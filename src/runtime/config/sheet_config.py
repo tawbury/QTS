@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, List
+from typing import Any, List, Optional, TYPE_CHECKING
 
 from .config_constants import (
     COL_CATEGORY,
@@ -23,6 +23,9 @@ from .config_constants import (
 )
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
 
+if TYPE_CHECKING:
+    from ..data.google_sheets_client import GoogleSheetsClient
+
 
 def _scope_to_sheet_name(scope: ConfigScope) -> str:
     """ConfigScope -> 시트 이름 (SCALP -> Config_Scalp, SWING -> Config_Swing)."""
@@ -33,9 +36,15 @@ def _scope_to_sheet_name(scope: ConfigScope) -> str:
     raise ValueError(f"Invalid scope for sheet config: {scope}. Use SCALP or SWING.")
 
 
-async def _load_sheet_config_async(scope: ConfigScope) -> ConfigLoadResult:
+async def _load_sheet_config_async(
+    scope: ConfigScope,
+    client: Optional["GoogleSheetsClient"] = None,
+) -> ConfigLoadResult:
     """
     Config_Scalp 또는 Config_Swing 시트를 Repository로 조회.
+
+    client가 없으면 GoogleSheetsClient()로 생성 후 authenticate() 호출.
+    client가 주입되면 그대로 사용(호출자가 인증 완료한 상태로 전달).
 
     실패 케이스:
     - 시트 미존재(404): ok=False, error에 시트명 포함
@@ -49,8 +58,9 @@ async def _load_sheet_config_async(scope: ConfigScope) -> ConfigLoadResult:
     from ..data.repositories.config_swing_repository import ConfigSwingRepository
 
     try:
-        client = GoogleSheetsClient()
-        await client.authenticate()
+        if client is None:
+            client = GoogleSheetsClient()
+            await client.authenticate()
         spreadsheet_id = client.spreadsheet_id
 
         if scope == ConfigScope.SCALP:
@@ -125,12 +135,17 @@ async def _load_sheet_config_async(scope: ConfigScope) -> ConfigLoadResult:
     )
 
 
-def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResult:
+def load_sheet_config(
+    project_root: Path,
+    scope: ConfigScope,
+    client: Optional["GoogleSheetsClient"] = None,
+) -> ConfigLoadResult:
     """
     Config_Scalp 또는 Config_Swing을 Google Sheet(Repository)에서 로드.
 
     - Sheet = Scope: Config_Scalp / Config_Swing 시트 이름으로 스코프 구분.
-    - 구현: ConfigScalpRepository / ConfigSwingRepository 사용 (GoogleSheetsClient 공유).
+    - 구현: ConfigScalpRepository / ConfigSwingRepository 사용.
+    - client가 주입되면 해당 인스턴스 사용(호출부·매니저와 시그니처 정합); 없으면 env 기반 생성.
 
     실패 처리:
     - 시트 미존재(404): ok=False
@@ -138,8 +153,9 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
     - 필드 누락/파싱 오류: ok=False, error에 위치 정보
 
     Args:
-        project_root: 프로젝트 루트 (현재 구현에서는 Sheet ID가 env에서 로드되므로 미사용, 호출부 호환용)
+        project_root: 프로젝트 루트 (Sheet ID가 env/주입 client에서 로드되므로 호출부 호환용)
         scope: ConfigScope.SCALP 또는 ConfigScope.SWING
+        client: 선택. GoogleSheetsClient 인스턴스(인증 완료). None이면 env 기반 생성.
 
     Returns:
         ConfigLoadResult (scope=SCALP|SWING)
@@ -153,7 +169,7 @@ def load_sheet_config(project_root: Path, scope: ConfigScope) -> ConfigLoadResul
             source_path=None,
         )
 
-    return asyncio.run(_load_sheet_config_async(scope))
+    return asyncio.run(_load_sheet_config_async(scope, client))
 
 
 def validate_sheet_config_entries(entries: List[ConfigEntry]) -> tuple[bool, str]:
