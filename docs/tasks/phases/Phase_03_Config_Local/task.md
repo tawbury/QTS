@@ -1,27 +1,30 @@
-# Phase 3 — Config Architecture (Local)
+# Phase 3 — Config Architecture (Local) (로드맵 기준 Task)
+
+## Roadmap 상태
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| Local Config 파일/로더 | ✅ | 구현 완료 |
+| Config 머지 오케스트레이터(로컬 우선) | 🟡 | 별도 Exit Criteria 적용 가능 |
+
+**근거:** [docs/Roadmap.md](../../../Roadmap.md)
+
+---
 
 ## 목표
 
-- Local Config 경로를 운영 기준으로 안정화하고, 보조 설정(예: dividend DB)까지 일관된 로깅/에러 처리로 정리
+- Phase 3은 **로컬 Config** 기준으로 ✅ 유지.
+- Config 머지 오케스트레이터 개선 시 선택적으로 정합성·테스트 유지.
 
-## 근거
+---
 
-- `docs/Roadmap.md`
-- 코드:
-  - `config/local/config_local.json`
-  - `src/runtime/config/local_config.py`
-  - `src/runtime/config/dividend_config.py`
-  - `src/runtime/config/config_constants.py`
+## 작업 (선택)
 
-## 작업
+- [ ] Config 머지(로컬 우선) 동작이 문서·테스트와 일치하는지 주기적 검증
+- [ ] `config/local/config_local.json`, `src/runtime/config/local_config.py`, `config_loader.py` 변경 시 Exit Criteria §2.1·§2.3 유지
 
-- [x] Local Config 운영 안전성 점검
-  - [x] 파일 누락/UTF-8 BOM/잘못된 JSON 처리에 대한 사용자 친화적 오류 메시지 정리 (`local_config.py`: 한글 안내, 줄/열 정보, 로깅)
-- [x] 코드 품질 개선(필수)
-  - [x] `dividend_config.py`의 `print(...)` 제거 후 로깅으로 통일 (`_LOG.error`/`_LOG.warning`)
-  - [x] 예외 처리/반환 타입 규칙을 `local_config.py`와 유사한 수준으로 맞춤 (ConfigLoadResult, utf-8-sig, 친화적 JSON 오류 메시지, 경로 상수 사용)
+---
 
 ## 완료 조건
 
-- [x] 로컬 설정 로딩 실패 시 로깅/예외 규칙이 일관적이다.
-- [x] 배당 DB 기능도 동일한 운영 품질(로그/오류 처리)을 만족한다.
+- 이미 ✅. 추가 Task는 “머지 쪽 🟡 해소” 시에만 정의.

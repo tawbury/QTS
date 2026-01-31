@@ -78,6 +78,7 @@ Schema Automation Engine의 목적은:
 - **Data Contract**: [04_Data_Contract_Spec.md](./04_Data_Contract_Spec.md)
 - **Engine Core**: [02_Engine_Core_Architecture.md](./02_Engine_Core_Architecture.md)
 - **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
+- **Data Layer**: [sub/18_Data_Layer_Architecture.md](./sub/18_Data_Layer_Architecture.md)
 - **Architecture Summary**: [12_Architecture_Summary.md](./12_Architecture_Summary.md)
 
 ---
@@ -604,22 +605,159 @@ Slack/Telegram/Email 등으로 실시간 전송.
 
 ---
 
-# **10. Appendix**
+# **10. PostgreSQL/TimescaleDB Migration Support**
 
-## **10.1 Schema JSON 샘플**
+## **10.1 데이터 레이어 진화 방향**
+
+QTS는 현재 Google Sheets 기반 데이터 저장소를 사용하나, 확장성 확보를 위해 PostgreSQL + TimescaleDB로의 마이그레이션을 지원한다.
+
+**마이그레이션 목적:**
+- 시계열 데이터 효율적 저장 및 쿼리
+- 대용량 틱 데이터 저장 능력 확보
+- 동시 접근 및 트랜잭션 지원
+- 데이터 보존 정책 자동화
+
+---
+
+## **10.2 Schema Engine과 DB Layer 통합**
+
+Schema Engine은 데이터 소스에 중립적으로 설계된다:
+
+```
+Schema Engine
+    ↓
+Data Adapter Interface
+    ↓
+┌───────────────┬─────────────────────┐
+│ Google Sheets │ PostgreSQL/TimescaleDB │
+│ Adapter       │ Adapter                │
+└───────────────┴─────────────────────┘
+```
+
+**Adapter 역할:**
+- 데이터 소스별 연결 관리
+- Schema JSON → DB Schema 매핑
+- Raw Contract 생성
+- 데이터 CRUD 추상화
+
+---
+
+## **10.3 TimescaleDB Hypertable 매핑**
+
+Google Sheets 시트는 PostgreSQL 테이블 또는 TimescaleDB Hypertable로 매핑된다:
+
+| Sheets | PostgreSQL 매핑 | 타입 |
+|--------|----------------|------|
+| Position | positions | Regular Table |
+| T_Ledger | t_ledger | Regular Table |
+| History | ohlcv_1d | Hypertable (time-series) |
+| tick_data | tick_data | Hypertable (time-series) |
+| Strategy | strategies | Regular Table |
+| Config | config | Regular Table |
+| Risk Config | risk_configs | Regular Table |
+
+**Hypertable 적용 기준:**
+- 시간 기반 데이터 (History, Tick, Execution Logs)
+- 자동 파티셔닝 필요
+- 데이터 보존 정책 적용 대상
+
+---
+
+## **10.4 Schema Automation for Database**
+
+DB 기반 Schema Automation 흐름:
+
+```python
+# 1. DB Inspector
+db_structure = inspect_database_schema(db_connection)
+
+# 2. Schema Builder
+schema_json = build_schema_from_db(db_structure)
+
+# 3. Contract Builder
+raw_contract = build_contract_from_schema(schema_json)
+
+# 4. Version Manager
+if schema_changed(old_schema, schema_json):
+    increment_schema_version()
+    trigger_migration()
+```
+
+**DB Schema 변경 감지:**
+- 테이블 구조 메타데이터 해싱
+- 컬럼 추가/삭제/타입 변경 감지
+- Schema Version 자동 증가
+
+---
+
+## **10.5 Hybrid Mode 지원**
+
+마이그레이션 기간 동안 Hybrid Mode를 지원:
+
+```
+┌──────────────────────────────────────────┐
+│        Hybrid Data Layer                  │
+├──────────────────────────────────────────┤
+│                                           │
+│  Config/Strategy → Google Sheets          │
+│  (설정 데이터)                            │
+│                                           │
+│  Position/T_Ledger → PostgreSQL           │
+│  (거래 데이터)                            │
+│                                           │
+│  History/Tick → TimescaleDB               │
+│  (시계열 데이터)                          │
+│                                           │
+└──────────────────────────────────────────┘
+```
+
+**Hybrid Mode 규칙:**
+- Schema Engine은 각 시트/테이블의 데이터 소스를 Config에서 관리
+- Contract Builder는 데이터 소스 무관하게 동일한 Contract 생성
+- ETEDA Pipeline은 데이터 소스를 인지하지 못함
+
+---
+
+## **10.6 마이그레이션 전략**
+
+**Phase 1: 인프라 구축**
+- PostgreSQL + TimescaleDB 설치
+- DB Adapter 구현
+
+**Phase 2: Dual-Write**
+- Google Sheets + PostgreSQL 동시 쓰기
+- 데이터 정합성 검증
+
+**Phase 3: Read Migration**
+- 읽기 부하를 PostgreSQL로 이동
+- Google Sheets는 백업/모니터링 용도
+
+**Phase 4: Full Migration**
+- Google Sheets는 Read-Only 뷰로 전환
+- 모든 CRUD는 PostgreSQL에서 수행
+
+---
+
+# **11. Appendix**
+
+## **11.1 Schema JSON 샘플**
 
 (본문 예시 참조)
 
-## **10.2 필드 매핑 예시**
+## **11.2 필드 매핑 예시**
 
-symbol → “종목명”, qty → “보유수량”
+symbol → "종목명", qty → "보유수량"
 
-## **10.3 오류 코드 목록**
+## **11.3 오류 코드 목록**
 
 FS001 ~ FS020 등 Fail-Safe 코드 통합
 
-## **10.4 Contract 샘플**
+## **11.4 Contract 샘플**
 
 Raw/Calc/UI Contract 샘플 포함
+
+## **11.5 Database Schema 예시**
+
+TimescaleDB 기반 테이블 정의 예시는 [sub/18_Data_Layer_Architecture.md](./sub/18_Data_Layer_Architecture.md) 참조
 
 ---

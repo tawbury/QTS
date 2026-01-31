@@ -5,6 +5,8 @@
 
 _(Session Consolidation Report — Main Phase View)_
 
+**최종 갱신:** 2026-01-31 — Phase 0~10 Task 문서 정리 완료, `docs/tasks/finished/phases/` 이관 반영.
+
 ---
 
 ## 0. 문서 목적 및 기준
@@ -48,17 +50,27 @@ QTS 전체를 **메인 페이즈 단위**로 나누어 다음을 명확히 한�
 
 ## 1.1 Phase Task 문서 위치
 
-- Phase별 상세 Task 문서: `docs/tasks/phases/`
-- 인덱스: `docs/tasks/phases/README.md`
+- **로드맵 기준 구현 Task(현행):** `docs/tasks/phases/` — [README](tasks/phases/README.md)
+- **정리 완료(이관):** `docs/tasks/finished/phases/` — [README](tasks/finished/phases/README.md)
+- **현황:** 로드맵 기준 Phase별 Task 문서는 `docs/tasks/phases/` 에 신규 생성됨. 이전 정리 완료 문서는 `finished/phases/` 에 보관.
+
+---
+
+## 1.2 로드맵 진행 현황 (2026-01-31 기준)
+
+| 구분 | 진행률 | 비고 |
+|------|--------|------|
+| **Task 문서화** | 100% | Phase 0~10 상세 Task·정책 문서 정리 완료, `finished/phases/` 보관 |
+| **구현(Exit Criteria 기준)** | Phase 3 완료(✅), Phase 0 분리(↗️), Phase 1~2·4~10 부분 구현(🟡) | Phase 10 Exit Criteria 충족 시에만 ✅ 전환 |
 
 ---
 
 ## 2. 코드베이스 대조 기준 구현 현황 (Single Source of Truth)
 
-**대조 기준일:** 2026-01-29  
+**대조 기준일:** 2026-01-31  
 **대조 범위:** `src/`, `config/`, `tests/`  
 **판정 기준:**  
-Phase 상태(✅/🟡) 변경은 **객관적 Exit Criteria**에 따른다. 상세: [Phase 10 — Phase Exit Criteria](tasks/phases/Phase_10_Test_Governance/Phase_Exit_Criteria.md).
+Phase 상태(✅/🟡) 변경은 **객관적 Exit Criteria**에 따른다. 상세: [Phase 10 — Phase Exit Criteria](tasks/finished/phases/Phase_10_Test_Governance/Phase_Exit_Criteria.md).
 
 - **구현 완료(✅)**
   - 해당 Phase의 Exit Criteria(필수 테스트 통과, 운영 체크, 문서 SSOT 반영)를 **모두** 만족할 때만 적용.
@@ -185,6 +197,8 @@ Phase 상태(✅/🟡) 변경은 **객관적 Exit Criteria**에 따른다. 상�
 
 ## 3. 다음 우선순위 (Roadmap Items)
 
+**현황:** Phase 0~10 Task 문서화는 완료됨. 아래는 구현·정합성 확보 우선순위.
+
 | 업무 | 상태 | 완료일 |
 |---|---|---|
 | 데이터 레이어/리포지토리/매니저/Runner 간 인터페이스 정합성 확보 | 🟡 |  |
@@ -206,6 +220,9 @@ Phase 상태(✅/🟡) 변경은 **객관적 Exit Criteria**에 따른다. 상�
 | 16_Micro_Risk_Loop_Architecture.md | 마이크로 리스크 루프; Phase 7 (Safety & Risk Core) |
 | 17_Event_Priority_Architecture.md | 이벤트 우선순위; Phase 5 (ETEDA) 및 파이프라인 순서 |
 | 18_System_State_Promotion_Architecture.md | 시스템 상태 프로모션; 페이즈 전이 및 상태 생명주기 |
+| 18_Data_Layer_Architecture.md | 데이터 레이어; 리포지토리·매니저·Runner 인터페이스 |
+| 19_Caching_Architecture.md | 캐싱; 캐시 정책·계층·무효화 |
+| 20_Feedback_Loop_Architecture.md | 피드백 루프; 실행 결과·모니터링·보정 |
 
 이 문서들은 **페이즈 완료를 나타내지 않으며**, 아키텍처 준비 상태만을 반영한다.
 

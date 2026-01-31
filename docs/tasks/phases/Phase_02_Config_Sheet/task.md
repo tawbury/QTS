@@ -1,33 +1,43 @@
-# Phase 2 — Config Architecture (Sheet)
+# Phase 2 — Config Architecture (Sheet) (로드맵 기준 Task)
 
 ## 목표
 
-- Sheet 기반 Config 로딩 경로를 현재 코드(`GoogleSheetsClient` + Repository)에 맞게 정합화
-- Local/Sheet 머지 규칙을 SSOT로 고정
+- **Config Sheet 로딩 경로**를 현재 `GoogleSheetsClient` 인터페이스에 맞게 정리
+- Config 3분할 모델/머지 로직과 Sheet 기반 Config 로딩의 wiring 일치
+- Phase 10 Exit Criteria 충족 시 Roadmap 상태 ✅ 전환
 
 ## 근거
 
-- `docs/arch/13_Config_3분할_Architecture.md`
-- `docs/Roadmap.md`
-- 코드:
-  - `src/runtime/config/config_loader.py`
-  - `src/runtime/config/sheet_config.py`
-  - `src/runtime/config/config_constants.py`
-  - `src/runtime/data/google_sheets_client.py`
-  - `src/runtime/data/repositories/config_scalp_repository.py`
-  - `src/runtime/data/repositories/config_swing_repository.py`
+- [docs/Roadmap.md](../../../Roadmap.md) — Phase 2, Section 3 (다음 우선순위)
+- [Phase Exit Criteria](../../../tasks/finished/phases/Phase_10_Test_Governance/Phase_Exit_Criteria.md) §4.1
+- 코드: `src/runtime/config/config_loader.py`, `src/runtime/config/config_models.py`, `src/runtime/config/sheet_config.py`
 
-## 작업
+---
 
-- [x] Sheet Config 로딩 정합성 확보
-  - [x] `sheet_config.py`의 Client/Repository 사용 방식이 실제 구현과 일치하도록 정리 (ConfigScalpRepository / ConfigSwingRepository 사용)
-  - [x] SCALP/SWING 스코프별 로딩 경로/실패 처리 기준 정의 → [Config_Loading_Path_and_Failures.md](./Config_Loading_Path_and_Failures.md)
-- [x] 머지 규칙(우선순위) 고정
-  - [x] Local immutable 규칙 문서/코드 반영 (`config_loader.py` docstring, `_merge_configs` 주석에 SSOT 참조)
-- [x] 코드 품질 개선(필수)
-  - [x] Config 로딩 경로 매직 스트링 축소 (`config_constants.py` 도입, `local_config`/`sheet_config`에서 상수 사용)
+## Roadmap Section 2 — Phase 2 업무
 
-## 완료 조건
+| 업무 | 상태 | 완료 시 |
+|------|------|--------|
+| Config 3분할 모델/머지 로직 | 🟡 | 문서·코드 일치 |
+| Sheet 기반 Config 로딩 | 🟡 | `sheet_config.py`가 GoogleSheetsClient 인터페이스와 정합 |
 
-- [x] `load_unified_config`가 정상적으로 LOCAL + (SCALP|SWING)을 병합한다.
-- [x] 실패 케이스(시트 미존재/필드 누락/인증 실패)가 일관되게 처리된다.
+---
+
+## 작업 (체크리스트)
+
+- [ ] **Config Sheet 로딩 정합성**
+  - [ ] `sheet_config.py` 호출 경로를 현재 `GoogleSheetsClient` API에 맞게 수정
+  - [ ] 생성자/호출부 불일치 제거
+- [ ] **테스트**
+  - [ ] `tests/config/` 등 Config 로딩 테스트가 현재 인터페이스와 일치하고 통과
+- [ ] **문서**
+  - [ ] Config 3분할/Sheet 로딩 진입점·wiring 문서화
+  - [ ] Roadmap Phase 2 비고(“sheet_config–Client 불일치”) 해소
+
+---
+
+## 완료 조건 (Exit Criteria)
+
+- [ ] 필수 테스트 통과 (§2.1)
+- [ ] 설정 로딩 실패 시 운영 체크 문서화 (§2.2)
+- [ ] 문서 SSOT 반영 (§2.3)

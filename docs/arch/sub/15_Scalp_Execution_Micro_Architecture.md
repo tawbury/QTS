@@ -80,6 +80,7 @@ Scalp Execution Micro-Architecture는 다음 목표를 수행한다.
 - **Fail-Safe & Safety**: [../07_FailSafe_Architecture.md](../07_FailSafe_Architecture.md)
 - **Event Priority**: [17_Event_Priority_Architecture.md](./17_Event_Priority_Architecture.md)
 - **Micro Risk Loop**: [16_Micro_Risk_Loop_Architecture.md](./16_Micro_Risk_Loop_Architecture.md)
+- **Caching Architecture**: [19_Caching_Architecture.md](./19_Caching_Architecture.md)
 
 ---
 
@@ -1127,9 +1128,221 @@ class TestLatencyUnderLoad:
 
 ---
 
-# **8. Appendix**
+# **8. Redis Caching Integration**
 
-## **8.1 Execution State Diagram (상세)**
+## **8.1 Caching Requirements for Low-Latency Execution**
+
+Scalp Execution은 레이턴시 목표 100ms (체결 제외) 달성을 위해 Redis 캐싱 계층이 필수적이다.
+
+**현재 문제:**
+- Google Sheets API 조회: 150-300ms
+- PreCheck 단계 데이터 조회 시간 초과
+- 목표 레이턴시 달성 불가
+
+**해결 방안:**
+- Redis In-Memory Cache
+- Write-Through / Read-Through 전략
+- TTL 기반 자동 무효화
+
+---
+
+## **8.2 Scalp Execution에서 필요한 캐시 데이터**
+
+| Data Type | Cache Key | TTL | PreCheck 단계 사용 |
+|-----------|-----------|-----|-------------------|
+| 실시간 호가 | `price:{symbol}` | 50-100ms | ✓ |
+| 포지션 정보 | `pos:{symbol}` | 1s | ✓ |
+| 리스크 한도 | `risk:account` | 5s | ✓ |
+| 주문 상태 | `ord:{order_id}` | 60s | Stage 4 |
+| 호가창 스냅샷 | `book:{symbol}` | 50ms | Stage 5 |
+| 전략 파라미터 | `strat:{id}` | 60s | - |
+
+---
+
+## **8.3 PreCheck Stage Cache Integration**
+
+PreCheck 단계에서 Redis 캐시 활용:
+
+```python
+class PreCheckStage:
+    def __init__(self, redis_cache: RedisCache):
+        self.cache = redis_cache
+
+    def execute(self, order: OrderDecision) -> PreCheckResult:
+        # 1. Position Check (Redis 우선)
+        position = self.cache.get_position(order.symbol)
+        if not position:
+            position = self.db.get_position(order.symbol)
+            self.cache.set_position(order.symbol, position, ttl=1)
+
+        # 2. Risk Limits Check (Redis 우선)
+        risk_status = self.cache.get_risk_status()
+        if not risk_status:
+            risk_status = self.db.get_risk_status()
+            self.cache.set_risk_status(risk_status, ttl=5)
+
+        # 3. Price Check (Redis 필수 - 실시간)
+        price = self.cache.get_price(order.symbol)
+        if not price or price.is_stale(threshold_ms=100):
+            raise PriceDataStaleError("Price data too old")
+
+        # Perform checks...
+        return PreCheckResult(passed=True, order=order)
+```
+
+---
+
+## **8.4 Cache Data Structures**
+
+```python
+# Price Cache (Hash)
+redis.hset("price:005930", mapping={
+    "bid": "75000",
+    "ask": "75100",
+    "last": "75050",
+    "volume": "1234567",
+    "timestamp": "1706700000000"  # Unix timestamp ms
+})
+redis.expire("price:005930", 0.1)  # 100ms TTL
+
+# Position Cache (Hash)
+redis.hset("pos:005930", mapping={
+    "qty": "100",
+    "avg_price": "74500",
+    "unrealized_pnl": "55000",
+    "exposure_pct": "0.05"
+})
+redis.expire("pos:005930", 1)  # 1s TTL
+
+# Risk Cache (Hash)
+redis.hset("risk:account", mapping={
+    "exposure_used": "0.45",
+    "daily_pnl": "125000",
+    "trade_count": "15",
+    "remaining_limit": "0.55"
+})
+redis.expire("risk:account", 5)  # 5s TTL
+
+# Orderbook Cache (Sorted Set)
+redis.zadd("book:005930:bid", {
+    "75000": 1000,  # price: volume
+    "74900": 2500,
+    "74800": 5000,
+})
+redis.zadd("book:005930:ask", {
+    "75100": 800,
+    "75200": 1500,
+})
+redis.expire("book:005930:bid", 0.05)  # 50ms TTL
+```
+
+---
+
+## **8.5 Cache Update Strategies**
+
+### **Write-Through (포지션, 주문 상태)**
+
+주문 체결 시 DB와 캐시 동시 업데이트:
+
+```python
+async def update_position_on_fill(fill: Fill):
+    # 1. DB 업데이트
+    position = await db.update_position(fill)
+
+    # 2. Cache 업데이트 (Write-Through)
+    await redis.hset(
+        f"pos:{fill.symbol}",
+        mapping=position.to_cache_dict()
+    )
+    await redis.expire(f"pos:{fill.symbol}", 1)
+```
+
+### **Read-Through (리스크 한도, 전략 파라미터)**
+
+캐시 미스 시 DB 조회 후 캐시 채움:
+
+```python
+async def get_risk_limits() -> RiskLimits:
+    # 1. Try cache
+    cached = await redis.hgetall("risk:account")
+    if cached:
+        return RiskLimits.from_cache(cached)
+
+    # 2. Cache miss - fetch from DB
+    limits = await db.get_risk_limits()
+
+    # 3. Populate cache
+    await redis.hset("risk:account", mapping=limits.to_cache_dict())
+    await redis.expire("risk:account", 5)
+
+    return limits
+```
+
+### **Real-Time Push (실시간 호가)**
+
+WebSocket 또는 Market Data Feed → Redis:
+
+```python
+async def on_market_data(tick: TickData):
+    """시장 데이터 수신 시 즉시 캐시 업데이트"""
+    await redis.hset(f"price:{tick.symbol}", mapping={
+        "bid": str(tick.bid),
+        "ask": str(tick.ask),
+        "last": str(tick.last),
+        "volume": str(tick.volume),
+        "timestamp": str(int(tick.timestamp.timestamp() * 1000))
+    })
+    await redis.expire(f"price:{tick.symbol}", 0.1)
+```
+
+---
+
+## **8.6 Latency Improvement Estimates**
+
+| Operation | Before (Sheets) | After (Redis) | Improvement |
+|-----------|-----------------|---------------|-------------|
+| Price Lookup | 150-300ms | 0.5-1ms | 99.7% |
+| Position Check | 200-400ms | 0.3-0.8ms | 99.8% |
+| Risk Validation | 250-500ms | 0.5-1.5ms | 99.7% |
+| **Total PreCheck** | **600-1200ms** | **2-5ms** | **99.5%** |
+
+**목표 달성:**
+- PreCheck p99 목표: 5ms ✓
+- 전체 실행 목표: 100ms ✓
+
+---
+
+## **8.7 Cache Failure Handling**
+
+Redis 장애 시 Fallback 전략:
+
+```python
+class CacheAwarePreCheck:
+    def execute(self, order: OrderDecision) -> PreCheckResult:
+        try:
+            # Redis 우선
+            return self.execute_with_cache(order)
+        except RedisConnectionError:
+            log_warning("Redis unavailable, falling back to DB")
+            return self.execute_with_db(order)
+        except CacheStaleDataError:
+            log_warning("Cache data stale, refreshing from DB")
+            self.refresh_cache()
+            return self.execute_with_db(order)
+```
+
+**Fallback 규칙:**
+- Redis 불가 시 DB 직접 조회 (레이턴시 희생)
+- 일시적 장애로 간주, 주문 실행은 계속
+- 반복 장애 시 Guardrail 트리거
+
+상세 Fallback 전략은 [19_Caching_Architecture.md](./19_Caching_Architecture.md) 참조.
+
+---
+
+# **9. Appendix**
+
+## **9.1 Execution State Diagram (상세)**
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
