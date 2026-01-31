@@ -63,7 +63,8 @@ class TestGoogleSheetsClientConstructor:
 
     def test_missing_spreadsheet_id_raises(self):
         with patch("dotenv.load_dotenv"):
-            with patch.dict(os.environ, {"GOOGLE_CREDENTIALS_FILE": "/tmp/creds.json"}, clear=False):
+            # GOOGLE_SHEET_KEY 미설정 상태로 두어 spreadsheet_id 없음 보장
+            with patch.dict(os.environ, {"GOOGLE_CREDENTIALS_FILE": "/tmp/creds.json"}, clear=True):
                 with pytest.raises(ValueError, match="spreadsheet"):
                     GoogleSheetsClient(credentials_path="/tmp/creds.json", spreadsheet_id=None)
 

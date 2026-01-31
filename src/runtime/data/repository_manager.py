@@ -163,10 +163,14 @@ class RepositoryManager:
         """
         리포지토리 매니저 헬스체크
         
+        client가 없으면 initialize()를 호출한 뒤 진행합니다.
+        
         Returns:
             Dict[str, Any]: 헬스체크 결과
         """
         try:
+            if not self.client:
+                await self.initialize()
             # 클라이언트 헬스체크
             client_health = await self.client.health_check()
             

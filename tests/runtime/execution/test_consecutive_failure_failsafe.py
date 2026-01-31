@@ -3,7 +3,9 @@ from runtime.execution.models.response import ExecutionResponse
 
 
 class _DummyIntent:
+    """ExecutionIntent 계약 호환: intent_id 필수 (LiveBroker.submit_intent)."""
     id = "intent-test-1"
+    intent_id = "intent-test-1"
 
 
 class _FailingAdapter:
