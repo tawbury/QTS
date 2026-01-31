@@ -1,5 +1,5 @@
 """
-paths.py
+paths.py (shared)
 
 QTS project-wide canonical path resolver.
 
@@ -10,6 +10,7 @@ used across the QTS project, including:
 - pytest
 - local scripts
 
+Location: src/shared/paths.py (project root resolved via __file__).
 Design principles:
 - Resilient to folder restructuring
 - No relative depth assumptions (no parents[n])
@@ -137,7 +138,6 @@ def tests_ops_dir() -> Path:
 
 def tests_ops_decision_dir() -> Path:
     return tests_ops_dir() / "decision"
-
 
 
 # ============================================================

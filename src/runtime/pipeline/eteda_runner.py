@@ -25,7 +25,7 @@ from ..data.repositories.enhanced_performance_repository import EnhancedPerforma
 
 def _default_project_root() -> Path:
     try:
-        from paths import project_root
+        from shared.paths import project_root
         return project_root()
     except ImportError:
         return Path.cwd()

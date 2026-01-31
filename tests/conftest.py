@@ -19,7 +19,7 @@ try:
 except ImportError:
     pass
 
-# 프로젝트 루트 (paths.py 등)
+# 프로젝트 루트 및 src (shared.paths 등)
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
