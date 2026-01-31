@@ -1,3 +1,11 @@
+"""
+Act stage policy result (ExecutionResult).
+
+계약: mode, status, executed, decision_id, order_fingerprint, blocked_by, reason, audit.
+- status=ACCEPTED and executed=True일 때 하류에서 ledger용 결과 생성 가능.
+- Ledger 결과 계약: docs/arch/04_Data_Contract_Spec.md §6 (success, order_id, symbol, filled_qty, ...).
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass

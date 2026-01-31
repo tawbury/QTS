@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any, List, Optional, Sequence
 
 from ..registry.strategy_registry import StrategyRegistry, StrategyLike
+
+_log = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -35,8 +38,9 @@ class StrategyMultiplexer:
                 intents = self._generate_intents(s, snapshot)
                 for it in intents:
                     out.append(StrategyIntent(s.strategy_id, s.name, it))
-            except Exception:
+            except Exception as e:
                 # Phase 6 원칙: 한 Strategy의 실패가 전체를 깨지 않음
+                _log.warning("Strategy %s (id=%s) failed: %s", s.name, s.strategy_id, e)
                 continue
 
         return out

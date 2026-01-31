@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
-import paths
+from shared import paths
 
 
 @dataclass(frozen=True)

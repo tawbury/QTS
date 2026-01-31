@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import asdict, is_dataclass
 from hashlib import sha256
 from typing import Any, Dict
 
 from src.ops.decision_pipeline.contracts.order_decision import OrderDecision
+
+_log = logging.getLogger(__name__)
 from src.ops.decision_pipeline.contracts.execution_hint import ExecutionHint
 
 from .execution_context import ExecutionContext
@@ -32,8 +35,8 @@ def _safe_to_dict(obj: Any) -> Dict[str, Any]:
     if callable(to_dict):
         try:
             return dict(to_dict())
-        except Exception:
-            pass
+        except Exception as e:
+            _log.debug("to_dict() failed for %s: %s", type(obj).__name__, e)
 
     # conservative fallback
     keys = ["action", "symbol", "qty", "order_type", "price", "reason", "meta", "metadata", "decision_id", "id"]

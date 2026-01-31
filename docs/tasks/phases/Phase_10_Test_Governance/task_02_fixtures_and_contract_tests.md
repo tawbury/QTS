@@ -10,11 +10,17 @@
 
 ## 작업
 
-- [ ] fixture 형식/버전 정책 정의
-- [ ] Contract validation 테스트 추가
-- [ ] 코드 품질 개선(필수)
-  - [ ] Contract 변경이 있을 때 테스트가 즉시 깨지도록(조기 감지) 설계
+- [x] fixture 형식/버전 정책 정의
+- [x] Contract validation 테스트 추가
+- [x] 코드 품질 개선(필수)
+  - [x] Contract 변경이 있을 때 테스트가 즉시 깨지도록(조기 감지) 설계
 
 ## 완료 조건
 
-- [ ] Contract 회귀가 자동으로 감지된다.
+- [x] Contract 회귀가 자동으로 감지된다.
+
+## 산출물
+
+- **[Fixtures_and_Contract_Policy.md](./Fixtures_and_Contract_Policy.md)** — Fixture 형식/버전 정책, Contract validation 테스트 설계(조기 감지).
+- **tests/fixtures/contracts.py** — Contract 검증용 최소 유효 fixture 상수.
+- **tests/contracts/test_contract_validation.py** — ExecutionIntent/ExecutionResponse/OrderDecision/ExecutionHint/UI Contract 구조 검증 테스트(8개).

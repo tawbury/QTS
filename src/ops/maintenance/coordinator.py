@@ -6,7 +6,7 @@ from typing import List, Optional
 from ops.maintenance._types import MaintenanceReport
 from ops.maintenance.backup.runner import build_backup_plan, run_backup
 from ops.maintenance.cleanup.executor import execute_cleanup
-from ops.maintenance.retention.policy import RetentionPolicy
+from ops.retention.policy import FileRetentionPolicy
 from ops.maintenance.retention.scanner import scan_expired
 
 
@@ -14,7 +14,7 @@ def run_maintenance(
     *,
     data_root: Path,
     backup_root: Path,
-    policy: Optional[RetentionPolicy] = None,
+    policy: Optional[FileRetentionPolicy] = None,
     include_backup_globs: Optional[List[str]] = None,
 ) -> MaintenanceReport:
     """
@@ -23,7 +23,7 @@ def run_maintenance(
     - backup 성공시에만 retention/cleanup 의미가 생김
     - 실패하면 삭제 0 보장
     """
-    policy = policy or RetentionPolicy()
+    policy = policy or FileRetentionPolicy()
 
     backup_plan = build_backup_plan(data_root=data_root, backup_root=backup_root, include_globs=include_backup_globs)
     backup_result = run_backup(backup_plan)

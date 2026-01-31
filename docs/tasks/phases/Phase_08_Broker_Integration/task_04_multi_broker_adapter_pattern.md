@@ -13,23 +13,25 @@
 
 ## 작업
 
-- [ ] Broker Adapter Pattern 설계
-  - [ ] `src/runtime/broker/adapters/base_adapter.py` 구현
-  - [ ] 표준화된 Broker Interface 정의
-  - [ ] Adapter 등록 및 선택 메커니즘 구현
-- [ ] Kiwoom Broker Adapter 구현
-  - [ ] `src/runtime/broker/adapters/kiwoom_adapter.py` 구현
-  - [ ] KIS Adapter와의 호환성 확보
-- [ ] Multi-Broker 지원 강화
-  - [ ] Broker 선택 및 전환 로직 구현
-  - [ ] Broker별 Fail-Safe 정책 적용
-  - [ ] Load Balancing 및 Fallback 전략
-- [ ] Broker Configuration Management
-  - [ ] Config 시트 기반 Broker 설정 관리
-  - [ ] 동적 Broker 전환 기능
+- [x] Broker Adapter Pattern 설계
+  - [x] `src/runtime/broker/adapters/base_adapter.py` (BaseBrokerAdapter: OrderAdapter + broker_id)
+  - [x] 표준화된 Broker Interface: OrderAdapter 계약 + broker_id/name()
+  - [x] Adapter 등록/선택: `registry.py` (register_broker, get_broker, list_broker_ids), lazy KIS/Kiwoom 등록
+- [x] Kiwoom Broker Adapter 구현
+  - [x] `src/runtime/broker/adapters/kiwoom_adapter.py` (스켈레톤, Kiwoom API 연동은 추후)
+  - [x] KIS와 동일 OrderAdapter 계약 (place_order/get_order/cancel_order, dry_run 수용)
+- [x] Multi-Broker 지원 강화
+  - [x] Broker 선택: get_broker(broker_id, **kwargs), get_broker_for_config(config)
+  - [x] Broker별 Fail-Safe: KIS는 payload_mapping; Kiwoom은 추후 동일 패턴 확장
+  - [ ] **Load Balancing 및 Fallback 전략**: BrokerConfig.fallback_broker_id 구조만 확보, 전환 로직은 호출부에서 구현  
+    **진행 시기**: Kiwoom 실연동 완료 후, 또는 Primary 브로커 장애 시 자동 전환 요구가 발생할 때. (실제 failover 호출부 구현)
+- [x] Broker Configuration Management
+  - [x] BrokerConfig(broker_id, fallback_broker_id, kwargs), broker_id_from_config(sheet, env, default)
+  - [ ] **Config 시트 연동**: 시트에서 broker_id 읽어 broker_id_from_config에 전달하는 직접 바인딩 미구현  
+    **진행 시기**: Config_Scalp/Config_Swing 시트에 BROKER_ID(또는 `system.broker.primary_id` 등) 행 추가 후, ETEDA/실행 루프에서 `config.get_flat("system.broker.primary_id")` 등으로 읽어 `broker_id_from_config(sheet_broker_id=..., env_broker_id=os.getenv("BROKER_ID"))`에 넘기는 연동 단계. (.env에 `GOOGLE_SHEET_KEY`, `GOOGLE_CREDENTIALS_FILE` 있음 → 시트 접속 가능)
 
 ## 완료 조건
 
-- [ ] Multi-Broker Adapter Pattern이 구현됨
-- [ ] KIS, Kiwoom Broker가 모두 지원됨
-- [ ] Broker 확장이 용이한 구조가 확보됨
+- [x] Multi-Broker Adapter Pattern이 구현됨
+- [x] KIS, Kiwoom Broker가 모두 지원됨 (Kiwoom은 스켈레톤)
+- [x] Broker 확장이 용이한 구조가 확보됨 (등록/선택/Config)
