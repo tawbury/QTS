@@ -6,6 +6,8 @@ Enhanced Repository 기능 검증 스크립트 (수정 버전)
 import sys
 sys.path.append('src')
 
+import pytest
+
 from runtime.data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
 from runtime.data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 from runtime.data.repositories.schema_based_repository import SchemaBasedRepository
@@ -14,6 +16,7 @@ import os
 from dotenv import load_dotenv
 from pathlib import Path
 
+@pytest.mark.live_sheets
 def test_schema_loader():
     """Schema Loader 테스트"""
     print('🔧 Schema Loader 테스트:')
@@ -48,12 +51,13 @@ def test_schema_loader():
         performance_mapping = schema_loader.get_field_mapping('Performance')
         print(f'   Performance 필드 매핑: {len(performance_mapping)}개')
         
-        return True
+        assert len(portfolio_mapping) > 0
+        assert len(performance_mapping) > 0
         
     except Exception as e:
-        print(f'❌ Schema Loader 테스트 실패: {e}')
-        return False
+        pytest.fail(f"Schema Loader 테스트 실패: {e}")
 
+@pytest.mark.live_sheets
 def test_enhanced_portfolio_repository():
     """Enhanced Portfolio Repository 테스트"""
     print('\n🎯 Enhanced Portfolio Repository 테스트:')
@@ -108,12 +112,13 @@ def test_enhanced_portfolio_repository():
         update_result = portfolio_repo.update_kpi_overview(test_kpi_data)
         print(f'업데이트 결과: {"성공" if update_result else "실패"}')
         
-        return True
+        assert portfolio_repo.sheet_config.sheet_name
+        assert len(portfolio_repo.get_field_mapping()) > 0
         
     except Exception as e:
-        print(f'❌ Enhanced Portfolio Repository 테스트 실패: {e}')
-        return False
+        pytest.fail(f"Enhanced Portfolio Repository 테스트 실패: {e}")
 
+@pytest.mark.live_sheets
 def test_enhanced_performance_repository():
     """Enhanced Performance Repository 테스트"""
     print('\n🎯 Enhanced Performance Repository 테스트:')
@@ -169,11 +174,11 @@ def test_enhanced_performance_repository():
         update_result = performance_repo.update_kpi_summary(test_performance_kpi)
         print(f'업데이트 결과: {"성공" if update_result else "실패"}')
         
-        return True
+        assert performance_repo.sheet_config.sheet_name
+        assert isinstance(performance_repo.get_kpi_summary(), dict)
         
     except Exception as e:
-        print(f'❌ Enhanced Performance Repository 테스트 실패: {e}')
-        return False
+        pytest.fail(f"Enhanced Performance Repository 테스트 실패: {e}")
 
 def main():
     """메인 테스트 함수"""

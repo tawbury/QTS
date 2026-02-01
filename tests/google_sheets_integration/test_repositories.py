@@ -7,9 +7,25 @@ Portfolio 및 Performance 리포지토리 기능 검증 스크립트.
 """
 
 import sys
+import time
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+
+
+def _retry_on_429(func, max_retries=3, backoff=60):
+    """429 Quota exceeded 시 대기 후 재시도."""
+    for attempt in range(max_retries):
+        try:
+            return func()
+        except Exception as e:
+            if "429" in str(e) and "Quota exceeded" in str(e) and attempt < max_retries - 1:
+                time.sleep(backoff)
+                continue
+            raise
+
 
 from runtime.data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
 from runtime.data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
@@ -18,16 +34,14 @@ import os
 from dotenv import load_dotenv
 
 
+@pytest.mark.live_sheets
 def test_portfolio_repository():
     """Portfolio 리포지토리 테스트"""
     print('🎯 Portfolio Repository 테스트:')
     print('=' * 40)
     
-    try:
-        # 환경 변수 로드
+    def _run():
         load_dotenv()
-        
-        # Google Sheets 클라이언트 생성
         gc = gspread.service_account(
             filename=os.getenv('GOOGLE_CREDENTIALS_FILE'),
             scopes=['https://www.googleapis.com/auth/spreadsheets']
@@ -69,18 +83,20 @@ def test_portfolio_repository():
         for key, value in updated_kpi.items():
             print(f'  {key}: {value}')
         
-        return True
-        
-    except Exception as e:
-        print(f'❌ Portfolio Repository 테스트 실패: {e}')
-        return False
+        assert "total_equity" in updated_kpi or len(updated_kpi) > 0
 
+    try:
+        _retry_on_429(_run)
+    except Exception as e:
+        pytest.fail(f"Portfolio Repository 테스트 실패: {e}")
+
+@pytest.mark.live_sheets
 def test_performance_repository():
     """Performance 리포지토리 테스트"""
     print('\n🎯 Performance Repository 테스트:')
     print('=' * 40)
     
-    try:
+    def _run():
         # 환경 변수 로드
         load_dotenv()
         
@@ -127,11 +143,12 @@ def test_performance_repository():
         for key, value in updated_kpi.items():
             print(f'  {key}: {value}')
         
-        return True
-        
+        assert "total_return" in updated_kpi or len(updated_kpi) > 0
+
+    try:
+        _retry_on_429(_run)
     except Exception as e:
-        print(f'❌ Performance Repository 테스트 실패: {e}')
-        return False
+        pytest.fail(f"Performance Repository 테스트 실패: {e}")
 
 def main():
     """메인 테스트 함수"""

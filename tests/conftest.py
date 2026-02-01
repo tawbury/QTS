@@ -1,6 +1,7 @@
 # QTS/tests/conftest.py
 
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -26,6 +27,24 @@ if str(PROJECT_ROOT) not in sys.path:
 # src 패키지
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+
+# Google Sheets API 분당 요청 제한 방지: live_sheets 테스트 간 대기
+LIVE_SHEETS_DELAY_SEC = 10
+
+
+@pytest.fixture(autouse=True)
+def live_sheets_rate_limit(request):
+    """live_sheets 마커 테스트 전·후 API 쿼터 보호를 위한 대기."""
+    if "live_sheets" in request.node.keywords:
+        time.sleep(LIVE_SHEETS_DELAY_SEC)
+    yield
+    if "live_sheets" in request.node.keywords:
+        time.sleep(LIVE_SHEETS_DELAY_SEC)
+
+
+def pytest_addoption(parser):
+    parser.addoption("--live-sheets-delay", type=int, default=LIVE_SHEETS_DELAY_SEC,
+                     help="Delay (sec) between live_sheets tests for API quota")
 
 
 def pytest_configure(config):

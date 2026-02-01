@@ -382,7 +382,7 @@ class BaseSheetRepository(ABC):
         try:
             spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
             worksheet = spreadsheet.worksheet(self.sheet_name)
-            worksheet.update(cell_address, [[value]])
+            worksheet.update([[value]], range_name=cell_address)
             self.logger.debug(f"Updated cell {cell_address}: {value}")
             return True
         except Exception as e:
@@ -403,7 +403,7 @@ class BaseSheetRepository(ABC):
         try:
             spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
             worksheet = spreadsheet.worksheet(self.sheet_name)
-            worksheet.update(range_address, values)
+            worksheet.update(values, range_name=range_address)
             self.logger.debug(f"Updated range {range_address} with {len(values)} rows")
             return True
         except Exception as e:
