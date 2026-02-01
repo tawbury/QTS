@@ -1,0 +1,61 @@
+# QTS Production Configuration
+# Environment: Production
+
+app:
+  name: "QTS Trading System"
+  version: "1.0.0"
+  environment: "production"
+
+# Observer Client Configuration
+observer:
+  type: "uds"  # uds, ipc (not stub in production)
+  endpoint: "unix:///var/run/observer.sock"
+  timeout_sec: 5
+  reconnect_attempts: 5
+
+# Broker Configuration
+broker:
+  type: "kiwoom"  # Set via env var: BROKER_TYPE
+  mode: "live"    # Set via env var: BROKER_MODE
+  timeout_sec: 5
+  retry_limit: 5
+  retry_interval_sec: 2
+
+# ETEDA Pipeline Configuration
+pipeline:
+  interval_ms: 1000
+  max_iterations: null
+  error_backoff_ms: 5000
+  error_backoff_max_retries: 5
+
+# Execution Configuration
+execution:
+  run_mode: "LIVE"  # Must be LIVE in production
+  live_enabled: true  # Set via env var: LIVE_ENABLED
+  trading_enabled: true  # Set via env var: TRADING_ENABLED
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file_enabled: true
+  file_path: "/app/logs/qts.log"
+  file_max_bytes: 52428800  # 50MB
+  file_backup_count: 30
+  console_enabled: true
+
+# Config Loading
+config:
+  local_only: false
+  scope: "scalp"  # Set via env var: STRATEGY_SCOPE
+
+# Safety Layer
+safety:
+  pipeline_paused: false  # Set via env var: PIPELINE_PAUSED
+  kill_switch_enabled: true
+  failsafe_enabled: true
+
+# Risk Management (defaults - overridden by Local Config + Strategy Sheet)
+risk:
+  max_total_exposure: 0.5
+  max_position_size: 0.1
+  max_daily_loss: 0.05

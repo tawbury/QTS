@@ -1,6 +1,7 @@
 # QTS Test Suite
 
-QTS 프로젝트의 테스트 스위트입니다. `pytest` 기반으로 구성되어 있으며, 단위 테스트부터 E2E 통합 테스트까지 포함합니다.
+QTS 프로젝트의 테스트 스위트입니다. `pytest` 기반으로 구성되어 있으며, 단위 테스트부터 E2E 통합 테스트까지 포함합니다.  
+**앱형 리팩토링(2026-02-01)** 이후 import 경로: `app.*`, `ops.*`, `shared.*`
 
 ## 테스트 구조
 
@@ -172,7 +173,7 @@ Repository 패턴 및 Google Sheets API 연동 테스트.
 ```python
 # 프로젝트 루트 경로 설정
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+sys.path.insert(0, str(PROJECT_ROOT))  # app, ops, shared import
 
 # .env 로딩
 dotenv.load_dotenv(PROJECT_ROOT / ".env")
@@ -268,7 +269,7 @@ async def test_eteda_cycle_latency():
 - name: Run Tests
   run: |
     pytest tests/ -v -m "not live_sheets and not real_broker" \
-      --cov=src --cov-report=xml
+      --cov=app --cov-report=xml
 ```
 
 ## 참고 문서
@@ -279,4 +280,4 @@ async def test_eteda_cycle_latency():
 
 ---
 
-**최종 갱신**: 2026-01-31
+**최종 갱신**: 2026-02-01
