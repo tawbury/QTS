@@ -1,0 +1,85 @@
+# QTS Trading System Docker Compose Configuration
+# Use this for local development and testing
+
+version: "3.9"
+
+services:
+  qts-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: qts-trading-system:latest
+    container_name: qts-app
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      - QTS_ENV=production
+      - OBSERVER_ENDPOINT=unix:///var/run/observer.sock
+      - BROKER_TYPE=kiwoom
+      - LOG_LEVEL=INFO
+      - STRATEGY_SCOPE=scalp
+      - PYTHONUNBUFFERED=1
+
+    # Environment file (contains secrets)
+    env_file:
+      - .env
+
+    # Volumes
+    volumes:
+      # Logs
+      - ./logs:/app/logs
+
+      # Data persistence
+      - ./data:/app/data
+
+      # Backups
+      - ./backup:/app/backup
+
+      # Config (read-only)
+      - ./config:/app/config:ro
+
+      # Observer socket (if using UDS)
+      # - /var/run/observer.sock:/var/run/observer.sock
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "1.0"
+          memory: 512M
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Network
+    networks:
+      - qts-network
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+networks:
+  qts-network:
+    driver: bridge
+
+# Volumes (optional: use named volumes for persistence)
+volumes:
+  qts-logs:
+    driver: local
+  qts-data:
+    driver: local
+  qts-backup:
+    driver: local

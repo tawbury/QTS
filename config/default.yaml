@@ -1,0 +1,61 @@
+# QTS Default Configuration
+# Environment: Development
+
+app:
+  name: "QTS Trading System"
+  version: "1.0.0"
+  environment: "development"
+
+# Observer Client Configuration
+observer:
+  type: "stub"  # stub, uds, ipc
+  endpoint: null
+  timeout_sec: 5
+  reconnect_attempts: 3
+
+# Broker Configuration
+broker:
+  type: "kiwoom"  # kis, kiwoom
+  mode: "paper"   # paper, live
+  timeout_sec: 3
+  retry_limit: 3
+  retry_interval_sec: 1
+
+# ETEDA Pipeline Configuration
+pipeline:
+  interval_ms: 1000
+  max_iterations: null  # null = unlimited
+  error_backoff_ms: 5000
+  error_backoff_max_retries: 3
+
+# Execution Configuration
+execution:
+  run_mode: "PAPER"  # PAPER, LIVE
+  live_enabled: false
+  trading_enabled: false
+
+# Logging Configuration
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file_enabled: true
+  file_path: "logs/qts.log"
+  file_max_bytes: 10485760  # 10MB
+  file_backup_count: 7
+  console_enabled: true
+
+# Config Loading
+config:
+  local_only: false  # true = skip Google Sheets loading
+  scope: "scalp"     # scalp, swing
+
+# Safety Layer
+safety:
+  pipeline_paused: false
+  kill_switch_enabled: true
+  failsafe_enabled: true
+
+# Risk Management (defaults - can be overridden by Local Config)
+risk:
+  max_total_exposure: 0.5
+  max_position_size: 0.1
+  max_daily_loss: 0.05
