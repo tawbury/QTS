@@ -20,16 +20,29 @@ Broker 실행 계층·어댑터(KIS)·생성 팩토리 경로 정리. **근거**
 | 컴포넌트 | 경로 | 진입점 | 비고 |
 |----------|------|--------|------|
 | **Auth** | `runtime/broker/base.BrokerAdapter`, `runtime/broker/kis/adapter.KISBrokerAdapter` | `authenticate() -> AccessTokenPayload`. TokenCache 갱신 | 주문 API 없음 |
-| **Order 어댑터** | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `runtime/broker/kis/order_adapter.KISOrderAdapter` | `place_order(OrderRequest)->OrderResponse`, `get_order`, `cancel_order`, `broker_id`. KISOrderClientProtocol 주입 |
+| **Order 어댑터** | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `runtime/broker/kis/order_adapter.KISOrderAdapter`, `runtime/broker/adapters/kiwoom_adapter.KiwoomOrderAdapter` | `place_order(OrderRequest)->OrderResponse`, `get_order`, `cancel_order`, `broker_id`. KISOrderClientProtocol / KiwoomOrderClientProtocol 주입 |
 | **KIS 페이로드/매핑** | `runtime/broker/kis/payload_mapping` | `build_kis_order_payload(OrderRequest)`, `parse_kis_place_response`, `KIS_STATUS_TO_ORDER_STATUS`, `map_broker_error_to_safety` | 에러→Fail-Safe(FS040 등). 1001→FS040, 3005→FS041, timeout→FS042 |
+| **키움 페이로드/매핑** | `runtime/broker/kiwoom/payload_mapping` | `build_kiwoom_order_payload(OrderRequest)`, `parse_kiwoom_place_response`, `KIWOOM_STATUS_TO_ORDER_STATUS`, `map_broker_error_to_safety` | 에러→Fail-Safe(FS040~FS042). KIWOOM_ERROR_TO_SAFETY |
 
 ---
 
-## 3. ExecutionIntent ↔ OrderRequest 브릿지
+## 3. ExecutionIntent ↔ OrderRequest 브릿지 (META-240523-03)
 
 - **실행 계층**: ExecutionIntent / ExecutionResponse (Engine ↔ Broker Layer).
-- **KISOrderAdapter**: OrderRequest / OrderResponse (API 계약).
-- **브릿지**: Intent→Request, Response→ExecutionResponse 변환은 ExecutionRoute 또는 TradingEngine·adapter 경계에서 수행. KISOrderAdapter는 OrderRequest/OrderResponse만 사용.
+- **OrderAdapter**: OrderRequest / OrderResponse (API 계약). KISOrderAdapter, KiwoomOrderAdapter.
+- **브릿지**: `runtime/execution/intent_to_order_bridge.py`
+  - `intent_to_order_request()`, `order_response_to_execution_response()` — 공통 변환기.
+  - `OrderAdapterToBrokerEngineAdapter`: OrderAdapter를 BrokerEngine.submit_intent 계약으로 감싸 LiveBroker에 주입.
+- **실제 주문용 wiring 예시**:
+  ```python
+  from runtime.execution.intent_to_order_bridge import OrderAdapterToBrokerEngineAdapter
+  from runtime.broker.adapters import get_broker, get_broker_for_config
+  from runtime.execution.brokers import create_broker_for_execution
+
+  order_adapter = get_broker("kis", broker=kis_client, cano="...", acnt_prdt_cd="01")
+  bridge = OrderAdapterToBrokerEngineAdapter(order_adapter, broker_id="kis", dry_run=False)
+  broker = create_broker_for_execution(live_allowed=True, adapter=bridge)
+  ```
 
 ---
 

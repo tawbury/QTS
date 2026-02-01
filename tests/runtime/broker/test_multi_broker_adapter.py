@@ -68,7 +68,8 @@ def test_kiwoom_adapter_place_order_non_dry_returns_rejected():
     )
     resp = adapter.place_order(req)
     assert resp.status == OrderStatus.REJECTED
-    assert "not implemented" in (resp.message or "").lower()
+    msg = (resp.message or "").lower()
+    assert "stub" in msg or "not implemented" in msg
 
 
 def test_kiwoom_adapter_get_order_returns_unknown():

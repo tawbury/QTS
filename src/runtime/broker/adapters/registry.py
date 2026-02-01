@@ -27,8 +27,11 @@ def _ensure_defaults_registered() -> None:
     def _kis_factory(*, broker, cano="", acnt_prdt_cd="01"):
         return KISOrderAdapter(broker, cano=cano, acnt_prdt_cd=acnt_prdt_cd)
 
+    def _kiwoom_factory(*, client=None, acnt_no="", market="0", **kwargs):
+        return KiwoomOrderAdapter(client=client, acnt_no=acnt_no, market=market)
+
     register_broker("kis", _kis_factory)
-    register_broker("kiwoom", lambda **_: KiwoomOrderAdapter())
+    register_broker("kiwoom", _kiwoom_factory)
     _DEFAULTS_REGISTERED = True
 
 
