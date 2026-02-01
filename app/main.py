@@ -36,7 +36,6 @@ from app.pipeline.loop.eteda_loop import run_eteda_loop
 from app.observer_client.factory import create_observer_client
 
 # ops/shared imports
-from ops.safety.guard import SafetyGuard
 from shared.paths import get_project_root
 from shared.timezone_utils import get_kst_now
 
@@ -290,11 +289,13 @@ def main() -> int:
     args = _parse_args()
 
     # 0. 로깅 설정
-    log_level = "DEBUG" if args.verbose else "INFO"
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    log_file = _ROOT / "logs" / "qts.log"
     configure_central_logging(
-        log_level=log_level,
-        enable_file_logging=True,
-        log_file_path="logs/qts.log",
+        level=log_level,
+        format_string="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+        root=True,
+        log_file=log_file,
     )
 
     _LOG.info("=" * 80)
@@ -323,12 +324,17 @@ def main() -> int:
     try:
         if local_only:
             _LOG.info("Loading Local-Only Config (no Google Sheets)")
-            config = load_local_only_config(project_root)
+            merge_result = load_local_only_config(project_root)
         else:
             scope_str = args.scope.upper()
             scope = ConfigScope[scope_str]
             _LOG.info(f"Loading Unified Config (scope={scope})")
-            config = load_unified_config(project_root, scope)
+            merge_result = load_unified_config(project_root, scope)
+
+        if not merge_result.ok or merge_result.unified_config is None:
+            raise ConfigValidationError(merge_result.error or "Config load failed")
+
+        config = merge_result.unified_config
 
         # Config 검증
         validate_config(config)
@@ -388,12 +394,12 @@ def main() -> int:
     # 7. ETEDA Loop 실행
     try:
         _LOG.info("Starting ETEDA Loop...")
-        run_eteda_loop(
+        asyncio.run(run_eteda_loop(
             runner=runner,
-            snapshot_source=snapshot_source,
+            config=config,
             should_stop=should_stop_fn,
-            interval_ms=int(config.get_flat("INTERVAL_MS", 1000)),
-        )
+            snapshot_source=snapshot_source,
+        ))
         _LOG.info("ETEDA Loop completed")
 
     except KeyboardInterrupt:

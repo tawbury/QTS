@@ -58,6 +58,10 @@ def project_root() -> Path:
     return _resolve_project_root()
 
 
+# Alias for backward compatibility
+get_project_root = project_root
+
+
 # ------------------------------------------------------------
 # Core directories
 # ------------------------------------------------------------

@@ -10,6 +10,11 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.mypy_cache/
+.ruff_cache/
 
 # 가상환경 디렉토리
 .venv/
@@ -21,7 +26,8 @@ env/
 # ------------------------------------------------------------
 # 환경 변수 파일 (절대 커밋 금지)
 .env
-*.env
+.env.*
+!.env.example
 
 # 비밀 키 및 자격 증명 파일
 secrets.*
@@ -71,8 +77,9 @@ backup/
 cache/
 tmp/
 temp/
-!src/runtime/data/
-!tests/runtime/data/
+# app/data/ 소스코드 추적 (MockSheetsClient, repositories) — data/ 예외
+!app/data/
+!app/data/**
 
 # 검증 및 리포트 파일
 validation_report.json
@@ -95,8 +102,8 @@ tools/*
 !tools/ops/
 !tools/ops/**
 
-# 테스트용 연결 파일
-src/sheets/test_connection.py
+# 테스트용 연결 파일 (레거시)
+# src/sheets/test_connection.py
 
 # 자동 생성된 문서 리포트
 reports/**/*.md
@@ -119,18 +126,18 @@ reports/schema/**/*.md
 # ------------------------------------------------------------
 # [핵심 자산] 명시적 추적 대상 (제외 규칙)
 # ------------------------------------------------------------
-!src/
-!tests/
-!docs/
+# 앱형 구조: app/, ops/, shared/, config/, scripts/, tests/, docs/ 추적
+# (기본적으로 미차단; 아래 negation은 data/ 등 예외 해제용)
 
 # ------------------------------------------------------------
-# [Claude Code] AI 어시스턴트 임시 파일
+# [AI/Cursor] AI 어시스턴트 임시 파일
 # ------------------------------------------------------------
 .ai/
 .claude/
 tmpclaude*/
 tmpclaude-*
 nul
+agent-transcripts/
 
 # ------------------------------------------------------------
 # [Additional Security] 추가 보안 규칙
@@ -139,7 +146,7 @@ nul
 notebook/secrets/
 **/secrets/
 
-# config 내 local 설정 (개인별 상이)
+# config 내 local 설정 (개인별 상이, config_local.json 등)
 config/local/
 
 # __pycache__ 하위 모든 항목

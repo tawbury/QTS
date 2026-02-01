@@ -6,16 +6,15 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..config.config_models import UnifiedConfig
+from ..core.config.config_models import UnifiedConfig
 from .safety_hook import PipelineSafetyHook
-from ..config.execution_mode import ExecutionMode, decide_execution_mode
+from ..core.config.execution_mode import ExecutionMode, decide_execution_mode
 from ..execution.interfaces.broker import BrokerEngine
 from ..execution.models.intent import ExecutionIntent
 from ..execution.models.response import ExecutionResponse
-from ..engines.portfolio_engine import PortfolioEngine
-from ..engines.performance_engine import PerformanceEngine
-from ..engines.strategy_engine import StrategyEngine
-from ..data.google_sheets_client import GoogleSheetsClient
+from ..strategy.engines.portfolio_engine import PortfolioEngine
+from ..strategy.engines.performance_engine import PerformanceEngine
+from ..strategy.engines.strategy_engine import StrategyEngine
 from ..data.repositories.position_repository import PositionRepository
 from ..data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
 from ..data.repositories.t_ledger_repository import T_LedgerRepository
@@ -49,7 +48,7 @@ class ETEDARunner:
         self,
         config: UnifiedConfig,
         *,
-        sheets_client: Optional[GoogleSheetsClient] = None,
+        sheets_client: Optional[Any] = None,
         project_root: Optional[Path] = None,
         broker: Optional[BrokerEngine] = None,
         safety_hook: Optional[PipelineSafetyHook] = None,
@@ -62,6 +61,12 @@ class ETEDARunner:
         if sheets_client is not None:
             self._sheets_client = sheets_client
         else:
+            try:
+                from ..data.google_sheets_client import GoogleSheetsClient
+            except ImportError:
+                raise ImportError(
+                    "GoogleSheetsClient required for production. Use --local-only with MockSheetsClient."
+                )
             spreadsheet_id = config.get_flat("SPREADSHEET_ID") or os.getenv("GOOGLE_SHEET_KEY")
             credentials_path = config.get_flat("CREDENTIALS_PATH") or os.getenv("GOOGLE_CREDENTIALS_FILE")
             self._sheets_client = GoogleSheetsClient(

@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass
 
-from ..config.config_models import UnifiedConfig
+from ...core.config.config_models import UnifiedConfig
 
 
 @dataclass

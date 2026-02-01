@@ -17,6 +17,10 @@ def now_kst() -> datetime:
     return datetime.now(KST)
 
 
+# Alias for backward compatibility
+get_kst_now = now_kst
+
+
 def to_kst(dt: datetime) -> datetime:
     """datetime을 KST로 변환합니다. naive면 KST로 간주하고 localize."""
     if dt.tzinfo is None:
