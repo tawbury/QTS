@@ -91,7 +91,8 @@ class StrategyEngine(BaseEngine):
         
         # Example: Simple Random/Pass-through logic for testing
         symbol = market_data.get('symbol')
-        close_price = market_data.get('price', {}).get('close', 0.0)
+        price_val = market_data.get('price', 0.0)
+        close_price = float(price_val.get('close', 0.0)) if isinstance(price_val, dict) else float(price_val or 0.0)
         
         # Default: HOLD
         return {

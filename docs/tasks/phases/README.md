@@ -1,45 +1,70 @@
-# QTS Phase Tasks (로드맵 기준)
+# QTS Next-Gen Phase Tasks
 
-**기준 문서:** [docs/Roadmap.md](../../Roadmap.md)  
-**종료 기준:** [Phase_10_Test_Governance/Phase_Exit_Criteria.md](Phase_10_Test_Governance/Phase_Exit_Criteria.md) (finished 보관본 참조: `docs/tasks/finished/phases/Phase_10_Test_Governance/`)
+본 폴더는 **Next-Gen Roadmap v2.0.0** 기반의 Phase Task 문서를 관리합니다.
 
-본 폴더는 **로드맵 기준 구현·정합성 확보**를 위한 Phase별 Task 문서를 담는다.  
-이전 Task 문서(정리 완료)는 `docs/tasks/finished/phases/` 에 보관되어 있다.
+## 폴더 구조
+
+```
+phases/
+├── README.md (본 파일)
+├── NG-0_E2E_Stabilization/      # E2E Testing & Stabilization
+├── NG-1_Event_Priority/         # Event Priority System (17번)
+├── NG-2_Micro_Risk_Loop/        # Micro Risk Loop (16번)
+├── NG-3_Data_Layer/             # Data Layer Migration (18-2번)
+├── NG-4_Caching/                # Caching Layer (19번)
+├── NG-5_Capital_Flow/           # Capital Flow Engine (14번)
+├── NG-6_Scalp_Execution/        # Scalp Execution Micro-Pipeline (15번)
+├── NG-7_System_State/           # System State Promotion (18-1번)
+└── NG-8_Feedback_Loop/          # Feedback Loop (20번)
+```
+
+## Phase 진행 순서
+
+```
+NG-0 (Foundation)
+    ↓
+┌───┴───┐
+↓       ↓
+NG-1    NG-3 (병렬 경로)
+↓       ↓
+NG-2    NG-4
+↓       ↓
+└───┬───┘
+    ↓
+NG-5 → NG-7 (Capital/State 경로)
+    ↓
+NG-6 (NG-1, NG-4 완료 후)
+    ↓
+NG-8 (마지막)
+```
+
+## Phase 상태 범례
+
+- 🟡 진행 예정 (Pending)
+- 🔵 진행 중 (In Progress)
+- ✅ 완료 (Completed)
+- ⏸️ 보류 (On Hold)
+
+## 현재 상태
+
+| Phase | 이름 | 상태 | 의존성 |
+|-------|------|------|--------|
+| NG-0 | E2E Testing & Stabilization | 🟡 | - |
+| NG-1 | Event Priority System | 🟡 | NG-0 |
+| NG-2 | Micro Risk Loop | 🟡 | NG-1 |
+| NG-3 | Data Layer Migration | 🟡 | NG-0 |
+| NG-4 | Caching Layer | 🟡 | NG-3 |
+| NG-5 | Capital Flow Engine | 🟡 | NG-3, NG-7 |
+| NG-6 | Scalp Execution Micro-Pipeline | 🟡 | NG-1, NG-4 |
+| NG-7 | System State Promotion | 🟡 | NG-5 |
+| NG-8 | Feedback Loop | 🟡 | NG-3, NG-6 |
+
+## 참조 문서
+
+- **Roadmap**: `docs/Roadmap.md` — Next-Gen Roadmap v2.0.0
+- **아키텍처**: `docs/arch/sub/14~20_*.md`
+- **레거시 Phase**: `docs/tasks/finished/phases_no1/`, `phases_no2/`
 
 ---
 
-## Phase 인덱스
-
-| Phase | 폴더 | Roadmap 상태 | Task 문서 |
-|-------|------|--------------|-----------|
-| 0 | Phase_00_Observer | ↗️ 분리 | [task.md](Phase_00_Observer/task.md) |
-| 1 | Phase_01_Schema_Sheet_Mapping | 🟡 부분 구현 | [task.md](Phase_01_Schema_Sheet_Mapping/task.md) |
-| 2 | Phase_02_Config_Sheet | 🟡 부분 구현 | [task.md](Phase_02_Config_Sheet/task.md) |
-| 3 | Phase_03_Config_Local | ✅ 구현 완료 | [task.md](Phase_03_Config_Local/task.md) |
-| 4 | Phase_04_Engine_Layer | 🟡 부분 구현 | [task.md](Phase_04_Engine_Layer/task.md) |
-| 5 | Phase_05_ETEDA_Pipeline | 🟡 부분 구현 | [task.md](Phase_05_ETEDA_Pipeline/task.md) |
-| 6 | Phase_06_UI_Dashboard | 🟡 부분 구현 | [task.md](Phase_06_UI_Dashboard/task.md) |
-| 7 | Phase_07_Safety_Risk | 🟡 부분 구현 | [task.md](Phase_07_Safety_Risk/task.md) |
-| 8 | Phase_08_Broker_Integration | 🟡 부분 구현 | [task.md](Phase_08_Broker_Integration/task.md) |
-| 9 | Phase_09_Ops_Automation | 🟡 부분 구현 | [task.md](Phase_09_Ops_Automation/task.md) |
-| 10 | Phase_10_Test_Governance | 🟡 부분 구현 | [task.md](Phase_10_Test_Governance/task.md) |
-
----
-
-## Roadmap 다음 우선순위 (Section 3) — Phase 매핑
-
-| 우선순위 업무 | 해당 Phase |
-|---------------|------------|
-| 데이터 레이어/리포지토리/매니저/Runner 간 인터페이스 정합성 확보 | 1, 4, 5 |
-| Config Sheet 로딩 경로를 현재 GoogleSheetsClient 인터페이스에 맞게 정리 | 2 |
-| ETEDA Runner의 리포지토리 생성/의존성 주입 정합성 확보 | 5 |
-| Ops 스케줄링(automation) 구현 범위 확정 및 최소 기능 구현 | 9 |
-| Dashboard(Zero-Formula UI) 구현 범위 확정 및 최소 렌더링 경로 정의 | 6 |
-
----
-
-## 관련 문서
-
-- [Roadmap.md](../../Roadmap.md) — Phase별 상태, 판정 기준, 다음 우선순위
-- [docs/arch/sub/](../../arch/sub/) — 아키텍처 정렬 문서 (14~20)
-- [docs/tasks/finished/phases/](../finished/phases/) — 정리 완료된 이전 Task 문서
+**최종 갱신:** 2026-01-31
