@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from datetime import timezone
 import pytest
 
+from shared.timezone_utils import KST
 from runtime.broker.kis.auth import request_access_token
 from runtime.broker.base import BrokerAuthError, BrokerConfigError
 
@@ -46,7 +46,7 @@ def test_kis_auth_success(monkeypatch):
     assert payload.access_token == "abc123"
     assert payload.token_type == "Bearer"
     assert payload.expires_in == 3600
-    assert payload.issued_at.tzinfo == timezone.utc
+    assert payload.issued_at.tzinfo == KST
 
 
 def test_kis_auth_http_error(monkeypatch):

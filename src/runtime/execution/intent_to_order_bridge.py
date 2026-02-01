@@ -9,8 +9,10 @@ Arch §3, broker/README §3: "브릿지: Intent→Request, Response→ExecutionR
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
+
+from shared.timezone_utils import now_kst
 
 from runtime.execution.models.intent import ExecutionIntent
 from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
@@ -90,7 +92,7 @@ def order_response_to_execution_response(
         accepted=accepted,
         broker=broker_id,
         message=message,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=now_kst(),
     )
 
 
@@ -131,7 +133,7 @@ class OrderAdapterToBrokerEngineAdapter:
                 accepted=False,
                 broker=self._broker_id,
                 message="NOOP: invalid intent (qty<=0 or intent_type=NOOP)",
-                timestamp=datetime.now(timezone.utc),
+                timestamp=now_kst(),
             )
 
         order_resp = self._order_adapter.place_order(req)

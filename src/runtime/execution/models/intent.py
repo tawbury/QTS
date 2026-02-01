@@ -7,8 +7,10 @@ Trading Engine → BrokerEngine 전달용; API/실계좌와 분리된 구조적 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict
+
+from shared.timezone_utils import now_kst
 
 
 @dataclass(frozen=True)
@@ -26,5 +28,5 @@ class ExecutionIntent:
     side: str              # BUY / SELL
     quantity: float
     intent_type: str       # MARKET / LIMIT / NOOP 등
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=now_kst)
     metadata: Dict[str, Any] = field(default_factory=dict)

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import pytest
 
+from shared.timezone_utils import now_kst
 from runtime.auth.token_cache import TokenCache
 
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+def kst_now() -> datetime:
+    return now_kst()
 
 
 def test_token_cache_starts_empty_and_needs_refresh() -> None:
@@ -23,7 +24,7 @@ def test_token_cache_starts_empty_and_needs_refresh() -> None:
 def test_token_cache_update_and_get_valid_token() -> None:
     cache = TokenCache(refresh_skew_seconds=30)
 
-    issued_at = utc_now()
+    issued_at = kst_now()
     cache.update_from_payload(
         access_token="abc",
         token_type="Bearer",
@@ -40,7 +41,7 @@ def test_token_cache_update_and_get_valid_token() -> None:
 def test_token_cache_expired_requires_refresh() -> None:
     cache = TokenCache(refresh_skew_seconds=30)
 
-    issued_at = utc_now() - timedelta(hours=2)
+    issued_at = kst_now() - timedelta(hours=2)
     cache.update_from_payload(
         access_token="abc",
         token_type="Bearer",
@@ -48,7 +49,7 @@ def test_token_cache_expired_requires_refresh() -> None:
         issued_at=issued_at,
     )
 
-    now = utc_now()
+    now = kst_now()
     assert cache.needs_refresh(now=now) is True
     with pytest.raises(RuntimeError):
         cache.get_valid_token(now=now)
@@ -57,7 +58,7 @@ def test_token_cache_expired_requires_refresh() -> None:
 def test_token_cache_near_expiry_requires_refresh_by_skew() -> None:
     cache = TokenCache(refresh_skew_seconds=30)
 
-    now = utc_now()
+    now = kst_now()
     issued_at = now
     # expires in 20s, within skew(30s) => refresh needed
     cache.update_from_payload(
@@ -77,7 +78,7 @@ def test_token_cache_clear() -> None:
     cache.update(
         access_token="abc",
         token_type="Bearer",
-        expires_at=utc_now() + timedelta(seconds=3600),
+        expires_at=kst_now() + timedelta(seconds=3600),
     )
     assert cache.get_state() is not None
 

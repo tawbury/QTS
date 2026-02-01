@@ -121,6 +121,13 @@ Sub-architecture extensions located in `docs/arch/sub/`:
 - **Event Priority**: [sub/17_Event_Priority_Architecture.md](./sub/17_Event_Priority_Architecture.md) - Cross-cutting Concern
 - **System State & Promotion**: [sub/18_System_State_Promotion_Architecture.md](./sub/18_System_State_Promotion_Architecture.md) - L7 Safety Extension
 
+---
+
+### **참고 웹페이지**
+KIS api 웹페이지 : https://apiportal.koreainvestment.com/
+KIS api 깃페이지 : https://github.com/koreainvestment/open-trading-api
+KIS api 독스페이지 : https://wikidocs.net/book/7847
+KIWOOM api 웹페이지 : https://openapi.kiwoom.com/main/home
 
 ---
 

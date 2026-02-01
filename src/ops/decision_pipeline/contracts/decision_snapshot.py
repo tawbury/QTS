@@ -1,17 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Mapping, Optional
 from uuid import uuid4
+
+from shared.timezone_utils import KST, now_kst
 
 
 # ---------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+def _kstnow() -> datetime:
+    return now_kst()
 
 
 def _as_str(value: Any) -> Optional[str]:
@@ -51,21 +53,21 @@ def _parse_dt(value: Any) -> datetime:
     Accepts:
       - datetime
       - ISO-8601 string
-      - None -> utcnow()
+      - None -> now_kst()
     """
     if value is None:
-        return _utcnow()
+        return _kstnow()
     if isinstance(value, datetime):
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=KST)
+        return value.astimezone(KST)
     s = str(value).strip()
     if not s:
-        return _utcnow()
+        return _kstnow()
     dt = datetime.fromisoformat(s.replace("Z", "+00:00"))
     if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    return dt.astimezone(timezone.utc)
+        dt = dt.replace(tzinfo=KST)
+    return dt.astimezone(KST)
 
 
 def _require_non_empty(name: str, value: Optional[str]) -> str:
@@ -180,7 +182,7 @@ class DecisionSnapshot:
             raise ValueError("pipeline_step must be non-empty")
 
         if self.created_at.tzinfo is None:
-            raise ValueError("created_at must be timezone-aware (UTC)")
+            raise ValueError("created_at must be timezone-aware (KST)")
 
         return self
 
@@ -190,7 +192,7 @@ class DecisionSnapshot:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "decision_id": self.decision_id,
-            "created_at": self.created_at.astimezone(timezone.utc).isoformat(),
+            "created_at": self.created_at.astimezone(KST).isoformat(),
             "pipeline_step": self.pipeline_step,
             "action": self.action,
             "strategy_name": self.strategy_name,

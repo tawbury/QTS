@@ -7,10 +7,10 @@ KIS payload_mapping.py 패턴 준수:
 - OrderStatus: broker status/return_code → OrderStatus.
 - Error → Fail-Safe (Arch 5.3, 8.1): FS040~FS042.
 
-키움 REST API 스펙 (openapi.kiwoom.com):
-- return_code: 0=성공, 그 외 오류.
-- return_msg: 응답 메시지.
-- 주문 API(au10002 등) 실제 필드명은 공식 스펙 기준으로 정교화 필요.
+키움 REST API 스펙 (openapi.kiwoom.com/guide/apiguide):
+- 주문: POST /api/dostk/ordr, Header api-id: kt10000(매수)/kt10001(매도).
+- Body: dmst_stex_tp(KRX/NXT/SOR), stk_cd, ord_qty, ord_uv, trde_tp(0:보통,3:시장가,5:조건부지정가 등).
+- return_code: 0=성공, return_msg, ord_no(주문번호).
 """
 
 from __future__ import annotations
@@ -19,41 +19,43 @@ from runtime.execution.models.order_request import OrderRequest, OrderSide, Orde
 from runtime.execution.models.order_response import OrderResponse, OrderStatus
 
 
-# ----- Request normalization (KIS 대비) -----
-# Kiwoom REST API 필드명은 공식 스펙 확인 후 조정.
+# ----- Request normalization (openapi.kiwoom.com 기준) -----
+# api-id: kt10000=매수, kt10001=매도 (Header). Body는 stk_cd, ord_uv, trde_tp, dmst_stex_tp.
 
-SIDE_TO_KIWOOM: dict[OrderSide, str] = {
-    OrderSide.BUY: "2",   # 매수 (키움 REST 스펙 확인)
-    OrderSide.SELL: "1",  # 매도
+API_ID_BUY = "kt10000"
+API_ID_SELL = "kt10001"
+
+# trde_tp: 0=보통, 3=시장가, 5=조건부지정가, 81=장마감시간외, 6/7=최유리/최우선 등
+ORDER_TYPE_TO_TRDE_TP: dict[OrderType, str] = {
+    OrderType.MARKET: "3",   # 시장가
+    OrderType.LIMIT: "0",    # 지정가(보통)
 }
 
-ORDER_TYPE_TO_KIWOOM: dict[OrderType, str] = {
-    OrderType.MARKET: "00",  # 시장가
-    OrderType.LIMIT: "03",   # 지정가 (스펙 확인)
-}
-
-MARKET_DEFAULT = "0"  # 0:장내, 1:장외 등 (스펙 확인)
+# dmst_stex_tp: 국내거래소구분 KRX/NXT/SOR
+DMST_STEX_TP_DEFAULT = "KRX"
 
 
 def build_kiwoom_order_payload(
     req: OrderRequest,
     *,
     acnt_no: str = "",
-    market: str = MARKET_DEFAULT,
+    market: str = DMST_STEX_TP_DEFAULT,
 ) -> dict:
     """
-    OrderRequest → Kiwoom REST order API payload.
+    OrderRequest → Kiwoom REST 주문 Body + _api_id.
 
-    키움 REST API(au10002 등) 필드명에 맞춤.
-    실제 스펙 확정 시 필드명·코드값 정교화 필요.
+    openapi.kiwoom.com: stk_cd, ord_qty, ord_uv, trde_tp, dmst_stex_tp.
+    _api_id는 Client에서 Header api-id로 사용 후 제거.
     """
+    dmst = market if market in ("KRX", "NXT", "SOR") else DMST_STEX_TP_DEFAULT
+    ord_uv = "0" if req.order_type == OrderType.MARKET else str(int(req.limit_price or 0))
     payload: dict = {
-        "stock_cd": req.symbol,
+        "_api_id": API_ID_BUY if req.side == OrderSide.BUY else API_ID_SELL,
+        "dmst_stex_tp": dmst,
+        "stk_cd": req.symbol.strip(),
         "ord_qty": str(req.qty),
-        "sell_buy_gubun": SIDE_TO_KIWOOM[req.side],
-        "ord_gubun": ORDER_TYPE_TO_KIWOOM[req.order_type],
-        "ord_prc": "0" if req.order_type == OrderType.MARKET else str(int(req.limit_price or 0)),
-        "market_gubun": market,
+        "ord_uv": ord_uv,
+        "trde_tp": ORDER_TYPE_TO_TRDE_TP.get(req.order_type, "3"),
     }
     if acnt_no:
         payload["acnt_no"] = acnt_no
@@ -63,7 +65,7 @@ def build_kiwoom_order_payload(
 
 
 # ----- Response normalization -----
-# Kiwoom REST: return_code=0 성공. status/order_no 등 필드명은 스펙 확인.
+# Kiwoom REST: return_code=0 성공. ord_no(주문번호), return_msg.
 
 KIWOOM_STATUS_TO_ORDER_STATUS: dict[str, OrderStatus] = {
     "0": OrderStatus.ACCEPTED,
@@ -174,13 +176,13 @@ def parse_kiwoom_place_response(raw: dict) -> tuple[OrderStatus, str | None, str
     if return_code != 0:
         return (
             OrderStatus.REJECTED,
-            raw.get("order_no") or raw.get("order_id"),
+            raw.get("ord_no") or raw.get("order_no") or raw.get("order_id"),
             raw.get("return_msg") or raw.get("message") or "rejected",
         )
 
-    order_id = raw.get("order_no") or raw.get("order_id") or raw.get("output", {}).get("order_no")
+    order_id = raw.get("ord_no") or raw.get("order_no") or raw.get("order_id") or raw.get("output", {}).get("ord_no")
     if isinstance(order_id, dict):
-        order_id = order_id.get("order_no")
+        order_id = order_id.get("ord_no") or order_id.get("order_no")
     msg = raw.get("return_msg") or raw.get("message") or "accepted"
     return OrderStatus.ACCEPTED, (str(order_id) if order_id is not None else None), msg
 
@@ -194,9 +196,9 @@ def parse_kiwoom_order_response(raw: dict) -> dict:
         raw_status = raw_status or str(raw["output"].get("ord_stt", "")).lower()
     status = KIWOOM_STATUS_TO_ORDER_STATUS.get(raw_status, OrderStatus.UNKNOWN)
 
-    broker_order_id = raw.get("order_no") or raw.get("order_id") or (raw.get("output") or {}).get("order_no")
+    broker_order_id = raw.get("ord_no") or raw.get("order_no") or raw.get("order_id") or (raw.get("output") or {}).get("ord_no")
     if isinstance(broker_order_id, dict):
-        broker_order_id = broker_order_id.get("order_no")
+        broker_order_id = broker_order_id.get("ord_no") or broker_order_id.get("order_no")
     if broker_order_id is not None:
         broker_order_id = str(broker_order_id)
 

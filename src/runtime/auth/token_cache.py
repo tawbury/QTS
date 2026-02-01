@@ -17,10 +17,12 @@ Hard constraints (Phase 2):
 - Must NOT perform HTTP requests
 """
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from threading import Lock
 from typing import Optional
+
+from shared.timezone_utils import now_kst
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,16 +31,16 @@ class TokenState:
     token_type: str
     expires_at: datetime
     scope: Optional[str] = None
-    updated_at: datetime = datetime.now(timezone.utc)
+    updated_at: datetime = field(default_factory=now_kst)
 
     def is_expired(self, now: Optional[datetime] = None) -> bool:
-        now = now or datetime.now(timezone.utc)
+        now = now or now_kst()
         return now >= self.expires_at
 
     def will_expire_within(self, seconds: int, now: Optional[datetime] = None) -> bool:
         if seconds < 0:
             raise ValueError("seconds must be >= 0")
-        now = now or datetime.now(timezone.utc)
+        now = now or now_kst()
         return now + timedelta(seconds=seconds) >= self.expires_at
 
 
@@ -85,9 +87,9 @@ class TokenCache:
         if not token_type:
             raise ValueError("token_type is required")
         if expires_at.tzinfo is None:
-            raise ValueError("expires_at must be timezone-aware (UTC recommended)")
+            raise ValueError("expires_at must be timezone-aware (KST recommended)")
 
-        updated_at = updated_at or datetime.now(timezone.utc)
+        updated_at = updated_at or now_kst()
         if updated_at.tzinfo is None:
             raise ValueError("updated_at must be timezone-aware")
 
@@ -114,7 +116,7 @@ class TokenCache:
         if expires_in <= 0:
             raise ValueError("expires_in must be > 0")
         if issued_at.tzinfo is None:
-            raise ValueError("issued_at must be timezone-aware (UTC recommended)")
+            raise ValueError("issued_at must be timezone-aware (KST recommended)")
 
         expires_at = issued_at + timedelta(seconds=expires_in)
         return self.update(
@@ -122,7 +124,7 @@ class TokenCache:
             token_type=token_type,
             expires_at=expires_at,
             scope=scope,
-            updated_at=datetime.now(timezone.utc),
+            updated_at=now_kst(),
         )
 
     def needs_refresh(self, now: Optional[datetime] = None) -> bool:
@@ -132,7 +134,7 @@ class TokenCache:
 - token expired OR
 - token will expire within refresh_skew_seconds
         """
-        now = now or datetime.now(timezone.utc)
+        now = now or now_kst()
         with self._lock:
             state = self._state
 
@@ -147,7 +149,7 @@ class TokenCache:
         Return a token string that is safe to use.
         Raises RuntimeError if refresh is needed.
         """
-        now = now or datetime.now(timezone.utc)
+        now = now or now_kst()
         with self._lock:
             state = self._state
 
@@ -163,7 +165,7 @@ class TokenCache:
         """
         Convenience: returns 'Bearer <token>' style header value.
         """
-        now = now or datetime.now(timezone.utc)
+        now = now or now_kst()
         with self._lock:
             state = self._state
 

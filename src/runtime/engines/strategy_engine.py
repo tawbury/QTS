@@ -75,30 +75,36 @@ class StrategyEngine(BaseEngine):
             self._update_state(self.state.is_running, error=str(e))
             return {"success": False, "error": str(e), "execution_time": execution_time}
 
-    def calculate_signal(self, market_data: Dict[str, Any], position_data: Dict[str, Any]) -> Dict[str, Any]:
+    def calculate_signal(self, market_data: Dict[str, Any], position_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Calculate trading signal
-        
+
         Args:
             market_data: Canonical market data (Price, Volume, etc.)
-            position_data: Current position info for the symbol
-            
+            position_data: Current position info for the symbol (None if no position)
+
         Returns:
-            Dict[str, Any]: Signal dictionary (e.g., {'action': 'BUY', 'size': 10, 'reason': 'RSI < 30'})
+            Dict[str, Any]: Signal dictionary (e.g., {'action': 'BUY', 'qty': 10, 'reason': 'RSI < 30'})
         """
         # Placeholder logic for Phase 5 initial implementation
         # In a real scenario, this would load a specific Strategy class based on Config
-        
+
         # Example: Simple Random/Pass-through logic for testing
         symbol = market_data.get('symbol')
         price_val = market_data.get('price', 0.0)
         close_price = float(price_val.get('close', 0.0)) if isinstance(price_val, dict) else float(price_val or 0.0)
-        
-        # Default: HOLD
+
+        # position_data가 dict가 아니면 빈 dict로 처리
+        pos = position_data if isinstance(position_data, dict) else {}
+        current_qty = pos.get('quantity', 0) if pos else 0
+
+        # Default: HOLD (실제 전략 구현 시 여기를 교체)
         return {
             'symbol': symbol,
             'action': 'HOLD',
+            'qty': 0,
             'weight': 0.0,
             'price': close_price,
-            'timestamp': market_data.get('timestamp')
+            'timestamp': market_data.get('timestamp'),
+            'reason': 'Default HOLD (no strategy loaded)'
         }

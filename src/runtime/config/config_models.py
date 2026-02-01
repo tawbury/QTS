@@ -92,11 +92,16 @@ class UnifiedConfig:
     def get_flat(self, key: str, default: Any = None) -> Any:
         """
         Single-key lookup for engine use (e.g. BASE_EQUITY, KILLSWITCH_STATUS).
-        config_map may use flat keys; returns default when key is missing.
+        - Exact key first (flat keys from tests or aliases).
+        - Else any key ending with '.' + key (hierarchical from load_unified_config).
         """
-        if key not in self.config_map:
-            return default
-        return self.config_map[key]
+        if key in self.config_map:
+            return self.config_map[key]
+        suffix = "." + key
+        for k, v in self.config_map.items():
+            if k.endswith(suffix):
+                return v
+        return default
 
     def get_all_in_category(self, category: str) -> Dict[str, str]:
         """

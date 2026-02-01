@@ -19,8 +19,10 @@ Hard constraints:
 
 import os
 import requests
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict, Any
+
+from shared.timezone_utils import now_kst
 
 from runtime.broker.base import (
     AccessTokenPayload,
@@ -116,7 +118,7 @@ def request_access_token(timeout: int = 10) -> AccessTokenPayload:
         access_token=data["access_token"],
         token_type=data.get("token_type", "Bearer"),
         expires_in=int(data["expires_in"]),
-        issued_at=datetime.now(timezone.utc),
+        issued_at=now_kst(),
         scope=data.get("scope"),
         raw=data,
     )

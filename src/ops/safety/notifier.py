@@ -9,8 +9,10 @@ Phase 7 — Safety Notifier 최소 규격.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Protocol
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from shared.timezone_utils import now_kst, Protocol
 
 
 # --- Safety 이벤트 (Arch §9.1) ---
@@ -36,7 +38,7 @@ class SafetyEvent:
         pipeline_state: str,
         meta: Optional[Dict[str, Any]] = None,
     ) -> SafetyEvent:
-        ts = datetime.now(timezone.utc).isoformat()
+        ts = now_kst().isoformat()
         return cls(
             timestamp=ts,
             safety_code=safety_code,

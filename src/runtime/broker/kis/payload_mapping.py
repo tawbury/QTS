@@ -15,20 +15,18 @@ from runtime.execution.models.order_request import OrderRequest, OrderSide, Orde
 from runtime.execution.models.order_response import OrderResponse, OrderStatus
 
 
-# ----- Request normalization (Arch 3.3, 4.2) -----
-
-SIDE_TO_KIS: dict[OrderSide, str] = {
-    OrderSide.BUY: "02",
-    OrderSide.SELL: "01",
-}
+# ----- Request normalization (open-trading-api order_cash 기준) -----
+# Body: CANO, ACNT_PRDT_CD, PDNO, ORD_DVSN, ORD_QTY, ORD_UNPR, EXCG_ID_DVSN_CD, SLL_TYPE, CNDT_PRIC
+# 매수/매도는 tr_id로 구분(0011=매도, 0012=매수). Body에 SLL_BUY_DVSN_CD 없음.
 
 ORDER_TYPE_TO_KIS: dict[OrderType, str] = {
     OrderType.MARKET: "01",
     OrderType.LIMIT: "00",
 }
 
-# Market code (Arch 5.5): KOSPI→KR, NASDAQ→US
-MARKET_DEFAULT = "KR"
+# EXCG_ID_DVSN_CD: 거래소 (KRX 등). market "KR" → "KRX"
+EXCG_ID_DVSN_CD_DEFAULT = "KRX"
+MARKET_TO_EXCG: dict[str, str] = {"KR": "KRX", "US": "NAS", "": "KRX"}
 
 
 def build_kis_order_payload(
@@ -36,28 +34,30 @@ def build_kis_order_payload(
     *,
     cano: str = "",
     acnt_prdt_cd: str = "01",
-    market: str = MARKET_DEFAULT,
+    market: str = "KR",
 ) -> dict:
     """
-    OrderRequest → KIS order API payload.
+    OrderRequest → KIS order-cash Body (대문자 키) + side(tr_id 선택용).
 
-    Contract: same semantics as Arch 4.2 (qty, price, order_type, symbol, 시장 코드).
-    KIS field names per Arch 00 (PDNO, ORD_QTY, ORD_UNPR, CANO, ACNT_PRDT_CD).
+    open-trading-api: CANO, ACNT_PRDT_CD, PDNO, ORD_DVSN, ORD_QTY, ORD_UNPR,
+    EXCG_ID_DVSN_CD, SLL_TYPE, CNDT_PRIC. 매수/매도는 tr_id로 구분.
     """
+    excg = MARKET_TO_EXCG.get(market, EXCG_ID_DVSN_CD_DEFAULT)
     payload: dict = {
-        "PDNO": req.symbol,
+        "PDNO": req.symbol.strip(),
         "ORD_QTY": str(req.qty),
-        "SLL_BUY_DVSN": SIDE_TO_KIS[req.side],
-        "ORD_DVRN": ORDER_TYPE_TO_KIS[req.order_type],
+        "ORD_DVSN": ORDER_TYPE_TO_KIS.get(req.order_type, "00"),
         "ORD_UNPR": "0" if req.order_type == OrderType.MARKET else str(int(req.limit_price or 0)),
-        "market": market,
+        "EXCG_ID_DVSN_CD": excg,
+        "SLL_TYPE": "",
+        "CNDT_PRIC": "",
+        "side": req.side.value.upper(),
+        "symbol": req.symbol.strip(),
     }
     if cano:
         payload["CANO"] = cano
     if acnt_prdt_cd:
         payload["ACNT_PRDT_CD"] = acnt_prdt_cd
-    if req.client_order_id:
-        payload["client_order_id"] = req.client_order_id
     return payload
 
 
@@ -147,22 +147,28 @@ def parse_kis_place_response(raw: dict) -> tuple[OrderStatus, str | None, str | 
     """
     Parse KIS place_order raw response → status, broker_order_id, message.
 
-    Expects raw with ok/order_id/message or KIS-style keys (ord_no, ord_stt, etc.).
+    open-trading-api: rt_cd (0=성공), msg_cd, msg1, output (ODNO 등).
     """
-    ok = raw.get("ok", False)
+    rt_cd = raw.get("rt_cd")
+    if rt_cd is not None:
+        rt_cd = str(rt_cd).strip()
+    ok = rt_cd == "0" if rt_cd is not None else raw.get("ok", False)
     if isinstance(ok, str):
         ok = ok.lower() in ("true", "1", "ok", "success")
+
+    output = raw.get("output")
+    if isinstance(output, dict):
+        order_id = output.get("ODNO") or output.get("ord_no") or output.get("order_no")
+    else:
+        order_id = raw.get("order_id") or raw.get("ord_no") or raw.get("ODNO")
+    if order_id is not None and not isinstance(order_id, str):
+        order_id = str(order_id)
+
+    msg = raw.get("msg1") or raw.get("message") or raw.get("msg") or ""
+
     if not ok:
-        return (
-            OrderStatus.REJECTED,
-            raw.get("order_id") or raw.get("ord_no"),
-            raw.get("message") or raw.get("msg") or "rejected",
-        )
-    order_id = raw.get("order_id") or raw.get("ord_no") or raw.get("output", {}).get("ord_no")
-    if isinstance(order_id, dict):
-        order_id = order_id.get("ord_no")
-    msg = raw.get("message") or raw.get("msg") or "accepted"
-    return OrderStatus.ACCEPTED, (str(order_id) if order_id is not None else None), msg
+        return (OrderStatus.REJECTED, order_id, msg or "rejected")
+    return (OrderStatus.ACCEPTED, order_id, msg or "accepted")
 
 
 def parse_kis_order_response(raw: dict) -> dict:

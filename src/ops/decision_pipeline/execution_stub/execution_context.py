@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
+from shared.timezone_utils import KST, now_kst
 from .execution_mode import ExecutionMode
 
 
-def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+def _kstnow() -> datetime:
+    return now_kst()
 
 
 def _uuid_hex() -> str:
@@ -51,7 +52,7 @@ class ExecutionContext:
     # Phase 7 legacy fields
     # ----------------------------
     request_id: str = field(default_factory=_uuid_hex)
-    created_at: datetime = field(default_factory=_utcnow)
+    created_at: datetime = field(default_factory=_kstnow)
 
     broker: Optional[str] = None
     account: Optional[str] = None
@@ -104,7 +105,7 @@ class ExecutionContext:
         return {
             # legacy
             "request_id": self.request_id,
-            "created_at": self.created_at.astimezone(timezone.utc).isoformat(),
+            "created_at": self.created_at.astimezone(KST).isoformat(),
             "broker": self.broker,
             "account": self.account,
             "metadata": self.metadata,

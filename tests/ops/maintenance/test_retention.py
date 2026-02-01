@@ -1,7 +1,8 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
 
+from shared.timezone_utils import now_kst
 from ops.retention.policy import RetentionPolicy
 from ops.retention.cleaner import RetentionCleaner
 
@@ -13,7 +14,7 @@ def _create_file_with_mtime(
 ) -> None:
     path.write_text("dummy")
 
-    target_time = datetime.now(tz=timezone.utc) - timedelta(days=days_ago)
+    target_time = now_kst() - timedelta(days=days_ago)
     ts = target_time.timestamp()
 
     os.utime(path, (ts, ts))

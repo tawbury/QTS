@@ -10,8 +10,10 @@ Pipeline 종료 시 UI Contract는 **이 빌더에서만** 생성한다.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from shared.timezone_utils import now_kst
 
 from .contract_schema import UIContractVersion
 
@@ -62,7 +64,7 @@ class UIContractBuilder:
         if not isinstance(symbols, list):
             raise ValueError("symbols must be a list")
 
-        now = datetime.now(timezone.utc).isoformat()
+        now = now_kst().isoformat()
         meta: Dict[str, Any] = {
             "contract_version": UIContractVersion,
             "timestamp": now,
