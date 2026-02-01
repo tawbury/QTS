@@ -1,6 +1,7 @@
-# Safety & Fail-Safe (Phase 7) — 진입점 및 상태 전이
+# ops/safety — Safety & Fail-Safe
 
-PipelineSafetyHook·SafetyLayer·상태 머신·Guard·Codes 경로 정리. **근거**: [docs/arch/07_FailSafe_Architecture.md](../../../docs/arch/07_FailSafe_Architecture.md) §6, [16_Micro_Risk_Loop_Architecture.md](../../../docs/arch/sub/16_Micro_Risk_Loop_Architecture.md), [18_System_State_Promotion_Architecture.md](../../../docs/arch/sub/18_System_State_Promotion_Architecture.md)
+PipelineSafetyHook·SafetyLayer·상태 머신·Guard·Codes 경로 정리.  
+**근거**: [07_FailSafe_Architecture.md](../../../docs/arch/07_FailSafe_Architecture.md), [16_Micro_Risk_Loop_Architecture.md](../../../docs/arch/sub/16_Micro_Risk_Loop_Architecture.md)
 
 ---
 
@@ -8,12 +9,12 @@ PipelineSafetyHook·SafetyLayer·상태 머신·Guard·Codes 경로 정리. **�
 
 | 컴포넌트 | 경로 | 진입점 | 비고 |
 |----------|------|--------|------|
-| **PipelineSafetyHook** (Protocol) | `runtime/pipeline/safety_hook.py` | `should_run()`, `record_fail_safe(code, message, stage)`, `pipeline_state()` | ETEDARunner에 주입 |
-| **SafetyLayer** (구현체) | `ops/safety/layer.py` | `SafetyLayer(state_manager=..., notifier=..., kill_switch=..., safe_mode=...)` | PipelineSafetyHook 구현. `request_recovery(operator_approved)` |
+| **PipelineSafetyHook** (Protocol) | `app/pipeline/safety_hook.py` | `should_run()`, `record_fail_safe()`, `pipeline_state()` | ETEDARunner에 주입 |
+| **SafetyLayer** (구현체) | `ops/safety/layer.py` | `SafetyLayer(state_manager=..., notifier=...)` | PipelineSafetyHook 구현. `request_recovery(operator_approved)` |
 | **SafetyStateManager** | `ops/safety/state.py` | `SafetyStateManager()`. `apply_anomaly`, `apply_fail_safe(code)`, `request_recovery(operator_approved)` | 상태: NORMAL/WARNING/FAIL/LOCKDOWN. 전이표: _TRANSITIONS |
 | **Guard** | `ops/safety/guard.py` | `check_extract_safety`, `check_transform_safety`, `check_evaluate_safety`, `check_decide_safety`, `check_act_safety` | ETEDA 단계별 체크. blocked 시 record_fail_safe 연동 |
 | **Codes** | `ops/safety/codes.py` | `FAIL_SAFE_TABLE`, `GUARDRAIL_TABLE`, `ANOMALY_TABLE`. `get_code_info`, `message_for` | ETEDA 단계별 코드 |
-| **Runtime Risk** | `runtime/risk/` | calculators, gates (calculated_risk_gate, staged_risk_gate) | Phase 5 오케스트레이터·ETEDA Decide 연동 |
+| **App Risk** | `app/risk/` | calculators, gates (calculated_risk_gate, staged_risk_gate) | ETEDA Decide 연동 |
 
 ---
 

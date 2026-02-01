@@ -1,6 +1,6 @@
-# ETEDA Pipeline — 진입점 및 Wiring (Phase 5)
+# app/pipeline — ETEDA Pipeline
 
-Runner·실행 루프·설정 경로 정리. **근거**: [docs/arch/03_Pipeline_ETEDA_Architecture.md](../../../docs/arch/03_Pipeline_ETEDA_Architecture.md), [docs/arch/sub/15_Scalp_Execution_Micro_Architecture.md](../../../docs/arch/sub/15_Scalp_Execution_Micro_Architecture.md)
+Runner·실행 루프·설정 경로 정리. **근거**: [03_Pipeline_ETEDA_Architecture.md](../../../docs/arch/03_Pipeline_ETEDA_Architecture.md), [15_Scalp_Execution_Micro_Architecture.md](../../../docs/arch/sub/15_Scalp_Execution_Micro_Architecture.md)
 
 ---
 
@@ -8,7 +8,7 @@ Runner·실행 루프·설정 경로 정리. **근거**: [docs/arch/03_Pipeline_
 
 | 항목 | 내용 |
 |------|------|
-| **경로** | `src/runtime/pipeline/eteda_runner.py` |
+| **경로** | `app/pipeline/eteda_runner.py` |
 | **생성자** | `ETEDARunner(config, *, sheets_client=None, project_root=None, broker=None, safety_hook=None)` |
 | **config** | 필수. UnifiedConfig. 아래 Config 키 사용(env fallback 가능). |
 | **sheets_client** | 선택. None이면 config/env로 `GoogleSheetsClient(credentials_path, spreadsheet_id)` 생성. |
@@ -46,7 +46,7 @@ Phase 4 시그니처와 동일: PortfolioEngine(config, position_repo, portfolio
 | 항목 | 내용 |
 |------|------|
 | **진입점** | `run_eteda_loop(runner, config, policy=None, should_stop=None, snapshot_source=None)` |
-| **경로** | `src/runtime/execution_loop/eteda_loop.py` |
+| **경로** | `app/pipeline/loop/eteda_loop.py` |
 | **Runner 계약** | `run_once(snapshot: Dict[str, Any]) -> Dict[str, Any]` 만 있으면 됨 (ETEDARunnerLike). |
 | **정책** | `ETEDALoopPolicy.from_config(config)` — INTERVAL_MS, ERROR_BACKOFF_MS, ERROR_BACKOFF_MAX_RETRIES. |
 | **중단** | `should_stop` 없으면 Config PIPELINE_PAUSED로 생성. truthy 시 즉시 루프 탈출. |
@@ -58,15 +58,15 @@ Phase 4 시그니처와 동일: PortfolioEngine(config, position_repo, portfolio
 | 항목 | 내용 |
 |------|------|
 | **진입점** | `DecisionPipelineRunner()` 무인자 → `run(context, strategy_name=None)` |
-| **경로** | `src/ops/decision_pipeline/` (Extract→Transform→Evaluate→Decide, Act 없음) |
+| **경로** | `ops/decision_pipeline/` (Extract→Transform→Evaluate→Decide, Act 없음) |
 | **비고** | 런타임 ETEDARunner와 별도 진입점. |
 
 ---
 
 ## 5. 테스트 경로
 
-- `tests/runtime/execution_loop/` — run_eteda_loop, policy, phase4 loop 통합.
-- `tests/runtime/execution/` — intent flow, consecutive failure failsafe.
-- `tests/runtime/integration/` — phase5 strategy/risk loop, phaseE runner 엔진 선택.
+- `tests/runtime/execution_loop/` — run_eteda_loop, policy, phase4 loop 통합
+- `tests/runtime/execution/` — intent flow, consecutive failure failsafe
+- `tests/runtime/integration/` — phase5 strategy/risk loop, phaseE runner 엔진 선택
 
 기본 실행: `pytest tests/runtime/execution_loop/ tests/runtime/execution/ tests/runtime/integration/ -v -m "not live_sheets and not real_broker"`

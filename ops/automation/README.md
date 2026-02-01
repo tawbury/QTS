@@ -40,8 +40,8 @@ ETEDA를 주기적으로 실행할 수 있는 최소 스케줄러 제공 (Phase 
 
 ## 경계
 
-- 스케줄링 로직은 `src/ops/automation/` 에만 존재.
-- 런타임(ETEDA runner, broker, dashboard)은 **콜러블로 주입**; 스케줄러가 runtime 모듈을 직접 import 하지 않음.
+- 스케줄링 로직은 `ops/automation/` 에만 존재.
+- 런타임(ETEDA runner, broker, dashboard)은 **콜러블로 주입**; 스케줄러가 app 모듈을 직접 import 하지 않음.
 
 ---
 
@@ -66,4 +66,4 @@ ETEDA를 주기적으로 실행할 수 있는 최소 스케줄러 제공 (Phase 
 
 ## 코드 품질
 
-- 운영 코드에서 `print`/임시 디버그 출력/민감정보 로그 여부 점검: `src/ops`, `src/runtime` 에서 `print(` 미사용 확인. 민감정보는 로그에 포함하지 않음(호출부 책임).
+- 운영 코드에서 `print`/임시 디버그 출력/민감정보 로그 여부 점검: `ops/`, `app/` 에서 `print(` 미사용 확인. 민감정보는 로그에 포함하지 않음(호출부 책임).

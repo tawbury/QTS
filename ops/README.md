@@ -1,7 +1,7 @@
-# Ops Layer — 진입점·Wiring 요약 (Phase 9)
+# ops/ — Ops Layer
 
-**목적:** Backup/Maintenance/Retention과 스케줄러/트리거/알림 경로를 한곳에 정리한다.  
-**SSOT:** [09_Ops_Automation_Architecture.md](../../docs/arch/09_Ops_Automation_Architecture.md), [Phase_09 task](../../docs/tasks/phases/Phase_09_Ops_Automation/task.md)
+Backup/Maintenance/Retention과 스케줄러/트리거/알림 경로를 한곳에 정리.  
+**SSOT:** [09_Ops_Automation_Architecture.md](../docs/arch/09_Ops_Automation_Architecture.md)
 
 ---
 
@@ -9,11 +9,11 @@
 
 | 컴포넌트 | 진입점 | 비고 |
 |----------|--------|------|
-| 스케줄러 | `ops.automation.scheduler.MinimalScheduler` | `add_target(name, interval_ms, fn, error_backoff_ms, max_consecutive_errors)`, `run()`, `stop()`. 대상: TARGET_PIPELINE, TARGET_BROKER_HEARTBEAT, TARGET_DASHBOARD_UPDATE, TARGET_BACKUP_MAINTENANCE(콜러블 주입). 런타임 직접 import 없음 |
-| Health | `ops.automation.health.HealthMonitor`, `run_checks()` | CHECK_GOOGLE_SHEETS, CHECK_REPOSITORY_HEALTH, CHECK_BROKER_HEARTBEAT, CHECK_ETEDA_LOOP_LATENCY(콜러블 주입). 치명적 실패 시 `alert_channel.send_critical()` |
+| 스케줄러 | `ops.automation.scheduler.MinimalScheduler` | `add_target()`, `run()`, `stop()`. 대상: TARGET_PIPELINE, TARGET_BROKER_HEARTBEAT 등 (콜러블 주입) |
+| Health | `ops.automation.health.HealthMonitor`, `run_checks()` | CHECK_GOOGLE_SHEETS, CHECK_BROKER_HEARTBEAT 등 (콜러블 주입). 치명적 실패 시 `alert_channel.send_critical()` |
 | Alerts | `ops.automation.alerts.AlertChannel`, `LogOnlyAlertChannel` | `send_critical(message)`, `send_warning(message)` |
 
-상세: [src/ops/automation/README.md](automation/README.md), [Ops_최소_구현_범위.md](../../docs/tasks/phases/Phase_09_Ops_Automation/Ops_최소_구현_범위.md)
+상세: [automation/README.md](automation/README.md)
 
 ---
 
@@ -21,8 +21,8 @@
 
 | 컴포넌트 | 진입점 | 비고 |
 |----------|--------|------|
-| BackupManager | `ops.backup.manager.BackupManager(source_root, backup_root)` | tar.gz 아카이브(기본) 또는 Strategy 주입. `run()` → BackupManifest, `run_with_result()` → BackupResult |
-| Backup 전략 | `ops.backup.strategy`: `ArchiveBackupStrategy`, `FileBackupStrategy`, `build_backup_plan` | coordinator 경로는 `ops.maintenance.backup.runner`에서 build_backup_plan, run_backup 사용(내부적으로 strategy 사용) |
+| BackupManager | `ops.backup.manager.BackupManager` (구현 시) | tar.gz 아카이브. `run()` → BackupManifest |
+| Backup 전략 | `ops.backup.strategy` | ArchiveBackupStrategy, FileBackupStrategy (구현 시) |
 
 ---
 
@@ -45,7 +45,7 @@
 | FileRetentionPolicy | `ops.retention.policy.FileRetentionPolicy` | coordinator·maintenance.retention.scanner에서 사용 |
 | DatasetScanner / RetentionCleaner | `ops.retention.scanner.DatasetScanner`, `ops.retention.cleaner.RetentionCleaner` | maintenance_runner 경로에서 사용. Observer 산출물 경로·파일명 키워드 매핑 |
 
-상세: [src/ops/retention/README.md](retention/README.md)
+상세: [retention/README.md](retention/README.md)
 
 ---
 

@@ -7,7 +7,7 @@
 
 ## Mock 브로커 사용 범위
 
-- **MockBroker** (`runtime.execution.brokers.MockBroker`): **테스트 전용**. 프로덕션/메인/실행 루프에서 사용 금지.
+- **MockBroker** (`app.execution.brokers.MockBroker`): **테스트 전용**. 프로덕션/메인/실행 루프에서 사용 금지.
 - **생성 규칙**: 프로덕션 경로는 `create_broker_for_execution(live_allowed, adapter)` 사용. 이 함수는 `LiveBroker` 또는 `NoopBroker`만 반환하며 `MockBroker`는 반환하지 않음.
 - **구성/모드**: `ExecutionMode`(PAPER/LIVE) 및 `LiveGateDecision.live_allowed`에 따라 어댑터 주입 여부 결정; 브로커 선택은 위 팩토리로 일원화.
 

@@ -1,4 +1,4 @@
-# Runtime Monitoring — Logging & Metrics (Phase 9)
+# app/monitoring — Logging & Metrics
 
 ## 목표
 
@@ -40,10 +40,10 @@
 
 ## Alert / Health 확장
 
-- 치명적/경고 알림: `src/ops/automation` 의 **HealthMonitor** + **AlertChannel** 사용 (task_02).
+- 치명적/경고 알림: `ops/automation` 의 **HealthMonitor** + **AlertChannel** 사용 (task_02).
 - 중앙 로거와 연동: ETEDA/Engine/Broker에서 `get_*_logger()` 사용 시 동일 포맷·레벨 적용; Health 실패 시 `send_critical` 호출은 ops 레이어에서 처리.
 
 ## 경계
 
-- 로깅·메트릭 코어는 `src/runtime/monitoring/` 에만 구현.
+- 로깅·메트릭 코어는 `app/monitoring/` 에만 구현.
 - 로그 포맷·핸들러 세부(파일/회전)는 앱 설정 또는 ops 정책에서 결정.

@@ -20,13 +20,12 @@
 ```
 qts/
 ├── app/                        # 애플리케이션 코어
-│   ├── core/                   # 앱 생명주기, 설정
-│   ├── strategy/               # 매매 전략 로직
-│   ├── risk/                   # 리스크 관리
-│   ├── execution/              # 주문 실행 & 브로커 클라이언트
+│   ├── core/                   # 앱 생명주기, 설정 (config, env_loader)
+│   ├── strategy/               # 매매 전략 로직 (engines, arbitration, registry)
+│   ├── risk/                   # 리스크 관리 (calculators, gates, policies)
+│   ├── execution/              # 주문 실행 & 브로커 클라이언트 (brokers, clients, failsafe)
 │   ├── observer_client/        # Observer 연동 (stub/uds/ipc)
-│   ├── pipeline/               # ETEDA 파이프라인
-│   ├── data/                   # 데이터 레이어 (Repository)
+│   ├── pipeline/               # ETEDA 파이프라인 (eteda_runner, loop)
 │   ├── monitoring/             # 로깅, 메트릭
 │   └── main.py                 # 단일 엔트리포인트
 │
