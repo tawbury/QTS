@@ -129,6 +129,21 @@ KIS api 깃페이지 : https://github.com/koreainvestment/open-trading-api
 KIS api 독스페이지 : https://wikidocs.net/book/7847
 KIWOOM api 웹페이지 : https://openapi.kiwoom.com/main/home
 
+**KIS .env 모의/실전 분리**: `.env`에서 **모의투자(VTS)**와 **실전투자(REAL)**를 완전 분리해 사용한다.  
+- **모드 선택**: `KIS_MODE = "KIS_VTS"`(모의) 또는 `KIS_MODE = "KIS_REAL"`(실전).  
+- **모의투자**: `KIS_VTS_APP_KEY`, `KIS_VTS_APP_SECRET`, `KIS_VTS_ACCOUNT_NO`, `KIS_VTS_ACNT_PRDT_CD`, `KIS_VTS_BASE_URL` (예: `https://openapivts.koreainvestment.com:29443`).  
+- **실전투자**: `KIS_REAL_APP_KEY`, `KIS_REAL_APP_SECRET`, `KIS_REAL_ACCOUNT_NO`, `KIS_REAL_ACNT_PRDT_CD`, `KIS_REAL_BASE_URL` (예: `https://openapi.koreainvestment.com:9443`).  
+설정 로드: `runtime.config.env_loader.get_broker_config("KIS")` → `BrokerConfig`(trading_mode, app_key, base_url 등). 토큰/주문: `runtime.broker.kis.kis_client.KISClient`(trading_mode="VTS"|"REAL") 및 `runtime.broker.kis.auth.request_access_token()` 동일 스키마 사용.
+
+**KIS 토큰 (접근·재발급)**: 포털 [토큰(접근,갱신) 만료시처리절차](https://apiportal.koreainvestment.com/provider-doc4) 참고. GitHub README 기준 **1분당 1회** 발급 제한이 있으므로, `runtime.broker.kis.kis_client.KISClient`는 토큰을 **파일 캐시**(`~/.qts_kis_token_*.json`)에 저장·재사용하여 프로세스 간 공유 및 403 방지.  
+**KIS 주문 500 IGW00002**: "서비스 이용 권한이 없거나 요청 권한이 일치하지 않습니다" 발생 시, 공식 kis_auth.py와 동일하게 요청 헤더에 **custtype "P"**(개인) 설정 필요. `KISClient._request()`에 반영됨. 상세는 `docs/KIS_API_Code_Audit.md` 참고.
+
+**KIWOOM .env 모의/실전 분리**: [키움 REST API](https://openapi.kiwoom.com/main/home)와 동일하게 `.env`에서 **모의투자(VTS)**와 **실전투자(REAL)**를 완전 분리해 사용한다.  
+- **모드 선택**: `KIWOOM_MODE = "KIWOOM_VTS"`(모의) 또는 `KIWOOM_MODE = "KIWOOM_REAL"`(실전).  
+- **모의투자**: `KIWOOM_VTS_APP_KEY`, `KIWOOM_VTS_APP_SECRET`, `KIWOOM_VTS_ACCOUNT_NO`, `KIWOOM_VTS_ACNT_PRDT_CD`, `KIWOOM_VTS_BASE_URL` (예: `https://mockapi.kiwoom.com`). 선택: `KIWOOM_VTS_WEBSOCKET_URL`.  
+- **실전투자**: `KIWOOM_REAL_APP_KEY`, `KIWOOM_REAL_APP_SECRET`, `KIWOOM_REAL_ACCOUNT_NO`, `KIWOOM_REAL_ACNT_PRDT_CD`, `KIWOOM_REAL_BASE_URL` (예: `https://api.kiwoom.com`). 선택: `KIWOOM_REAL_WEBSOCKET_URL`.  
+설정 로드: `runtime.config.env_loader.get_broker_config("KIWOOM")` → `BrokerConfig`(trading_mode, app_key, base_url, websocket_url 등). 클라이언트/주문: `runtime.broker.kiwoom.kiwoom_client.KiwoomClient`(base_url이 모의/실전에 따라 이미 분리됨), `runtime.broker.adapters.kiwoom_adapter.KiwoomOrderAdapter`.
+
 ---
 
 ## **0.4 대상 독자**

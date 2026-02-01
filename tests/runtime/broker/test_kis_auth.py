@@ -18,11 +18,11 @@ class DummyResponse:
 
 
 def setup_env(monkeypatch):
-    monkeypatch.setenv("MODE", "VTS")
-    monkeypatch.setenv("KIS_APP_KEY", "dummy_key")
-    monkeypatch.setenv("KIS_APP_SECRET", "dummy_secret")
-    monkeypatch.setenv("KIS_BASE_URL_VTS", "https://vts.kis.test")
-    monkeypatch.setenv("KIS_BASE_URL_REAL", "https://real.kis.test")
+    """.env 스키마: KIS_MODE + KIS_VTS_* (모의) 또는 KIS_REAL_* (실전)."""
+    monkeypatch.setenv("KIS_MODE", "KIS_VTS")
+    monkeypatch.setenv("KIS_VTS_APP_KEY", "dummy_key")
+    monkeypatch.setenv("KIS_VTS_APP_SECRET", "dummy_secret")
+    monkeypatch.setenv("KIS_VTS_BASE_URL", "https://vts.kis.test")
 
 
 def test_kis_auth_success(monkeypatch):
@@ -62,7 +62,9 @@ def test_kis_auth_http_error(monkeypatch):
 
 
 def test_kis_auth_missing_env(monkeypatch):
-    monkeypatch.delenv("MODE", raising=False)
+    """KIS_VTS_* 미설정 시 BrokerConfigError."""
+    monkeypatch.delenv("KIS_MODE", raising=False)
+    monkeypatch.delenv("KIS_VTS_APP_KEY", raising=False)
 
     with pytest.raises(BrokerConfigError):
         request_access_token()

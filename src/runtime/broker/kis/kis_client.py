@@ -5,7 +5,8 @@ KIS REST API Client
 주문, 조회, 취소 기능을 제공합니다.
 
 KIS API 특징:
-- OAuth2.0 토큰 인증
+- OAuth2.0 토큰 인증 (1분당 1회 발급 제한: GitHub open-trading-api README)
+- 토큰은 파일 캐시로 프로세스 간 재사용 (공식 kis_auth 패턴)
 - Hashkey 생성 (POST 요청 시 필수)
 - tr_id 헤더 (거래 ID)
 """
@@ -16,7 +17,10 @@ import hashlib
 import hmac
 import json
 import logging
+import os
+import re
 import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import urljoin
 
@@ -24,6 +28,15 @@ import requests
 
 
 _log = logging.getLogger(__name__)
+
+# KIS 토큰 발급 제한: 1분당 1회 (https://github.com/koreainvestment/open-trading-api)
+_KIS_TOKEN_MIN_INTERVAL_SEC = 60
+
+
+def _kis_token_cache_path(base_url: str) -> Path:
+    """base_url별 토큰 캐시 파일 경로 (VTS/REAL 분리)."""
+    safe = re.sub(r"[^\w\-.]", "_", base_url.strip().rstrip("/"))
+    return Path(os.path.expanduser("~")) / f".qts_kis_token_{safe}.json"
 
 
 class KISAPIError(Exception):
@@ -87,9 +100,49 @@ class KISClient:
             f"base_url={self.base_url}, account={self.account_no})"
         )
 
+    def _read_token_cache(self) -> Optional[str]:
+        """파일 캐시에서 유효한 토큰 읽기 (만료 1분 전까지 재사용)."""
+        path = _kis_token_cache_path(self.base_url)
+        if not path.exists():
+            return None
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if data.get("base_url") != self.base_url:
+                return None
+            expires_at = data.get("expires_at")
+            if expires_at is None or time.time() >= expires_at - 60:
+                return None
+            token = data.get("token")
+            if not token:
+                return None
+            self._access_token = token
+            self._token_expires_at = float(expires_at)
+            _log.debug("KIS token loaded from cache")
+            return token
+        except (OSError, json.JSONDecodeError, TypeError) as e:
+            _log.debug("KIS token cache read failed: %s", e)
+            return None
+
+    def _write_token_cache(self, token: str, expires_at: float) -> None:
+        """발급받은 토큰을 파일 캐시에 저장 (프로세스 간 재사용)."""
+        path = _kis_token_cache_path(self.base_url)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(
+                    {"token": token, "expires_at": expires_at, "base_url": self.base_url},
+                    f,
+                )
+        except OSError as e:
+            _log.debug("KIS token cache write failed: %s", e)
+
     def _get_access_token(self) -> str:
         """
         Access Token 발급 또는 캐싱된 토큰 반환.
+
+        - 메모리·파일 캐시 유효 시 재사용 (KIS 1분당 1회 발급 제한 준수).
+        - 공식 kis_auth 패턴: 토큰 파일 저장 후 재사용.
 
         Returns:
             str: Access Token
@@ -97,12 +150,31 @@ class KISClient:
         Raises:
             KISAuthError: 인증 실패
         """
-        # 캐싱된 토큰이 유효하면 재사용
+        # 1) 메모리 캐시 유효하면 재사용
         if self._access_token and self._token_expires_at:
-            if time.time() < self._token_expires_at - 60:  # 1분 여유
+            if time.time() < self._token_expires_at - 60:
                 return self._access_token
 
-        # 토큰 발급
+        # 2) 파일 캐시에서 유효한 토큰 있으면 재사용 (다른 프로세스가 발급한 토큰)
+        cached = self._read_token_cache()
+        if cached:
+            return cached
+
+        # 3) 1분당 1회 제한: 마지막 발급 시각 파일 확인 후 필요 시 대기
+        cache_path = _kis_token_cache_path(self.base_url)
+        path_ts = cache_path.with_suffix(".last_request")
+        if path_ts.exists():
+            try:
+                last = float(path_ts.read_text(encoding="utf-8").strip())
+                elapsed = time.time() - last
+                if elapsed < _KIS_TOKEN_MIN_INTERVAL_SEC:
+                    wait = _KIS_TOKEN_MIN_INTERVAL_SEC - elapsed
+                    _log.debug("KIS token rate limit: waiting %.1fs", wait)
+                    time.sleep(wait)
+            except (OSError, ValueError):
+                pass
+
+        # 4) 토큰 발급
         url = urljoin(self.base_url, "/oauth2/tokenP")
         payload = {
             "grant_type": "client_credentials",
@@ -111,6 +183,10 @@ class KISClient:
         }
 
         try:
+            try:
+                path_ts.write_text(str(time.time()), encoding="utf-8")
+            except OSError:
+                pass
             resp = requests.post(url, json=payload, timeout=self.timeout)
             resp.raise_for_status()
             data = resp.json()
@@ -119,10 +195,10 @@ class KISClient:
                 raise KISAuthError(f"Token response missing access_token: {data}")
 
             self._access_token = data["access_token"]
-            # 토큰 만료 시간 (기본 1일, 안전하게 23시간으로 설정)
             expires_in = data.get("expires_in", 86400)
             self._token_expires_at = time.time() + min(expires_in, 82800)
 
+            self._write_token_cache(self._access_token, self._token_expires_at)
             _log.info("KIS access token acquired")
             return self._access_token
 
@@ -130,12 +206,15 @@ class KISClient:
             _log.error(f"Failed to get KIS access token: {e}")
             raise KISAuthError(f"Token acquisition failed: {e}") from e
 
-    def _get_hashkey(self, body: Dict[str, Any]) -> str:
+    def _get_hashkey(self, body_json: str) -> str:
         """
         KIS API Hashkey 생성 (POST 요청 시 필수).
 
+        IGW00002 방지: hashkey는 전송할 body와 동일한 바이트로 발급해야 하므로
+        body_json(직렬화된 JSON 문자열)을 그대로 전달·전송합니다.
+
         Args:
-            body: 요청 Body
+            body_json: 직렬화된 요청 Body (JSON 문자열)
 
         Returns:
             str: Hashkey
@@ -148,7 +227,9 @@ class KISClient:
         }
 
         try:
-            resp = requests.post(url, json=body, headers=headers, timeout=self.timeout)
+            resp = requests.post(
+                url, data=body_json.encode("utf-8"), headers=headers, timeout=self.timeout
+            )
             resp.raise_for_status()
             data = resp.json()
 
@@ -192,11 +273,15 @@ class KISClient:
             "appkey": self.app_key,
             "appsecret": self.app_secret,
             "tr_id": tr_id,
+            "custtype": "P",  # 개인 "P", 제휴사 "B" (open-trading-api kis_auth.py)
         }
 
-        # Hashkey 추가 (POST 요청 시)
+        # Hashkey 및 POST body: 동일 직렬화 사용 (IGW00002 방지)
+        body_bytes: Optional[bytes] = None
         if method.upper() == "POST" and body:
-            hashkey = self._get_hashkey(body)
+            body_str = json.dumps(body, sort_keys=True, ensure_ascii=False)
+            body_bytes = body_str.encode("utf-8")
+            hashkey = self._get_hashkey(body_str)
             headers["hashkey"] = hashkey
 
         try:
@@ -204,7 +289,8 @@ class KISClient:
                 method=method,
                 url=url,
                 headers=headers,
-                json=body if body else None,
+                data=body_bytes if body_bytes is not None else None,
+                json=None if body_bytes is not None else (body if body else None),
                 params=params if params else None,
                 timeout=self.timeout,
             )

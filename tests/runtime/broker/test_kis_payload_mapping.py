@@ -11,10 +11,10 @@ import pytest
 
 from runtime.broker.kis.payload_mapping import (
     DEFAULT_BROKER_ERROR_SAFETY,
+    EXCG_ID_DVSN_CD_DEFAULT,
     KIS_ERROR_TO_SAFETY,
-    MARKET_DEFAULT,
+    MARKET_TO_EXCG,
     ORDER_TYPE_TO_KIS,
-    SIDE_TO_KIS,
     build_kis_order_payload,
     map_broker_error_to_safety,
     parse_kis_order_response,
@@ -25,12 +25,13 @@ from runtime.execution.models.order_request import OrderRequest, OrderSide, Orde
 from runtime.execution.models.order_response import OrderStatus
 
 
-# ----- Request normalization -----
+# ----- Request normalization (open-trading-api: tr_id로 매수/매도, Body 대문자) -----
 
 
-def test_side_to_kis_mapping():
-    assert SIDE_TO_KIS[OrderSide.BUY] == "02"
-    assert SIDE_TO_KIS[OrderSide.SELL] == "01"
+def test_market_to_excg_mapping():
+    assert MARKET_TO_EXCG.get("KR") == "KRX"
+    assert MARKET_TO_EXCG.get("US") == "NAS"
+    assert EXCG_ID_DVSN_CD_DEFAULT == "KRX"
 
 
 def test_order_type_to_kis_mapping():
@@ -48,10 +49,10 @@ def test_build_kis_order_payload_buy_market():
     payload = build_kis_order_payload(req)
     assert payload["PDNO"] == "005930"
     assert payload["ORD_QTY"] == "10"
-    assert payload["SLL_BUY_DVSN"] == "02"
-    assert payload["ORD_DVRN"] == "01"
+    assert payload["ORD_DVSN"] == "01"  # 시장가
     assert payload["ORD_UNPR"] == "0"
-    assert payload["market"] == MARKET_DEFAULT
+    assert payload["EXCG_ID_DVSN_CD"] == "KRX"
+    assert payload["side"] == "BUY"
 
 
 def test_build_kis_order_payload_sell_limit():
@@ -63,8 +64,8 @@ def test_build_kis_order_payload_sell_limit():
         limit_price=70000.0,
     )
     payload = build_kis_order_payload(req)
-    assert payload["SLL_BUY_DVSN"] == "01"
-    assert payload["ORD_DVRN"] == "00"
+    assert payload["side"] == "SELL"
+    assert payload["ORD_DVSN"] == "00"  # 지정가
     assert payload["ORD_UNPR"] == "70000"
 
 

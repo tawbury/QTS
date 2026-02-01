@@ -28,6 +28,14 @@
 | Body | grant_type, **appkey**, **appsecret** |
 | 응답 | **access_token**, **access_token_token_expired** (만료일시) |
 
+### 1.3 요청 헤더 (kis_auth.py _url_fetch)
+
+| 항목 | 스펙 |
+|------|------|
+| tr_id | 거래 ID (필수). 실전 TTTC0011U/0012U, 모의 VTTC0011U/0012U |
+| **custtype** | 고객타입: **P**(개인/일반), B(제휴사). 미설정 시 **500 IGW00002** (서비스 이용 권한 불일치) 발생 가능 |
+| hashkey | POST 시 body와 동일 바이트로 발급 후 헤더에 설정. 생략 가능(공식 샘플은 주석 처리) |
+
 ---
 
 ## 2. 코드 vs 스펙 비교
@@ -47,13 +55,19 @@
 | EXCG_ID_DVSN_CD | "KRX" 등 | market "KR" | ✅ **수정**: KR→KRX 매핑, 키명 EXCG_ID_DVSN_CD |
 | SLL_TYPE, CNDT_PRIC | 선택 | 없음 | ✅ **수정**: 빈 문자열 기본값 추가 |
 
-### 2.3 place_order 전송 Body (KISClient)
+### 2.3 Request Headers (KISClient _request)
+
+| 항목 | 공식 샘플 | 현재 코드 | 조치 |
+|------|-----------|-----------|------|
+| custtype | "P" (개인) | 없음 | ✅ **수정**: IGW00002 방지 위해 **custtype "P"** 추가 |
+
+### 2.4 place_order 전송 Body (KISClient)
 
 | 항목 | 비고 |
 |------|------|
 | 전송 Body | API에 보낼 때 **대문자 키만** 포함. "side", "symbol" 등 메타는 제외. |
 
-### 2.4 응답 파싱 (parse_kis_place_response)
+### 2.5 응답 파싱 (parse_kis_place_response)
 
 | 항목 | 공식 스펙 | 현재 코드 | 조치 |
 |------|-----------|-----------|------|
@@ -66,6 +80,7 @@
 
 1. **KISClient** (`src/runtime/broker/kis/kis_client.py`)
    - tr_id: 0801/0802 → **0011(매도)/0012(매수)** (실전·모의 동일 규칙)
+   - **_request 헤더**: **custtype "P"** 추가 (500 IGW00002 권한 불일치 방지, kis_auth.py 기준)
    - place_order: API로 보낼 body에서 **대문자 키만** 포함 (side/symbol 제외)
 2. **payload_mapping** (`src/runtime/broker/kis/payload_mapping.py`)
    - Body: CANO, ACNT_PRDT_CD, PDNO, ORD_DVSN, ORD_QTY, ORD_UNPR, **EXCG_ID_DVSN_CD**, SLL_TYPE, CNDT_PRIC
@@ -77,7 +92,16 @@
 
 ---
 
-## 4. 참고 링크
+## 4. HTTP 500 IGW00002 대응
+
+- **증상**: 주문 API 호출 시 HTTP 500, `msg_cd: IGW00002` (서비스 이용 권한이 없거나 요청 권한이 일치하지 않습니다).
+- **원인**: 공식 kis_auth.py는 요청 헤더에 **custtype "P"**(개인)를 설정함. 미설정 시 게이트웨이에서 권한 불일치로 500 발생 가능.
+- **조치**: `KISClient._request()` 헤더에 **custtype "P"** 추가 (반영 완료).
+
+---
+
+## 5. 참고 링크
 
 - [KIS Open API GitHub](https://github.com/koreainvestment/open-trading-api)
 - [한국투자증권 API 포털](https://apiportal.koreainvestment.com)
+- [00_Architecture.md](arch/00_Architecture.md) 127–129행: KIS API 웹/깃/독스 링크

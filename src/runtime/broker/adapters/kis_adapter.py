@@ -7,9 +7,10 @@ Protocol-Driven: KISClient 주입으로 실제 API 호출부 분리 → 테스�
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from runtime.broker.adapters.base_adapter import BaseBrokerAdapter
+from runtime.broker.adapters.protocols import OrderClientProtocol
 from runtime.broker.kis.payload_mapping import (
     build_kis_order_payload,
     parse_kis_place_response,
@@ -31,7 +32,7 @@ class KISOrderAdapter(BaseBrokerAdapter):
 
     def __init__(
         self,
-        client: Optional[Any] = None,
+        client: Optional[OrderClientProtocol] = None,
         *,
         acnt_no: str = "",
         acnt_prdt_cd: str = "01",
@@ -58,19 +59,9 @@ class KISOrderAdapter(BaseBrokerAdapter):
     def place_order(self, req: OrderRequest) -> OrderResponse:
         """주문 전송"""
         if req.dry_run:
-            return OrderResponse(
-                status=OrderStatus.ACCEPTED,
-                broker_order_id="KIS-VIRTUAL",
-                message="dry_run accepted (kis)",
-                raw={"dry_run": True, "broker": "kis"},
-            )
-
+            return self._dry_run_response("KIS-VIRTUAL")
         if self._client is None:
-            return OrderResponse(
-                status=OrderStatus.REJECTED,
-                message="KIS client not configured (stub mode)",
-                raw={"broker": "kis", "stub": True},
-            )
+            return self._stub_rejected()
 
         # OrderRequest → KIS Payload 변환
         payload = build_kis_order_payload(
@@ -109,26 +100,14 @@ class KISOrderAdapter(BaseBrokerAdapter):
     def get_order(self, query: OrderQuery) -> OrderResponse:
         """주문 조회"""
         if self._client is None:
-            return OrderResponse(
-                status=OrderStatus.UNKNOWN,
-                broker_order_id=query.broker_order_id,
-                message="KIS client not configured (stub mode)",
-                raw={"broker": "kis", "stub": True},
-            )
-
+            return self._stub_unknown(query)
         resp = self._client.get_order({"order_id": query.broker_order_id})
         return raw_to_order_response(resp, default_broker_order_id=query.broker_order_id)
 
     def cancel_order(self, query: OrderQuery) -> OrderResponse:
         """주문 취소"""
         if self._client is None:
-            return OrderResponse(
-                status=OrderStatus.UNKNOWN,
-                broker_order_id=query.broker_order_id,
-                message="KIS client not configured (stub mode)",
-                raw={"broker": "kis", "stub": True},
-            )
-
+            return self._stub_unknown(query)
         resp = self._client.cancel_order({"order_id": query.broker_order_id})
 
         # 응답 코드 확인

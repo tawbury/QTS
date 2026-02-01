@@ -21,11 +21,11 @@ def _ensure_defaults_registered() -> None:
     if _DEFAULTS_REGISTERED or "kis" in _BROKER_REGISTRY:
         _DEFAULTS_REGISTERED = True
         return
-    from runtime.broker.kis.order_adapter import KISOrderAdapter
+    from runtime.broker.adapters.kis_adapter import KISOrderAdapter
     from runtime.broker.adapters.kiwoom_adapter import KiwoomOrderAdapter
 
-    def _kis_factory(*, broker, cano="", acnt_prdt_cd="01"):
-        return KISOrderAdapter(broker, cano=cano, acnt_prdt_cd=acnt_prdt_cd)
+    def _kis_factory(*, client=None, acnt_no="", acnt_prdt_cd="01"):
+        return KISOrderAdapter(client=client, acnt_no=acnt_no, acnt_prdt_cd=acnt_prdt_cd)
 
     def _kiwoom_factory(*, client=None, acnt_no="", market="0", **kwargs):
         return KiwoomOrderAdapter(client=client, acnt_no=acnt_no, market=market)

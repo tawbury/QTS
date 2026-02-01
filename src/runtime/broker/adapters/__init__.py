@@ -3,8 +3,8 @@ Multi-Broker Adapter layer (Phase 8).
 
 - BaseBrokerAdapter: standard interface (OrderAdapter + broker_id).
 - Registry: register_broker(broker_id, factory), get_broker(broker_id, **kwargs).
-- KIS: registered via runtime.broker.kis.order_adapter.KISOrderAdapter.
-- Kiwoom: skeleton adapter for extension.
+- KIS: registered via runtime.broker.adapters.kis_adapter.KISOrderAdapter.
+- Kiwoom: KiwoomOrderAdapter (adapters/kiwoom_adapter).
 - get_broker_for_config: select adapter by BrokerConfig (primary + optional fallback).
 """
 
@@ -17,7 +17,9 @@ from runtime.broker.adapters.registry import (
     list_broker_ids,
     register_broker,
 )
+from runtime.broker.adapters.kis_adapter import KISOrderAdapter
 from runtime.broker.adapters.kiwoom_adapter import KiwoomOrderAdapter
+from runtime.broker.adapters.protocols import OrderClientProtocol
 from runtime.broker.config import BrokerConfig
 from runtime.broker.order_base import OrderAdapter
 
@@ -34,7 +36,9 @@ def get_broker_for_config(config: BrokerConfig) -> OrderAdapter:
 __all__ = [
     "BaseBrokerAdapter",
     "BrokerConfig",
+    "KISOrderAdapter",
     "KiwoomOrderAdapter",
+    "OrderClientProtocol",
     "get_broker",
     "get_broker_for_config",
     "has_broker",

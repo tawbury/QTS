@@ -8,7 +8,7 @@
 
 - `docs/arch/08_Broker_Integration_Architecture.md`
 - 코드:
-  - `src/runtime/broker/kis/order_adapter.py` (TODO 존재)
+  - `src/runtime/broker/adapters/kis_adapter.py`, `src/runtime/broker/kis/payload_mapping.py`
 
 ## 작업
 
@@ -17,7 +17,7 @@
 - [x] Response Normalization 규칙 구현
   - [x] ExecutionResult(OrderResponse)로의 변환 규칙 고정 (`parse_kis_place_response`, `parse_kis_order_response`, `raw_to_order_response`)
 - [x] 코드 품질 개선(필수)
-  - [x] `order_adapter.py`의 TODO 제거, `KISOrderClientProtocol` 계약 정의, place_order/get_order/cancel_order 실제 정규화 로직 적용
+  - [x] `adapters/kis_adapter.py`에서 KISOrderAdapter, place_order/get_order/cancel_order 정규화. payload_mapping은 kis/ 유지.
 
 ## 완료 조건
 

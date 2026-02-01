@@ -20,7 +20,7 @@ Broker 실행 계층·어댑터(KIS)·생성 팩토리 경로 정리. **근거**
 | 컴포넌트 | 경로 | 진입점 | 비고 |
 |----------|------|--------|------|
 | **Auth** | `runtime/broker/base.BrokerAdapter`, `runtime/broker/kis/adapter.KISBrokerAdapter` | `authenticate() -> AccessTokenPayload`. TokenCache 갱신 | 주문 API 없음 |
-| **Order 어댑터** | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `runtime/broker/kis/order_adapter.KISOrderAdapter`, `runtime/broker/adapters/kiwoom_adapter.KiwoomOrderAdapter` | `place_order(OrderRequest)->OrderResponse`, `get_order`, `cancel_order`, `broker_id`. KISOrderClientProtocol / KiwoomOrderClientProtocol 주입 |
+| **Order 어댑터** | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `runtime/broker/adapters/kis_adapter.KISOrderAdapter`, `runtime/broker/adapters/kiwoom_adapter.KiwoomOrderAdapter` | `place_order(OrderRequest)->OrderResponse`, `get_order`, `cancel_order`, `broker_id`. client(KISClient/KiwoomClient) 주입 |
 | **KIS 페이로드/매핑** | `runtime/broker/kis/payload_mapping` | `build_kis_order_payload(OrderRequest)`, `parse_kis_place_response`, `KIS_STATUS_TO_ORDER_STATUS`, `map_broker_error_to_safety` | 에러→Fail-Safe(FS040 등). 1001→FS040, 3005→FS041, timeout→FS042 |
 | **키움 페이로드/매핑** | `runtime/broker/kiwoom/payload_mapping` | `build_kiwoom_order_payload(OrderRequest)`, `parse_kiwoom_place_response`, `KIWOOM_STATUS_TO_ORDER_STATUS`, `map_broker_error_to_safety` | 에러→Fail-Safe(FS040~FS042). KIWOOM_ERROR_TO_SAFETY |
 
@@ -39,7 +39,7 @@ Broker 실행 계층·어댑터(KIS)·생성 팩토리 경로 정리. **근거**
   from runtime.broker.adapters import get_broker, get_broker_for_config
   from runtime.execution.brokers import create_broker_for_execution
 
-  order_adapter = get_broker("kis", broker=kis_client, cano="...", acnt_prdt_cd="01")
+  order_adapter = get_broker("kis", client=kis_client, acnt_no="...", acnt_prdt_cd="01")
   bridge = OrderAdapterToBrokerEngineAdapter(order_adapter, broker_id="kis", dry_run=False)
   broker = create_broker_for_execution(live_allowed=True, adapter=bridge)
   ```

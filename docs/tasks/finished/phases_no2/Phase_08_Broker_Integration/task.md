@@ -30,7 +30,7 @@
 | LiveBroker | `LiveBroker(adapter, max_consecutive_failures=3)` | adapter는 `submit_intent(ExecutionIntent)->ExecutionResponse` 구현체. ConsecutiveFailureGuard 연동·failsafe 시 ExecutionResponse(accepted=False, broker="failsafe") |
 | NoopBroker / MockBroker | 테스트·비실행 경로 | NoopBroker: 항상 거절. MockBroker: 테스트 전용 |
 | Auth (Phase 2) | `runtime/broker/base.BrokerAdapter`, `kis/adapter.KISBrokerAdapter` | authenticate() -> AccessTokenPayload. TokenCache 갱신. 주문 API 없음 |
-| Order 어댑터 | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `kis/order_adapter.KISOrderAdapter` | place_order(OrderRequest)->OrderResponse, get_order, cancel_order, broker_id. KISOrderClientProtocol(place_order/get_order/cancel_order) 주입 |
+| Order 어댑터 | `runtime/broker/adapters/base_adapter.BaseBrokerAdapter`, `adapters/kis_adapter.KISOrderAdapter` | place_order(OrderRequest)->OrderResponse, get_order, cancel_order, broker_id. client(KISClient) 주입 |
 | KIS 페이로드/매핑 | `runtime/broker/kis/payload_mapping` | build_kis_order_payload(OrderRequest), parse_kis_place_response, KIS_STATUS_TO_ORDER_STATUS. 에러→Fail-Safe(FS040 등) 문서화 |
 
 ---

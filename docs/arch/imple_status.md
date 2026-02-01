@@ -153,7 +153,7 @@ Observer 모듈은 독립 프로젝트로 분리되었습니다 (2026-01-28).
 |---------|-----------|-----------|------|
 | Broker Adapter Base | `src/runtime/broker/base.py` | ✅ 완료 | 추상 브로커 인터페이스 |
 | KIS Broker Adapter | `src/runtime/broker/kis/adapter.py` | ✅ 완료 | KIS 연동 |
-| KIS Order Adapter | `src/runtime/broker/kis/order_adapter.py` | ✅ 완료 | KIS 주문 처리 |
+| KIS Order Adapter | `src/runtime/broker/adapters/kis_adapter.py` | ✅ 완료 | KIS 주문 처리 |
 | KIS Auth | `src/runtime/broker/kis/auth.py` | ✅ 완료 | KIS 인증 |
 | Live Broker Engine | `src/runtime/execution/brokers/` | ✅ 완료 | 실제 거래 브로커 |
 | Mock Broker | `src/runtime/execution/brokers/` | ✅ 완료 | 테스트용 모의 브로커 |

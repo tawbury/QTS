@@ -6,10 +6,15 @@ runtime.broker.kis.auth
 KIS OAuth2 authentication (stateless).
 
 Responsibilities (Phase 2):
-- Read MODE (VTS / REAL) from environment
+- Read KIS_MODE (KIS_VTS / KIS_REAL) or MODE from environment; .env와 동일 스키마.
 - Build OAuth2 token request
 - Call /oauth2/tokenP
 - Return AccessTokenPayload
+
+Env schema (모의/실전 완전 분리, .env 기준):
+- KIS_MODE = "KIS_VTS" | "KIS_REAL"
+- 모의: KIS_VTS_APP_KEY, KIS_VTS_APP_SECRET, KIS_VTS_BASE_URL
+- 실전: KIS_REAL_APP_KEY, KIS_REAL_APP_SECRET, KIS_REAL_BASE_URL
 
 Hard constraints:
 - NO token caching
@@ -44,30 +49,34 @@ def _require_env(key: str) -> str:
 
 def _load_kis_env() -> Dict[str, str]:
     """
-    Required env variables (Phase 2):
+    .env 스키마와 동일: KIS_MODE로 모의/실전 선택 후 해당 접두사 환경변수 사용.
 
-    MODE=VTS|REAL
+    KIS_MODE = "KIS_VTS" | "KIS_REAL" (기본 KIS_VTS)
+    모의: KIS_VTS_APP_KEY, KIS_VTS_APP_SECRET, KIS_VTS_BASE_URL
+    실전: KIS_REAL_APP_KEY, KIS_REAL_APP_SECRET, KIS_REAL_BASE_URL
 
-    KIS_APP_KEY
-    KIS_APP_SECRET
-
-    KIS_BASE_URL_VTS
-    KIS_BASE_URL_REAL
+    하위 호환: MODE=VTS|REAL 이 있으면 KIS_MODE 없을 때 사용.
     """
-    mode = _require_env("MODE").upper()
-    if mode not in ("VTS", "REAL"):
-        raise BrokerConfigError("MODE must be either 'VTS' or 'REAL'")
-
-    app_key = _require_env("KIS_APP_KEY")
-    app_secret = _require_env("KIS_APP_SECRET")
-
-    if mode == "VTS":
-        base_url = _require_env("KIS_BASE_URL_VTS")
+    mode_value = (os.getenv("KIS_MODE") or os.getenv("MODE") or "KIS_VTS").strip().upper()
+    if "REAL" in mode_value:
+        trading_mode: str = "REAL"
     else:
-        base_url = _require_env("KIS_BASE_URL_REAL")
+        trading_mode = "VTS"
+
+    prefix = f"KIS_{trading_mode}_"
+    app_key = os.getenv(f"{prefix}APP_KEY")
+    app_secret = os.getenv(f"{prefix}APP_SECRET")
+    base_url = os.getenv(f"{prefix}BASE_URL")
+
+    if not app_key:
+        raise BrokerConfigError(f"Missing required env: {prefix}APP_KEY")
+    if not app_secret:
+        raise BrokerConfigError(f"Missing required env: {prefix}APP_SECRET")
+    if not base_url:
+        raise BrokerConfigError(f"Missing required env: {prefix}BASE_URL")
 
     return {
-        "mode": mode,
+        "mode": trading_mode,
         "app_key": app_key,
         "app_secret": app_secret,
         "base_url": base_url.rstrip("/"),

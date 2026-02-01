@@ -90,7 +90,7 @@ The system has a **solid technical foundation** and is well-architected for long
 |---------|--------|-----------|-------|
 | Broker Adapter Base | ✅ **Done** | `src/runtime/broker/base.py` | Abstract broker adapter interface |
 | KIS Broker Adapter | ✅ **Done** | `src/runtime/broker/kis/adapter.py` | Korea Investment & Securities integration |
-| KIS Order Adapter | ✅ **Done** | `src/runtime/broker/kis/order_adapter.py` | KIS-specific order handling |
+| KIS Order Adapter | ✅ **Done** | `src/runtime/broker/adapters/kis_adapter.py` | KIS-specific order handling |
 | Live Broker Engine | ✅ **Done** | `src/runtime/execution/brokers/live_broker.py` | Live trading broker implementation |
 | Mock Broker | ✅ **Done** | `src/runtime/execution/brokers/mock_broker.py` | Mock broker for testing |
 | NoOp Broker | ✅ **Done** | `src/runtime/execution/brokers/noop_broker.py` | No-operation broker for testing |

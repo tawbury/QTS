@@ -17,18 +17,17 @@ Kiwoom과 명확하게 분리된 구조로 설계되었으며, `--broker` 옵션
 ```
 src/runtime/broker/
 ├── kis/
-│   ├── kis_client.py          # KIS REST API Client (NEW)
-│   ├── adapter.py              # KIS Broker Adapter (기존)
-│   ├── auth.py                 # KIS OAuth2 인증 (기존)
-│   ├── order_adapter.py        # KIS Order Adapter (기존)
-│   └── payload_mapping.py      # KIS Payload 변환 (기존)
+│   ├── kis_client.py          # KIS REST API Client
+│   ├── adapter.py              # KIS Broker Adapter (Auth)
+│   ├── auth.py                 # KIS OAuth2 인증
+│   └── payload_mapping.py      # KIS Payload 변환
 │
 ├── kiwoom/
 │   ├── kiwoom_client.py        # Kiwoom REST API Client
 │   └── payload_mapping.py      # Kiwoom Payload 변환
 │
 └── adapters/
-    ├── kis_adapter.py          # KISOrderAdapter (NEW)
+    ├── kis_adapter.py          # KISOrderAdapter (공통 Order 계약)
     └── kiwoom_adapter.py       # KiwoomOrderAdapter
 ```
 
@@ -192,7 +191,14 @@ python main.py --broker kis --scope scalp --verbose
 # [main] INFO BrokerEngine created (live_allowed=False)
 ```
 
-### 4.2 Kiwoom VTS (모의투자) 모드
+### 4.2 Kiwoom .env (모의/실전 분리)
+
+키움도 KIS와 동일하게 [키움 REST API](https://openapi.kiwoom.com/main/home) 기준으로 `.env`에서 모의/실전을 완전 분리한다.
+
+- **모드**: `KIWOOM_MODE = "KIWOOM_VTS"`(모의) 또는 `KIWOOM_MODE = "KIWOOM_REAL"`(실전)
+- **모의**: `KIWOOM_VTS_APP_KEY`, `KIWOOM_VTS_APP_SECRET`, `KIWOOM_VTS_ACCOUNT_NO`, `KIWOOM_VTS_ACNT_PRDT_CD`, `KIWOOM_VTS_BASE_URL` (선택: `KIWOOM_VTS_WEBSOCKET_URL`)
+- **실전**: `KIWOOM_REAL_APP_KEY`, `KIWOOM_REAL_APP_SECRET`, `KIWOOM_REAL_ACCOUNT_NO`, `KIWOOM_REAL_ACNT_PRDT_CD`, `KIWOOM_REAL_BASE_URL` (선택: `KIWOOM_REAL_WEBSOCKET_URL`)
+- 설정 로드: `get_broker_config("KIWOOM")` → `BrokerConfig`; 클라이언트: `KiwoomClient`(base_url이 모의/실전에 따라 분리됨)
 
 ```bash
 # .env 확인
