@@ -935,6 +935,15 @@ Logging Core의 목표는 다음과 같다:
 }
 ```
 
+### 파일 로그 출력 (File Logging)
+
+- **목표**: 콘솔뿐 아니라 실제 파일에 로그를 남겨, 실행 이력·접속·주문 성공/실패를 사후에 추적 가능하게 함.
+- **경로**: `{project_root}/logs/qts_{YYYY-MM-DD}.log`
+- **구현**: `src/runtime/monitoring/central_logger.py` — `configure_central_logging(log_file=...)`
+- **핸들러**: `TimedRotatingFileHandler` (자정 기준 일별 로테이션, 기본 7일 보관)
+- **적용**: `main.py` 진입 시 `log_file` 지정 시 파일 핸들러 추가
+- **상세**: [09_Ops_Automation_Architecture.md](./09_Ops_Automation_Architecture.md) §6
+
 ---
 
 ## **3.3.2 Monitoring Core**

@@ -2,12 +2,14 @@
 Central logging tests (Phase 9 — Logging & Monitoring Core).
 
 - Logger name constants, get_logger / get_*_logger.
-- configure_central_logging (level, root vs runtime-only).
+- configure_central_logging (level, root vs runtime-only, file handler).
 """
 
 from __future__ import annotations
 
 import logging
+import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -72,3 +74,27 @@ def test_configure_central_logging_accepts_str_level():
 def test_configure_central_logging_root_true_sets_root_level():
     configure_central_logging(level=logging.INFO, root=True)
     assert logging.getLogger().level == logging.INFO
+
+
+def test_configure_central_logging_with_log_file_writes_to_file():
+    """File handler adds log file when log_file is provided."""
+    with tempfile.TemporaryDirectory() as tmp:
+        log_path = Path(tmp) / "test_qts.log"
+        configure_central_logging(
+            level=logging.INFO,
+            root=True,
+            log_file=log_path,
+        )
+        root = logging.getLogger()
+        root.info("test_file_log_message")
+        for h in root.handlers:
+            h.flush()
+
+        assert log_path.exists()
+        content = log_path.read_text(encoding="utf-8")
+        assert "test_file_log_message" in content
+
+        # Close handlers before temp dir cleanup (Windows: file in use)
+        for h in root.handlers[:]:
+            h.close()
+            root.removeHandler(h)

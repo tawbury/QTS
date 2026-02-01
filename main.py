@@ -40,6 +40,7 @@ from runtime.config.env_loader import load_dotenv_if_available
 from runtime.execution.brokers import create_broker_for_execution
 from runtime.execution.brokers.noop_broker import NoopBroker
 from runtime.execution_loop.eteda_loop import run_eteda_loop
+from runtime.monitoring.central_logger import configure_central_logging
 from runtime.utils.runtime_checks import preflight_check
 
 _LOG = logging.getLogger("main")
@@ -299,10 +300,14 @@ def main() -> None:
     """메인 진입점"""
     args = _parse_args()
 
-    # 로깅 설정
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+    # 로깅 설정 (콘솔 + 파일)
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    log_file = _ROOT / "logs" / "qts.log"
+    configure_central_logging(
+        level=log_level,
+        format_string="%(asctime)s [%(name)s] %(levelname)s %(message)s",
+        root=True,
+        log_file=log_file,
     )
 
     # 시그널 핸들러 설정
