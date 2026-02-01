@@ -30,7 +30,7 @@ QTS Ops 레이어는 시스템 운영 및 자동화를 담당합니다.
 | Retention Policy | `src/ops/retention/` | 데이터 보관 정책 |
 | Decision Pipeline | `src/ops/decision_pipeline/` | ETEDA 의사결정 파이프라인 |
 | Safety Guard | `src/ops/safety/` | 안전 가드 |
-| Logs | `src/ops/logs/` | 로깅 인프라 |
+| Logging (Central) | `src/runtime/monitoring/central_logger.py` | 중앙 로깅 및 파일 로그 출력 |
 | Runtime Bridge | `src/ops/runtime/` | Ops↔Runtime 연동 |
 
 ### 1.2 제거된 구성요소
@@ -98,8 +98,40 @@ Ops 레이어와 Runtime 레이어 간 연동:
 
 ---
 
-## 6. 관련 문서
+## 6. Logging Infrastructure (파일 로그)
 
+### 6.1 개요
+
+QTS는 실행 로그를 **콘솔과 파일**에 동시에 출력한다.  
+구현: `src/runtime/monitoring/central_logger.py`의 `configure_central_logging()`.
+
+### 6.2 파일 로그 스펙
+
+| 항목 | 내용 |
+|------|------|
+| **저장 경로** | `{project_root}/logs/` |
+| **파일명** | `qts_{YYYY-MM-DD}.log` (일별 단일 파일) |
+| **포맷** | `%(asctime)s [%(levelname)s] %(name)s: %(message)s` |
+| **핸들러** | `logging.handlers.TimedRotatingFileHandler` (자정 기준 일별 로테이션) |
+| **보관** | 기본 7일 (backupCount), 환경 변수 `QTS_LOG_RETENTION_DAYS`로 조정 가능 |
+| **인코딩** | UTF-8 |
+
+### 6.3 적용 시점
+
+- `main.py` 진입 시 `configure_central_logging(log_file=...)` 호출
+- `log_file=None`이면 파일 로그 비활성화 (콘솔만)
+- `--local-only` 포함 여부와 무관하게 파일 로그 활성화
+
+### 6.4 근거
+
+- [00_Architecture.md](./00_Architecture.md) §3.3.1 Logging Core
+- [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md) §9.2 — "모든 기록은 JSON 및 파일 로그에도 저장"
+
+---
+
+## 7. 관련 문서
+
+- **Logging Core**: [00_Architecture.md](./00_Architecture.md) §3.3.1
 - **ETEDA Pipeline**: [03_Pipeline_ETEDA_Architecture.md](./03_Pipeline_ETEDA_Architecture.md)
 - **Fail-Safe & Safety**: [07_FailSafe_Architecture.md](./07_FailSafe_Architecture.md)
 - **Testability**: [10_Testability_Architecture.md](./10_Testability_Architecture.md)

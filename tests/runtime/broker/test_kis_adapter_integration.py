@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 import pytest
 
+from shared.timezone_utils import now_kst
 from runtime.auth.token_cache import TokenCache
 from runtime.broker.kis.adapter import KISBrokerAdapter
 from runtime.broker.base import AccessTokenPayload
@@ -18,7 +19,7 @@ def test_kis_adapter_updates_runtime_token_cache(monkeypatch):
     - Runtime can retrieve valid token
     """
 
-    now = datetime.now(timezone.utc)
+    now = now_kst()
 
     def mock_request_access_token():
         return AccessTokenPayload(
@@ -48,7 +49,7 @@ def test_kis_adapter_updates_runtime_token_cache(monkeypatch):
 
 
 def test_kis_adapter_refresh_needed_after_expiry(monkeypatch):
-    now = datetime.now(timezone.utc)
+    now = now_kst()
 
     def mock_request_access_token():
         return AccessTokenPayload(

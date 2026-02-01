@@ -20,11 +20,16 @@
 
 - `get_logger(name)` — 계층 하위 로거 (가급적 `LOG_*` 상수 사용)
 - `get_eteda_logger()`, `get_engine_logger()`, `get_broker_logger()`, `get_monitoring_logger()` — 편의 함수
-- `configure_central_logging(level=..., format_string=..., root=True)` — 앱 진입 시 한 번 호출 (레벨/포맷/root 여부)
+- `configure_central_logging(level=..., format_string=..., root=True, log_file=..., retention_days=...)` — 앱 진입 시 한 번 호출
 
-### 로그 관리 전략 (추후 확장)
+### 파일 로그 (구현됨)
 
-- **회전/보관**: 파일 핸들러 사용 시 RotatingFileHandler/TimedRotatingFileHandler 권장; 보관 일수·용량은 ops 정책에 따름.
+- `log_file`: Path 지정 시 `TimedRotatingFileHandler` 추가 (자정 기준 일별 로테이션)
+- 기본 경로: `{project_root}/logs/qts.log`
+- `retention_days`: 로테이션 후 보관 일수 (기본 7일, 환경 변수 `QTS_LOG_RETENTION_DAYS`로 조정)
+- 인코딩: UTF-8
+
+### 로그 관리 전략
 - **검색/분석**: 구조화 로그(JSON) 전환 시 추후; 에러 로그 자동 분류는 별도 도구 연동 시 확장.
 
 ## Metrics Collection

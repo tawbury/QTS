@@ -6,8 +6,10 @@ BrokerEngine가 ExecutionIntent 수신 후 반환; 체결/주문 상세는 별�
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timezone
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from shared.timezone_utils import now_kst
 
 
 @dataclass(frozen=True)
@@ -24,4 +26,4 @@ class ExecutionResponse:
     accepted: bool
     broker: str
     message: str
-    timestamp: datetime = datetime.now(timezone.utc)
+    timestamp: datetime = field(default_factory=now_kst)

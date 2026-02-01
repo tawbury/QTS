@@ -826,7 +826,7 @@ TimescaleDB 기반 시계열 데이터를 위한 Contract 확장.
 
 |필드|타입|설명|
 |---|---|---|
-|time|timestamptz|타임스탬프 (UTC)|
+|time|timestamptz|타임스탬프 (KST, 한국 표준시)|
 |symbol|str|종목코드|
 |price|decimal(18,8)|체결가|
 |volume|bigint|거래량|

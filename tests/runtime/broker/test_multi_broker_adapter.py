@@ -68,7 +68,8 @@ def test_kiwoom_adapter_place_order_non_dry_returns_rejected():
     )
     resp = adapter.place_order(req)
     assert resp.status == OrderStatus.REJECTED
-    assert "not implemented" in (resp.message or "").lower()
+    msg = (resp.message or "").lower()
+    assert "stub" in msg or "not implemented" in msg
 
 
 def test_kiwoom_adapter_get_order_returns_unknown():
@@ -78,10 +79,10 @@ def test_kiwoom_adapter_get_order_returns_unknown():
     assert resp.broker_order_id == "ORD-1"
 
 
-def test_get_broker_kis_requires_broker_arg():
+def test_get_broker_kis_requires_client_arg():
     from tests.runtime.broker.conftest import MockKISOrderClient
     client = MockKISOrderClient()
-    adapter = get_broker("kis", broker=client)
+    adapter = get_broker("kis", client=client)
     assert adapter.broker_id == "kis"
     assert hasattr(adapter, "place_order")
 
@@ -101,7 +102,7 @@ def test_broker_config_to_kwargs():
 def test_get_broker_for_config():
     from tests.runtime.broker.conftest import MockKISOrderClient
     client = MockKISOrderClient()
-    config = BrokerConfig(broker_id="kis", kwargs=(("broker", client),))
+    config = BrokerConfig(broker_id="kis", kwargs=(("client", client),))
     adapter = get_broker_for_config(config)
     assert adapter.broker_id == "kis"
 

@@ -119,10 +119,14 @@ class ETEDARunner:
             # 2. Transform
             # Fetch position data for context
             symbol = market_data.get("symbol")
-            positions = await self._portfolio_engine.get_positions()
-            # Find position for this symbol (simple match for now)
-            position_data = next((p for p in positions if p.symbol == symbol), None)
-            
+            try:
+                positions = await self._portfolio_engine.get_positions()
+                # Find position for this symbol (simple match for now)
+                position_data = next((p for p in positions if p.symbol == symbol), None)
+            except Exception as e:
+                self._log.warning(f"Failed to fetch position data for {symbol}: {e}")
+                position_data = None
+
             transformed_data = self._transform(market_data, position_data)
 
             # 3. Evaluate

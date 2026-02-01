@@ -219,20 +219,22 @@ cat > generate_load.py << 'EOF'
 import json
 import time
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
+
+from shared.timezone_utils import now_kst
 
 def generate_snapshot(run_id, price=100.0):
     return {
         "meta": {
             "run_id": run_id,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": now_kst().isoformat(),
             "source": "stress_test"
         },
         "market_data": {
             "symbol": "TEST",
             "price": price,
             "volume": 1000,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": now_kst().isoformat()
         },
         "system_state": {
             "status": "running",

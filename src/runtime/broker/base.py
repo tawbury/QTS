@@ -22,8 +22,10 @@ Notes:
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Mapping, Optional
+
+from shared.timezone_utils import now_kst
 
 
 # =========================
@@ -51,7 +53,7 @@ class AccessTokenPayload:
     - access_token: the bearer token string
     - token_type: typically "Bearer"
     - expires_in: seconds until expiry (as reported by broker)
-    - issued_at: timestamp created at adapter side (UTC)
+    - issued_at: timestamp created at adapter side (KST)
 
     Optional:
     - scope: broker-provided scope string
@@ -70,8 +72,8 @@ class AccessTokenPayload:
         return self.issued_at + timedelta_seconds(self.expires_in)
 
     @staticmethod
-    def now_utc() -> datetime:
-        return datetime.now(timezone.utc)
+    def now_kst() -> datetime:
+        return now_kst()
 
 
 def timedelta_seconds(seconds: int):
@@ -108,6 +110,6 @@ class BrokerAdapter(ABC):
         MUST:
         - be stateless (no caching)
         - raise BrokerAuthError / BrokerConfigError on failure
-        - return AccessTokenPayload with issued_at in UTC
+        - return AccessTokenPayload with issued_at in KST
         """
         raise NotImplementedError

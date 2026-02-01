@@ -50,7 +50,7 @@ Based on Observer_Architecture.md, Observer receives ObservationSnapshot structu
 - **Realistic Market Data**: Varying prices, volumes, timestamps
 - **System State Variation**: Memory usage fluctuations, status changes
 - **Run ID Uniqueness**: Each snapshot has unique run_id for tracking
-- **Timestamp Accuracy**: UTC timestamps with proper timezone handling
+- **Timestamp Accuracy**: KST(한국 표준시) timestamps with proper timezone handling
 
 ## 3. Load Profile
 
@@ -178,7 +178,9 @@ import json
 import time
 import sys
 import random
-from datetime import datetime, timezone
+from datetime import datetime
+
+from shared.timezone_utils import now_kst
 
 class SnapshotGenerator:
     def __init__(self, base_price=100.0):
@@ -202,14 +204,14 @@ class SnapshotGenerator:
         snapshot = {
             "meta": {
                 "run_id": run_id,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": now_kst().isoformat(),
                 "source": "stress_test_simulation"
             },
             "market_data": {
                 "symbol": "STRESS_TEST",
                 "price": round(current_price, 2),
                 "volume": volume,
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": now_kst().isoformat()
             },
             "system_state": {
                 "status": status,
