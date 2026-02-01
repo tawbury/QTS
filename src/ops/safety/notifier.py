@@ -10,9 +10,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Protocol
 
-from shared.timezone_utils import now_kst, Protocol
+from shared.timezone_utils import now_kst
 
 
 # --- Safety 이벤트 (Arch §9.1) ---
