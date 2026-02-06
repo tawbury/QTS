@@ -27,7 +27,10 @@ env/
 # 환경 변수 파일 (절대 커밋 금지)
 .env
 .env.*
-!.env.example
+!**/.env.example
+!**/.env.shared
+!**/.env.local
+!**/.env.container
 
 # 비밀 키 및 자격 증명 파일
 secrets.*
