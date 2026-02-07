@@ -1,0 +1,72 @@
+# =============================================================================
+# QTS Trading System - Docker Build Context Exclusions
+# =============================================================================
+
+# Git and Version Control
+.git
+.gitignore
+.github
+
+# IDE and Editor
+.idea
+.vscode
+*.swp
+*.swo
+.ai
+.claude
+
+# Python Virtual Environments
+.venv
+venv
+env
+.env
+.env.*
+!config/.env.example
+
+# Python Cache
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.mypy_cache
+.coverage
+htmlcov
+.tox
+.nox
+
+# Config and Secrets (injected at runtime)
+secrets/
+config/local/
+config/schema/credentials.json
+config/schema/service_account.json
+*.pem
+*.key
+
+# Logs and Runtime Data
+*.log
+logs/
+data/
+backup/
+cache/
+tmp/
+temp/
+
+# Development and Testing
+docs/
+tests/
+notebook/
+tools/
+scripts/
+*.ipynb
+
+# Documentation
+*.md
+README*
+LICENSE
+CHANGELOG*
+
+# Build Artifacts
+build/
+dist/
+*.egg-info/
+*.spec
