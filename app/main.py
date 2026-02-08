@@ -156,12 +156,16 @@ def _create_mock_runner(
     )
 
     # Mock Snapshot Source
-    snapshot_source = MockSnapshotSource(
-        symbols=["005930", "000660"],  # 삼성전자, SK하이닉스
-        base_prices={"005930": 70000.0, "000660": 150000.0},
-        volatility=0.002,
-        max_iterations=max_iterations,
-    )
+    if hasattr(observer_client, "get_next_snapshot"):
+         snapshot_source = observer_client.get_next_snapshot
+         _LOG.info("Using FileObserverClient as snapshot source")
+    else:
+        snapshot_source = MockSnapshotSource(
+            symbols=["005930", "000660"],  # 삼성전자, SK하이닉스
+            base_prices={"005930": 70000.0, "000660": 150000.0},
+            volatility=0.002,
+            max_iterations=max_iterations,
+        )
 
     # should_stop 함수: 시그널 + 최대 반복 횟수 체크
     def combined_should_stop() -> bool:
@@ -240,8 +244,12 @@ def _create_production_runner(
     )
 
     # Snapshot Source: Observer Client를 통해 실시간 데이터 수신
-    # TODO: Observer Client 연동 후 실제 snapshot_source 구현
-    snapshot_source = None  # 임시
+    # FileObserverClient 등 get_next_snapshot 메서드가 있는 경우 사용
+    if hasattr(observer_client, "get_next_snapshot"):
+        snapshot_source = observer_client.get_next_snapshot
+        _LOG.info("Using Observer Client as snapshot source")
+    else:
+        snapshot_source = None  # 임시 or Default Interval Trigger
 
     # should_stop 함수
     should_stop_fn = default_should_stop_from_config(config)
@@ -349,12 +357,30 @@ def main() -> int:
 
     # 5. Observer Client 생성
     try:
-        if local_only:
+        observer_type = "stub"
+        
+        # Check environment override
+        import os
+        env_observer_type = os.environ.get("OBSERVER_TYPE", "").lower()
+        if env_observer_type:
+            observer_type = env_observer_type
+        
+        if local_only and not env_observer_type:
+             # Default to stub for local-only unless specified
+            observer_type = "stub"
+
+        if observer_type == "file":
+             from app.observer_client.file_client import FileObserverClient
+             assets_dir = os.environ.get("OBSERVER_ASSETS_DIR", "/opt/platform/runtime/qts/data/observer_assets")
+             observer = FileObserverClient(assets_dir=assets_dir)
+             _LOG.info(f"Observer Client: File (dir={assets_dir})")
+             
+        elif local_only:
             observer = create_observer_client(client_type="stub")
             _LOG.info("Observer Client: Stub (mock)")
         else:
             # Production: UDS 또는 IPC
-            observer_type = "stub"  # TODO: config에서 읽어오기
+            # observer_type = "stub"  # TODO: config에서 읽어오기
             observer_endpoint = None
             observer = create_observer_client(
                 client_type=observer_type, endpoint=observer_endpoint

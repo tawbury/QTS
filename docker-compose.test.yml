@@ -29,13 +29,14 @@ services:
     environment:
       - RUN_MODE=container
       - OBSERVER_ASSETS_DIR=/opt/platform/runtime/qts/data/observer_assets
+      - OBSERVER_TYPE=file
     volumes:
       # Mount the observer's data volume to QTS's expected location
       - observer-data:/opt/platform/runtime/qts/data/observer_assets:ro
     depends_on:
       - observer
-    # Run the verification script
-    command: [ "python", "-m", "pytest", "tests/integration/test_docker_observer_connect.py", "-v" ]
+    # Run the application in file-observer mode
+    command: [ "python", "-m", "app.main", "--local-only", "--env", "development", "--verbose" ]
 
 volumes:
   observer-data:
