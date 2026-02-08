@@ -141,9 +141,16 @@ class FileObserverClient:
         }
         """
         try:
-            symbol = data.get("symbol")
-            price = data.get("price") or data.get("trade_price") # 필드명 확인 필요
-            if not symbol or not price:
+            symbol = data.get("symbol") or data.get("code")
+            # Support various price field names from different sources (observer, kiwoom, etc)
+            price = data.get("price") or data.get("trade_price") or data.get("current_price") or data.get("close")
+            
+            if not symbol:
+                # logger.debug(f"Skipping line without symbol: {data.keys()}")
+                return None
+                
+            if price is None:
+                # logger.debug(f"Skipping line without price: {symbol} {data.keys()}")
                 return None
                 
             return {

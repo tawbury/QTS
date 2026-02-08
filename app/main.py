@@ -172,7 +172,7 @@ def _create_mock_runner(
         global _shutdown_requested
         if _shutdown_requested:
             return True
-        if max_iterations > 0 and snapshot_source.iteration_count >= max_iterations:
+        if max_iterations > 0 and getattr(snapshot_source, "iteration_count", 0) >= max_iterations:
             return True
         # Config의 PIPELINE_PAUSED 체크
         paused = config.get_flat("PIPELINE_PAUSED")

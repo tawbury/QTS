@@ -187,6 +187,13 @@ class ETEDARunner:
 
     def _evaluate(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """Generate signal via StrategyEngine"""
+        market = data.get("market", {})
+        price = market.get("price")
+        symbol = market.get("symbol")
+        
+        # Log the context for the decision
+        self._log.info(f"[_evaluate] Evaluating {symbol} @ {price} | Vol: {market.get('volume')} | Time: {market.get('timestamp')}")
+        
         return self._strategy_engine.calculate_signal(
             data["market"], 
             data["position"]

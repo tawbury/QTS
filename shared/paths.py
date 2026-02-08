@@ -45,6 +45,8 @@ def _resolve_project_root(start: Optional[Path] = None) -> Path:
             return parent
         if (parent / "src").exists() and (parent / "tests").exists():
             return parent
+        if (parent / "app").exists() and (parent / "shared").exists():
+            return parent
 
     raise RuntimeError("QTS project root could not be resolved")
 

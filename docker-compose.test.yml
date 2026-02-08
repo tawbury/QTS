@@ -10,15 +10,14 @@ services:
     environment:
       - RUN_MODE=container
       - OBSERVER_DATA_DIR=/opt/platform/runtime/observer/data
+      - OBSERVER_ASSETS_DIR=/opt/platform/runtime/observer/data
       # Force data generation on startup
       - GENERATE_TEST_DATA=true
     volumes:
       - observer-data:/opt/platform/runtime/observer/data
-    # Overlay command to generate data then run
-    # We use a shell command to run the generator script (which outputs to local test_data dir) 
-    # then move it to assets, then sleep to keep container alive for QTS to read
-    command: >
-      /bin/bash -c " echo 'Generating test data...' && python tests/generate_test_data.py && echo 'Moving test data to assets...' && mkdir -p /opt/platform/runtime/observer/data/assets/scalp && mkdir -p /opt/platform/runtime/observer/data/assets/swing && cp tests/test_data/scalp_*.jsonl /opt/platform/runtime/observer/data/assets/scalp/ && cp tests/test_data/swing_*.jsonl /opt/platform/runtime/observer/data/assets/swing/ && echo 'Data generation complete. Starting Observer (sleeping)...' && tail -f /dev/null "
+      - ./ops/test_tools/generate_mock_files.py:/opt/generator.py
+    # Run the mock data generator script
+    command: python /opt/generator.py
 
   qts:
     build:
@@ -30,13 +29,18 @@ services:
       - RUN_MODE=container
       - OBSERVER_ASSETS_DIR=/opt/platform/runtime/qts/data/observer_assets
       - OBSERVER_TYPE=file
+      - LIVE_ENABLED=false
+      - TRADING_ENABLED=true
     volumes:
       # Mount the observer's data volume to QTS's expected location
       - observer-data:/opt/platform/runtime/qts/data/observer_assets:ro
+      # Mount local config for preflight check / runtime config
+      - ./config:/opt/platform/qts/config:ro
     depends_on:
       - observer
     # Run the application in file-observer mode
-    command: [ "python", "-m", "app.main", "--local-only", "--env", "development", "--verbose" ]
+    command: python -m app.main --local-only --env development --verbose
+    # command: tail -f /dev/null
 
 volumes:
   observer-data:
