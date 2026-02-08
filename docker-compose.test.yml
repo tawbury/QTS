@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  observer:
+    build:
+      context: ../prj_obs
+      dockerfile: docker/Dockerfile
+    image: observer-test:latest
+    container_name: observer-test
+    environment:
+      - RUN_MODE=container
+      - OBSERVER_DATA_DIR=/opt/platform/runtime/observer/data
+      # Force data generation on startup
+      - GENERATE_TEST_DATA=true
+    volumes:
+      - observer-data:/opt/platform/runtime/observer/data
+    # Overlay command to generate data then run
+    # We use a shell command to run the generator script (which outputs to local test_data dir) 
+    # then move it to assets, then sleep to keep container alive for QTS to read
+    command: >
+      /bin/bash -c " echo 'Generating test data...' && python tests/generate_test_data.py && echo 'Moving test data to assets...' && mkdir -p /opt/platform/runtime/observer/data/assets/scalp && mkdir -p /opt/platform/runtime/observer/data/assets/swing && cp tests/test_data/scalp_*.jsonl /opt/platform/runtime/observer/data/assets/scalp/ && cp tests/test_data/swing_*.jsonl /opt/platform/runtime/observer/data/assets/swing/ && echo 'Data generation complete. Starting Observer (sleeping)...' && tail -f /dev/null "
+
+  qts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: qts-test:latest
+    container_name: qts-test
+    environment:
+      - RUN_MODE=container
+      - OBSERVER_ASSETS_DIR=/opt/platform/runtime/qts/data/observer_assets
+    volumes:
+      # Mount the observer's data volume to QTS's expected location
+      - observer-data:/opt/platform/runtime/qts/data/observer_assets:ro
+    depends_on:
+      - observer
+    # Run the verification script
+    command: [ "python", "-m", "pytest", "tests/integration/test_docker_observer_connect.py", "-v" ]
+
+volumes:
+  observer-data:
