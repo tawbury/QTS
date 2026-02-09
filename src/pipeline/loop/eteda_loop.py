@@ -84,6 +84,9 @@ async def run_eteda_loop(
                 _log.warning("run_once returned error: %s", result.get("error"))
             elif status:
                 _log.debug("run_once status=%s", status)
+        except StopAsyncIteration:
+            _log.info("ETEDA loop stopped (source exhausted)")
+            break
         except Exception as e:
             consecutive_errors += 1
             _log.exception("ETEDA run_once failed (consecutive=%s): %s", consecutive_errors, e)
