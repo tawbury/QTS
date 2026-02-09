@@ -81,18 +81,18 @@ class FileObserverClient:
         pattern = str(target_dir / "*.jsonl")
         
         # 파일 목록 대기 (테스트 환경에서 파일 생성 시간 고려)
-        retries = 30
+        # 파일 목록 대기 (무한 대기)
         files = []
-        while retries > 0:
+        while True:
             files = glob.glob(pattern)
             if files:
                 break
+            # 10초마다 로그 출력
+            await asyncio.sleep(5)
             logger.info(f"Waiting for .jsonl files in {target_dir}...")
-            await asyncio.sleep(1)
-            retries -= 1
             
         if not files:
-            logger.warning(f"No jsonl files found in {target_dir} after waiting")
+            # 이론상 도달하지 않음
             return
 
         logger.info(f"Found {len(files)} files. Starting processing.")
