@@ -6,20 +6,20 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..core.config.config_models import UnifiedConfig
+from ..qts.core.config.config_models import UnifiedConfig
 from .safety_hook import PipelineSafetyHook
-from ..core.config.execution_mode import ExecutionMode, decide_execution_mode
-from ..execution.interfaces.broker import BrokerEngine
-from ..execution.models.intent import ExecutionIntent
-from ..execution.models.response import ExecutionResponse
+from ..qts.core.config.execution_mode import ExecutionMode, decide_execution_mode
+from ..provider.interfaces.broker import BrokerEngine
+from ..provider.models.intent import ExecutionIntent
+from ..provider.models.response import ExecutionResponse
 from ..strategy.engines.portfolio_engine import PortfolioEngine
 from ..strategy.engines.performance_engine import PerformanceEngine
 from ..strategy.engines.strategy_engine import StrategyEngine
-from ..data.repositories.position_repository import PositionRepository
-from ..data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
-from ..data.repositories.t_ledger_repository import T_LedgerRepository
-from ..data.repositories.history_repository import HistoryRepository
-from ..data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
+from ..db.repositories.position_repository import PositionRepository
+from ..db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
+from ..db.repositories.t_ledger_repository import T_LedgerRepository
+from ..db.repositories.history_repository import HistoryRepository
+from ..db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 
 
 def _default_project_root() -> Path:
@@ -62,7 +62,7 @@ class ETEDARunner:
             self._sheets_client = sheets_client
         else:
             try:
-                from ..data.google_sheets_client import GoogleSheetsClient
+                from ..db.google_sheets_client import GoogleSheetsClient
             except ImportError:
                 raise ImportError(
                     "GoogleSheetsClient required for production. Use --local-only with MockSheetsClient."

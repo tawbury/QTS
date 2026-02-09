@@ -19,23 +19,20 @@ import pytest
 
 # 프로젝트 루트 설정
 _ROOT = Path(__file__).resolve().parent.parent.parent
-_SRC = _ROOT / "src"
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
 
-from runtime.config.config_loader import load_local_only_config
-from runtime.config.config_models import UnifiedConfig
-from runtime.data.mock_sheets_client import MockSheetsClient
-from runtime.pipeline.mock_safety_hook import MockSafetyHook
-from runtime.execution_loop.mock_snapshot_source import MockSnapshotSource
-from runtime.execution.brokers.noop_broker import NoopBroker
-from runtime.execution.brokers.mock_broker import MockBroker
-from runtime.execution.models.intent import ExecutionIntent
-from runtime.execution.models.response import ExecutionResponse
-from runtime.pipeline.eteda_runner import ETEDARunner
-from runtime.execution_loop.eteda_loop import run_eteda_loop
+from src.qts.core.config.config_loader import load_local_only_config
+from src.qts.core.config.config_models import UnifiedConfig
+from src.db.mock_sheets_client import MockSheetsClient
+from src.pipeline.mock_safety_hook import MockSafetyHook
+from src.pipeline.loop.mock_snapshot_source import MockSnapshotSource
+from src.provider.brokers.noop_broker import NoopBroker
+from src.provider.brokers.mock_broker import MockBroker
+from src.provider.models.intent import ExecutionIntent
+from src.provider.models.response import ExecutionResponse
+from src.pipeline.eteda_runner import ETEDARunner
+from src.pipeline.loop.eteda_loop import run_eteda_loop
 
 
 class IntentCapturingBroker(MockBroker):
@@ -116,7 +113,7 @@ class TestMainMockRun:
 
     def test_mock_sheets_client_works(self, mock_sheets: MockSheetsClient):
         """MockSheetsClient가 정상 동작하는지 확인"""
-        assert mock_sheets.spreadsheet_id == "mock_spreadsheet_id"
+        assert mock_sheets.spreadsheet_id == "mock-spreadsheet-id"
 
         # get_sheet_data가 빈 리스트를 반환하는지 확인
         async def _test():

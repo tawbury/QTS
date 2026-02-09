@@ -12,7 +12,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass
 
-from ...core.config.config_models import UnifiedConfig
+from ...qts.core.config.config_models import UnifiedConfig
 
 
 @dataclass

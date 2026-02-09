@@ -15,9 +15,9 @@ import statistics
 import math
 
 from .base_engine import BaseEngine, EngineState, EngineMetrics
-from ...core.config.config_models import UnifiedConfig
-from ...data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
-from ...data.repositories.history_repository import HistoryRepository
+from ...qts.core.config.config_models import UnifiedConfig
+from ...db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
+from ...db.repositories.history_repository import HistoryRepository
 
 
 @dataclass

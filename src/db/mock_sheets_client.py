@@ -21,3 +21,13 @@ class MockSheetsClient:
     @property
     def spreadsheet_id(self) -> str:
         return self._spreadsheet_id
+
+    async def get_sheet_data(self, range_name: str) -> List[List[Any]]:
+        """Mock data retrieval."""
+        self._logger.debug(f"Mocking get_sheet_data for range: {range_name}")
+        return []
+
+    async def write_sheet_data(self, range_name: str, values: List[List[Any]]) -> bool:
+        """Mock data persistence."""
+        self._logger.debug(f"Mocking write_sheet_data to range: {range_name}")
+        return True

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from .base_engine import BaseEngine
-from ...core.config.config_models import UnifiedConfig
+from ...qts.core.config.config_models import UnifiedConfig
 
 
 class StrategyEngine(BaseEngine):
