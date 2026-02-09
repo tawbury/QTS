@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import List
 
@@ -13,6 +14,65 @@ from .config_constants import (
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
 
 _LOG = logging.getLogger(__name__)
+
+
+def _is_kubernetes_mode() -> bool:
+    """Check if running in kubernetes deployment mode."""
+    deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
+    return deployment_mode.lower() in ("kubernetes", "docker")
+
+
+def _build_config_entries_from_env() -> List[ConfigEntry]:
+    """
+    Build config entries from environment variables for Kubernetes mode.
+
+    Maps ConfigMap environment variables to the expected config key format.
+    This allows QTS to run in K8s without config_local.json.
+
+    Returns:
+        List of ConfigEntry objects built from environment variables.
+    """
+    entries = []
+
+    # Mapping: (env_var, category, subcategory, key, default)
+    env_mappings = [
+        # Loop Control
+        ("PIPELINE_INTERVAL_MS", "SYSTEM", "LOOP", "INTERVAL_MS", "1000"),
+        ("PIPELINE_ERROR_BACKOFF_MS", "SYSTEM", "LOOP", "ERROR_BACKOFF_MS", "5000"),
+        ("ERROR_BACKOFF_MAX_RETRIES", "SYSTEM", "LOOP", "ERROR_BACKOFF_MAX_RETRIES", "5"),
+
+        # Execution Mode
+        ("TRADING_MODE", "SYSTEM", "EXECUTION", "RUN_MODE", "PAPER"),
+        ("ENABLE_REAL_ORDER", "SYSTEM", "EXECUTION", "LIVE_ENABLED", "N"),
+        ("TRADING_ENABLED", "SYSTEM", "EXECUTION", "trading_enabled", "true"),
+
+        # Safety
+        ("PIPELINE_PAUSED", "SYSTEM", "SAFETY", "PIPELINE_PAUSED", "false"),
+        ("KILL_SWITCH_ENABLED", "SYSTEM", "SAFETY", "KS_ENABLED", "true"),
+        ("FAILSAFE_ENABLED", "SYSTEM", "SAFETY", "FAILSAFE_ENABLED", "true"),
+
+        # Broker
+        ("BROKER_TYPE", "BROKER", "CONFIG", "BROKER_TYPE", "kiwoom"),
+        ("BASE_EQUITY", "BROKER", "CONFIG", "BASE_EQUITY", "10000000"),
+
+        # Observer
+        ("OBSERVER_TYPE", "OBSERVER", "CONFIG", "OBSERVER_TYPE", "file"),
+        ("OBSERVER_DATA_SOURCE_DIR", "OBSERVER", "CONFIG", "DATA_DIR", "/opt/platform/runtime/observer/data"),
+    ]
+
+    for env_var, category, subcategory, key, default in env_mappings:
+        value = os.environ.get(env_var, default)
+        entries.append(ConfigEntry(
+            category=category,
+            subcategory=subcategory,
+            key=key,
+            value=value,
+            description=f"From environment: {env_var}",
+            tag="k8s",
+        ))
+
+    _LOG.info("Built %d config entries from environment variables", len(entries))
+    return entries
 
 
 def _user_friendly_json_error(exc: json.JSONDecodeError) -> str:
@@ -61,8 +121,26 @@ def load_local_config(project_root: Path) -> ConfigLoadResult:
         ConfigLoadResult with scope=LOCAL
     """
     config_path = project_root / LOCAL_CONFIG_DIR / LOCAL_CONFIG_SUBDIR / LOCAL_CONFIG_FILENAME
-    
+
     if not config_path.exists():
+        # In kubernetes/docker mode, config_local.json is optional
+        # Config values come from environment variables and ConfigMaps
+        if _is_kubernetes_mode():
+            _LOG.info(
+                "Config_Local 파일 없음 (Kubernetes 모드): %s. "
+                "환경변수와 ConfigMap에서 설정을 로드합니다.",
+                config_path,
+            )
+            env_entries = _build_config_entries_from_env()
+            return ConfigLoadResult(
+                ok=True,
+                scope=ConfigScope.LOCAL,
+                entries=env_entries,
+                error=None,
+                source_path="kubernetes:configmap+env",
+            )
+
+        # Local mode requires config_local.json
         err = (
             f"Config_Local 파일을 찾을 수 없습니다: {config_path}. "
             f"경로 {LOCAL_CONFIG_DIR}/{LOCAL_CONFIG_SUBDIR}/{LOCAL_CONFIG_FILENAME} 를 확인하세요."
