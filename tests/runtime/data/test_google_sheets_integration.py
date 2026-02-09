@@ -14,8 +14,8 @@ from pathlib import Path
 # .env 로드 (conftest에서도 로드하지만 여기서 명시)
 try:
     from dotenv import load_dotenv
-    PROJECT_ROOT = Path(__file__).resolve().parents[2]
-    load_dotenv(PROJECT_ROOT / ".env")
+    PROJECT_ROOT = Path(__file__).resolve().parents[3]  # tests/runtime/data -> prj_qts
+    load_dotenv(PROJECT_ROOT / "config" / ".env")
 except ImportError:
     pass
 

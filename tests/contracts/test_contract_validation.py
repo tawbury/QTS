@@ -11,8 +11,8 @@ import dataclasses
 from runtime.ui.contract_schema import get_expected_contract_version
 from runtime.execution.models.intent import ExecutionIntent
 from runtime.execution.models.response import ExecutionResponse
-from ops.decision_pipeline.contracts.order_decision import OrderDecision
-from ops.decision_pipeline.contracts.execution_hint import ExecutionHint
+from src.decision_pipeline.contracts.order_decision import OrderDecision
+from src.decision_pipeline.contracts.execution_hint import ExecutionHint
 
 from tests.fixtures.contracts import (
     UI_CONTRACT_REQUIRED_ROOT_KEYS,

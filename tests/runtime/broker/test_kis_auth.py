@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from shared.timezone_utils import KST
+from src.shared.timezone_utils import KST
 from runtime.broker.kis.auth import request_access_token
 from runtime.broker.base import BrokerAuthError, BrokerConfigError
 

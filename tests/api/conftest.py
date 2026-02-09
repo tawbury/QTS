@@ -6,7 +6,7 @@ from pathlib import Path
 
 # 프로젝트 루트 기준 .env 로드
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(PROJECT_ROOT / ".env")
+load_dotenv(PROJECT_ROOT / "config" / ".env")
 
 
 def pytest_collection_modifyitems(config, items):

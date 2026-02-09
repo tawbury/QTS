@@ -70,3 +70,9 @@ build/
 dist/
 *.egg-info/
 *.spec
+
+# Legacy Source Directories (migrated to src/)
+# Keep these excluded after refactoring to src/ structure
+app/
+shared/
+ops/

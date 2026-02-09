@@ -33,11 +33,18 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     TZ=Asia/Seoul \
-    RUN_MODE=container \
-    PYTHONPATH=/opt/platform/qts \
+    # Platform paths
+    PLATFORM_CODE_ROOT=/opt/platform/qts \
+    PLATFORM_RUNTIME_ROOT=/opt/platform/runtime/qts \
+    PYTHONPATH=/opt/platform/qts/src \
+    # Deployment mode
+    QTS_DEPLOYMENT_MODE=kubernetes \
+    # Runtime paths (overridable by K8s)
     QTS_DATA_DIR=/opt/platform/runtime/qts/data \
     QTS_LOG_DIR=/opt/platform/runtime/qts/logs \
-    QTS_CONFIG_DIR=/opt/platform/runtime/qts/config
+    QTS_CONFIG_DIR=/opt/platform/runtime/qts/config \
+    # Observer data source (read-only mount from Observer PVC)
+    OBSERVER_DATA_SOURCE_DIR=/opt/platform/runtime/observer/data
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -58,10 +65,9 @@ WORKDIR /opt/platform/qts
 COPY --from=builder /root/.local /home/qts/.local
 ENV PATH="/home/qts/.local/bin:${PATH}"
 
-# Copy source code
-COPY app /opt/platform/qts/app
-COPY shared /opt/platform/qts/shared
-COPY ops /opt/platform/qts/ops
+# Copy source code (refactored src/ structure)
+COPY src /opt/platform/qts/src
+COPY config /opt/platform/qts/config
 
 # Setup permissions for both code and runtime directories
 RUN mkdir -p /opt/platform/runtime/qts/data \
@@ -74,7 +80,7 @@ USER qts
 
 # Healthcheck: Verifies the QTS process is running
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD pgrep -f "python -m app.main" || exit 1
+    CMD pgrep -f "python -m src.runtime.main" || exit 1
 
-# Default command (local-only mode for testing)
-CMD ["python", "-m", "app.main", "--local-only", "--verbose"]
+# Default command (uses src/ structure entry point)
+CMD ["python", "-m", "src.runtime.main"]

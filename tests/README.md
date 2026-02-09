@@ -95,7 +95,7 @@ python tests/google_sheets_integration/test_repositories.py
 ```
 
 **환경 요구사항**:
-- `.env`에 `GOOGLE_CREDENTIALS_FILE`, `GOOGLE_SHEET_KEY` 설정
+- `config/.env`에 `GOOGLE_CREDENTIALS_FILE`, `GOOGLE_SHEET_KEY` 설정
 - Google Cloud 서비스 계정 JSON 키 파일
 
 ### 실 브로커 테스트
@@ -250,7 +250,7 @@ async def test_eteda_cycle_latency():
 
 | 에러 | 원인 | 해결 |
 |------|------|------|
-| `AuthenticationError` | credentials 누락/만료 | `.env` 및 JSON 키 확인 |
+| `AuthenticationError` | credentials 누락/만료 | `config/.env` 및 JSON 키 확인 |
 | `APIError 429` | Rate Limit 초과 | 테스트 간 대기 시간 증가 |
 | `ValidationError` | 스키마 불일치 | 시트 헤더 확인 |
 

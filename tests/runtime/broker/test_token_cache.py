@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from shared.timezone_utils import now_kst
+from src.shared.timezone_utils import now_kst
 from runtime.auth.token_cache import TokenCache
 
 

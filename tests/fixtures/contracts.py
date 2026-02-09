@@ -24,7 +24,7 @@ MINIMAL_UI_CONTRACT: Dict[str, Any] = {
 }
 
 # ---------------------------------------------------------------------------
-# OrderDecision (ops.decision_pipeline.contracts.order_decision)
+# OrderDecision (src.decision_pipeline.contracts.order_decision)
 # ---------------------------------------------------------------------------
 
 ORDER_DECISION_REQUIRED_KEYS = frozenset({"action", "symbol", "qty", "order_type", "limit_price", "reason"})
@@ -39,7 +39,7 @@ MINIMAL_ORDER_DECISION_DICT: Dict[str, Any] = {
 }
 
 # ---------------------------------------------------------------------------
-# ExecutionHint (ops.decision_pipeline.contracts.execution_hint)
+# ExecutionHint (src.decision_pipeline.contracts.execution_hint)
 # ---------------------------------------------------------------------------
 
 EXECUTION_HINT_REQUIRED_KEYS = frozenset({"intended", "broker", "account", "constraints", "note"})

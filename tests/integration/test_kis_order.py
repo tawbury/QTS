@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 # Add project root to path
-_ROOT = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parents[2]  # tests/integration -> prj_qts
 sys.path.insert(0, str(_ROOT / "src"))
 
 from dotenv import load_dotenv
@@ -118,7 +118,7 @@ def test_kis_order_placement():
 def main():
     """Run KIS order placement test"""
     # Load .env file
-    env_path = _ROOT / ".env"
+    env_path = _ROOT / "config" / ".env"
     if env_path.exists():
         load_dotenv(env_path)
         _log.info(f".env file loaded from {env_path}")

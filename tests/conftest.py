@@ -16,11 +16,11 @@ SRC = PROJECT_ROOT / "src"
 # .env 로드 (실 API 테스트 등에서 GOOGLE_CREDENTIALS_FILE 등 사용)
 try:
     from dotenv import load_dotenv
-    load_dotenv(PROJECT_ROOT / ".env")
+    load_dotenv(PROJECT_ROOT / "config" / ".env")
 except ImportError:
     pass
 
-# 프로젝트 루트 및 src (shared.paths 등)
+# 프로젝트 루트 및 src (src.shared.paths 등)
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
