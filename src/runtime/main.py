@@ -242,21 +242,25 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
     """
     앱 시작 전 사전 검증
     """
+    import os
     _LOG.info("Running preflight checks...")
 
-    # 1. 필수 디렉토리 존재 확인
-    logs_dir = project_root / "logs"
+    # 1. 필수 디렉토리 존재 확인 (K8s 환경에서는 QTS_LOG_DIR 사용)
+    logs_dir = Path(os.environ.get("QTS_LOG_DIR", str(project_root / "logs")))
     if not logs_dir.exists():
-        logs_dir.mkdir(parents=True)
+        logs_dir.mkdir(parents=True, exist_ok=True)
         _LOG.info(f"Created logs directory: {logs_dir}")
 
-    # 2. Config 파일 존재 확인
+    # 2. Config 파일 존재 확인 (K8s 환경에서는 ConfigMap 사용하므로 선택적)
     config_local = project_root / "config" / "local" / "config_local.json"
-    if not config_local.exists():
+    deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
+    if deployment_mode == "local" and not config_local.exists():
         raise FileNotFoundError(f"Config file not found: {config_local}")
+    elif deployment_mode != "local":
+        _LOG.info(f"Running in {deployment_mode} mode - config from environment/ConfigMap")
 
     # 3. Google Sheets 인증 (production 모드만)
-    if not local_only:
+    if not local_only and deployment_mode == "local":
         credentials = project_root / "config" / "schema" / "credentials.json"
         if not credentials.exists():
             _LOG.warning(f"Google credentials not found: {credentials}")
@@ -275,7 +279,10 @@ def main() -> int:
 
     # 0. 로깅 설정
     log_level = logging.DEBUG if args.verbose else logging.INFO
-    log_file = _ROOT / "logs" / "qts.log"
+    # K8s 환경에서는 QTS_LOG_DIR 환경변수 사용, 로컬에서는 _ROOT/logs
+    import os
+    log_dir = Path(os.environ.get("QTS_LOG_DIR", str(_ROOT / "logs")))
+    log_file = log_dir / "qts.log"
     configure_central_logging(
         level=log_level,
         format_string="%(asctime)s [%(name)s] %(levelname)s %(message)s",
