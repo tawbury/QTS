@@ -367,8 +367,10 @@ def main() -> int:
         return 1
 
     # 6. Runner 생성
+    # K8s 모드에서는 mock runner 사용 (GoogleSheetsClient 불필요)
     try:
-        if local_only:
+        if use_local_config:
+            _LOG.info(f"Creating Mock Runner (use_local_config={use_local_config})")
             runner, snapshot_source, should_stop_fn = _create_mock_runner(
                 config=config,
                 project_root=project_root,
