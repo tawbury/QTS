@@ -314,8 +314,11 @@ def main() -> int:
 
     # 4. Config 로드
     try:
-        if local_only:
-            _LOG.info("Loading Local-Only Config (no Google Sheets)")
+        deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
+        use_local_config = local_only or deployment_mode in ("kubernetes", "docker")
+
+        if use_local_config:
+            _LOG.info(f"Loading Local-Only Config (mode={deployment_mode}, local_only={local_only})")
             merge_result = load_local_only_config(project_root)
         else:
             scope_str = args.scope.upper()
