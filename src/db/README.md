@@ -11,7 +11,7 @@ Phase 1 Schema & Sheet Mapping 완료 조건(진입점/wiring 문서화) 충족�
 
 | 항목 | 내용 |
 |------|------|
-| **경로** | `src/runtime/data/google_sheets_client.py` |
+| **경로** | `src/db/google_sheets_client.py` |
 | **생성자** | `GoogleSheetsClient(credentials_path=None, spreadsheet_id=None)` |
 | **env fallback** | 미지정 시 `GOOGLE_CREDENTIALS_FILE`, `GOOGLE_SHEET_KEY` 사용. 둘 다 없으면 `ValueError` |
 | **단일 인스턴스** | `get_google_sheets_client()` (async) — 싱글톤 반환 |
@@ -28,7 +28,7 @@ Phase 1 Schema & Sheet Mapping 완료 조건(진입점/wiring 문서화) 충족�
 
 | 항목 | 내용 |
 |------|------|
-| **경로** | `src/runtime/data/repository_manager.py` |
+| **경로** | `src/db/repository_manager.py` |
 | **생성자** | `RepositoryManager(client=None)` |
 | **초기화** | `await manager.initialize()` — client 없을 때만 `get_google_sheets_client()` 호출 |
 | **리포지토리 생성** | `get_repository(sheet_name)` 시 `(client, spreadsheet_id, sheet_name)` 전달 |
@@ -40,7 +40,7 @@ Phase 1 Schema & Sheet Mapping 완료 조건(진입점/wiring 문서화) 충족�
 
 | 항목 | 내용 |
 |------|------|
-| **경로** | `src/runtime/data/repositories/base_repository.py` |
+| **경로** | `src/db/repositories/base_repository.py` |
 | **생성자** | `(client, spreadsheet_id, sheet_name, header_row=1)` |
 | **Range** | `{sheet_name}!A:Z`, 헤더 행 `header_row`(기본 1), 데이터 행 `header_row+1`~ |
 | **헬스체크** | `health_check()` — RepositoryManager가 모든 등록 리포지토리에 대해 호출 |
@@ -53,7 +53,7 @@ Phase 1 Schema & Sheet Mapping 완료 조건(진입점/wiring 문서화) 충족�
 
 | 항목 | 내용 |
 |------|------|
-| **경로** | `src/runtime/config/schema_loader.py` |
+| **경로** | `src/qts/core/config/schema_loader.py` |
 | **생성자** | `SchemaLoader(project_root: Path)` |
 | **스키마 파일** | `project_root / "config" / "schema" / "credentials.json"` (스키마 정의 JSON) |
 | **진입점** | `get_schema_loader(project_root)` — 싱글톤 |
@@ -65,6 +65,6 @@ Enhanced 리포지토리(Portfolio, Performance)는 `SchemaBasedRepository`를 �
 ## 5. 테스트 경로
 
 - `tests/google_sheets_integration/` — Base/Enhanced 리포지토리, RepositoryManager, SchemaLoader (Mock)
-- `tests/runtime/data/` — GoogleSheetsClient 예외·생성자, 신규 리포지토리
+- `tests/contracts/` — 데이터 계약 검증
 
-기본 실행: `pytest tests/google_sheets_integration/ tests/runtime/data/ -v -m "not live_sheets and not real_broker"`
+기본 실행: `pytest tests/google_sheets_integration/ -v -m "not live_sheets and not real_broker"`

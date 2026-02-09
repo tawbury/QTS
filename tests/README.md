@@ -1,62 +1,21 @@
 # QTS Test Suite
 
-QTS 프로젝트의 테스트 스위트입니다. `pytest` 기반으로 구성되어 있으며, 단위 테스트부터 E2E 통합 테스트까지 포함합니다.  
-**앱형 리팩토링(2026-02-01)** 이후 import 경로: `app.*`, `ops.*`, `shared.*`
+QTS 프로젝트의 테스트 스위트입니다. `pytest` 기반으로 구성되어 있으며, 단위 테스트부터 E2E 통합 테스트까지 포함합니다.
 
 ## 테스트 구조
 
 ```
 tests/
-├── conftest.py                    # 전역 픽스처 및 마커 설정
-├── api/                           # KIS API 탐색 테스트
-│   ├── test_auth.py               # OAuth2 인증 테스트
-│   ├── test_order_basic.py        # 기본 주문 테스트
-│   └── test_response_shapes.py    # API 응답 형태 검증
-├── config/                        # 설정 관리 테스트
-│   ├── test_local_config.py       # Config_Local 로딩
-│   └── test_sheet_config.py       # Google Sheets Config 로딩
-├── contracts/                     # 데이터 계약 검증
-│   └── test_contract_validation.py
-├── engines/                       # 엔진 단위 테스트
-│   ├── test_base_engine.py        # BaseEngine 추상 클래스
-│   ├── test_performance_engine.py # Performance 엔진
-│   ├── test_portfolio_engine.py   # Portfolio 엔진
-│   └── test_trading_engine.py     # Trading 엔진
-├── fixtures/                      # 테스트 픽스처
-│   └── contracts.py               # 샘플 데이터 계약
-├── google_sheets_integration/     # Google Sheets 통합 테스트
-│   ├── test_base_repository.py    # BaseSheetRepository (Mock)
-│   ├── test_repositories.py       # Portfolio/Performance 리포지토리 (Live)
-│   ├── test_enhanced_repositories.py      # Enhanced 리포지토리 (Live)
-│   ├── test_enhanced_repositories_fixed.py # Enhanced 리포지토리 수정본 (Live)
-│   ├── test_repository_manager.py # RepositoryManager (Mock)
-│   └── test_schema_loader.py      # 스키마 로더
-├── ops/                           # 운영 자동화 테스트
-│   ├── automation/                # 스케줄러, 알림
-│   ├── decision/                  # Sim/Virtual Executor
-│   ├── maintenance/               # 백업, 리텐션
-│   └── safety/                    # Safety Layer (Guard, Notifier, State)
-└── runtime/                       # 런타임 시스템 테스트
-    ├── broker/                    # 브로커 어댑터 테스트
-    │   ├── test_broker_factory.py # Broker Factory
-    │   ├── test_kis_*.py          # KIS 어댑터 테스트
-    │   └── test_multi_broker_adapter.py
-    ├── config/                    # 런타임 설정
-    ├── data/                      # 데이터 레이어
-    │   ├── test_google_sheets_client.py
-    │   ├── test_google_sheets_integration.py (Live)
-    │   └── test_new_repositories.py
-    ├── execution/                 # 실행 레이어
-    ├── execution_loop/            # ETEDA 루프
-    ├── execution_state/           # 주문 상태 전이
-    ├── integration/               # 통합 테스트
-    │   ├── test_eteda_e2e.py      # ETEDA E2E 테스트
-    │   └── test_phase5_*.py       # Phase 5 통합
-    ├── monitoring/                # 모니터링
-    ├── risk/                      # 리스크 계산/게이트
-    ├── schema_auto/               # 스키마 자동화
-    ├── strategy/                  # 전략 모듈
-    └── ui/                        # UI 렌더러
+├── api/                           # KIS API 등 외부 API 테스트
+├── config/                        # 설정 로딩 및 검증 테스트
+├── contracts/                     # 데이터 계약 및 스키마 검증
+├── engines/                       # 4대 엔진 (Strategy, Risk, Portfolio, Performance) 단위 테스트
+├── fixtures/                      # Pytest 픽스처 및 테스트 데이터
+├── google_sheets_integration/     # Google Sheets 연동 통합 테스트
+├── integration/                   # 시스템 통합 테스트
+├── ops/                           # 운영 및 안전 레이어 테스트
+├── runtime/                       # 런타임 실행 및 브로커 테스트
+└── unit/                          # 기타 단위 테스트
 ```
 
 ## 테스트 마커

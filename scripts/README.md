@@ -1,18 +1,17 @@
 # scripts/ — 유틸리티 스크립트
 
-QTS 프로젝트 운영·검증용 스크립트입니다.
+개발 및 운영에 유용한 보조 스크립트 모음입니다.
 
-## 스크립트
+## 스크립트 목록
 
-| 스크립트 | 용도 |
-|----------|------|
-| **check_r_dash_sheets.py** | R_Dash 시트 구조·데이터 검증. `.env`의 `GOOGLE_CREDENTIALS_FILE`, `GOOGLE_SHEET_KEY` 사용 |
+| 파일 | 설명 |
+|------|------|
+| **check_r_dash_sheets.py** | Google Sheets 데이터 및 구조를 검증하는 스크립트. |
 
-## 실행
+## 사용법
+
+프로젝트 루트에서 모듈로 실행하거나 직접 실행합니다.
 
 ```bash
-# 프로젝트 루트에서
 python scripts/check_r_dash_sheets.py
 ```
-
-**환경 요구**: Google Sheets 연동 시 `.env` 설정 필요.

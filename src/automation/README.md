@@ -40,8 +40,8 @@ ETEDA를 주기적으로 실행할 수 있는 최소 스케줄러 제공 (Phase 
 
 ## 경계
 
-- 스케줄링 로직은 `ops/automation/` 에만 존재.
-- 런타임(ETEDA runner, broker, dashboard)은 **콜러블로 주입**; 스케줄러가 app 모듈을 직접 import 하지 않음.
+- 스케줄링 로직은 `src/automation/` 에만 존재.
+- 런타임(ETEDA runner, broker, dashboard)은 **콜러블로 주입**; 스케줄러가 src 모듈을 직접 import 하지 않음.
 
 ---
 
@@ -62,8 +62,8 @@ ETEDA를 주기적으로 실행할 수 있는 최소 스케줄러 제공 (Phase 
 
 - **AlertChannel** 프로토콜: `send_critical(message)`, `send_warning(message)`.
 - **LogOnlyAlertChannel**: 로깅만 (critical/warning). Slack/Telegram은 추후 확장.
-- 치명적 장애: HealthMonitor.run_checks() 시 실패한 항목에 대해 `alert_channel.send_critical()` 호출 → 운영자에게 전달(로그).
+- **치명적 장애**: HealthMonitor.run_checks() 시 실패한 항목에 대해 `alert_channel.send_critical()` 호출 → 운영자에게 전달(로그).
 
 ## 코드 품질
 
-- 운영 코드에서 `print`/임시 디버그 출력/민감정보 로그 여부 점검: `ops/`, `app/` 에서 `print(` 미사용 확인. 민감정보는 로그에 포함하지 않음(호출부 책임).
+- 운영 코드에서 `print`/임시 디버그 출력/민감정보 로그 여부 점검: `src/` 에서 `print(` 미사용 확인. 민감정보는 로그에 포함하지 않음(호출부 책임).
