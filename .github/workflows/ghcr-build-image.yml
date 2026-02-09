@@ -29,6 +29,7 @@ env:
 jobs:
   build-and-push:
     name: Build and push image to GHCR
+    environment: production
     runs-on: ubuntu-latest
     # push to branch, 머지된 PR, 또는 수동 실행(workflow_dispatch)일 때 실행
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
@@ -95,8 +96,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # 배포 레포지토리의 태그를 자동으로 업데이트하는 단계 추가
+      - name: Update Deployment Repo
+        run: |
+          # 1. 배포 레포지토리 클론 (PAT_TOKEN 필요)
+          git clone https://x-access-token:${{ secrets.oci_deploy_ghcr }}@github.com/tawbury/deployment.git deploy-repo
+          cd deploy-repo
+
+          # 2. Helm values.yaml 이미지 태그 업데이트 (Source of Truth)
+          sed -i "s/tag: build-[0-9]*-[0-9]*/tag: ${{ steps.meta.outputs.tag }}/" infra/helm/qts/values.yaml
+
+          # 3. 변경사항 커밋 및 푸시
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "chore: update qts image to ${{ steps.meta.outputs.tag }}"
+          git push origin master
+
       - name: Summary
         run: |
           echo "✅ Image pushed: ${{ env.REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.tag }}"
-          echo "Deployment repo will detect this new image and deploy automatically."
+          echo "✅ Deployment repo updated (Helm values.yaml)"
+          echo "✅ ArgoCD sync will be triggered automatically"
 
