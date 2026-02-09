@@ -1,0 +1,113 @@
+# =============================================================================
+# QTS Trading System - Local E2E Test Docker Compose
+# =============================================================================
+# Observer와의 연동 테스트를 위한 로컬 개발/테스트 환경
+#
+# Usage:
+#   # 1. 네트워크 생성 (최초 1회)
+#   docker network create qts-bridge
+#
+#   # 2. Observer 먼저 실행
+#   cd ../prj_obs && docker-compose -f docker/docker-compose.local.yml up -d --build
+#
+#   # 3. QTS 실행 (로그 스트리밍)
+#   docker-compose -f docker/docker-compose.local.yml up --build
+#
+# =============================================================================
+
+version: '3.8'
+
+services:
+  qts-test:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: qts-local:latest
+    container_name: qts-test
+
+    environment:
+      # 런타임 모드
+      - RUN_MODE=container
+      - QTS_DEPLOYMENT_MODE=docker
+      - QTS_ENV=development
+
+      # Observer 연결 설정 (File-based)
+      - OBSERVER_TYPE=file
+      - OBSERVER_ASSETS_DIR=/opt/platform/runtime/observer/data/assets
+
+      # 안전장치: Mock Broker 사용 (실제 주문 방지)
+      - BROKER_TYPE=MOCK
+      - TRADING_ENABLED=true
+      - LIVE_ENABLED=false
+      - REAL_ORDER_ENABLED=false
+
+      # 루프 설정
+      - MAX_ITERATIONS=50
+      - ETEDA_LOOP_INTERVAL_MS=1000
+
+      # 디버그
+      - LOG_LEVEL=DEBUG
+      - PYTHONPATH=/opt/platform/qts
+
+    volumes:
+      # Observer 데이터 공유 (읽기 전용)
+      - observer-data:/opt/platform/runtime/observer/data:ro
+
+      # QTS 설정 파일
+      - ../config:/opt/platform/qts/config:ro
+
+      # QTS 로그 (디버깅용)
+      - qts-logs:/opt/platform/runtime/qts/logs
+
+    # local-only 모드로 실행 (Mock 클라이언트 사용)
+    command: >
+      python -m src.runtime.main
+      --local-only
+      --verbose
+      --max-iterations 50
+      --scope scalp
+
+    networks:
+      - qts-bridge
+
+    # Observer가 준비될 때까지 대기
+    depends_on:
+      observer-test:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python -m src.runtime.main"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+    restart: "no"
+
+  # Observer 서비스 참조 (외부 compose에서 실행됨)
+  observer-test:
+    image: observer-local:latest
+    container_name: observer-test
+    networks:
+      - qts-bridge
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # Observer 데이터 볼륨 (외부에서 생성됨)
+  observer-data:
+    external: true
+    name: observer-test-data
+
+  # QTS 로그 볼륨
+  qts-logs:
+    name: qts-test-logs
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  qts-bridge:
+    external: true
+    name: qts-bridge

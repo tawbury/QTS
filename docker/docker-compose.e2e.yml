@@ -1,0 +1,138 @@
+# =============================================================================
+# QTS + Observer - Combined E2E Test Docker Compose
+# =============================================================================
+# Observer와 QTS를 함께 실행하는 통합 E2E 테스트 환경
+#
+# Usage:
+#   # 전체 스택 빌드 및 실행
+#   docker-compose -f docker/docker-compose.e2e.yml up --build
+#
+#   # 백그라운드 실행 후 로그 확인
+#   docker-compose -f docker/docker-compose.e2e.yml up -d --build
+#   docker-compose -f docker/docker-compose.e2e.yml logs -f qts
+#
+#   # 정리
+#   docker-compose -f docker/docker-compose.e2e.yml down -v
+# =============================================================================
+
+services:
+  # =========================================================================
+  # Observer Service - Mock 데이터 생성 및 제공
+  # =========================================================================
+  observer:
+    build:
+      context: ../../prj_obs
+      dockerfile: docker/Dockerfile
+    image: observer-local:latest
+    container_name: observer-e2e
+
+    # 초기 볼륨 권한 설정을 위해 root로 시작
+    user: root
+
+    environment:
+      - RUN_MODE=container
+      - OBSERVER_STANDALONE=1
+      - OBSERVER_DEPLOYMENT_MODE=docker
+      - GENERATE_TEST_DATA=true
+      - OBSERVER_DATA_DIR=/opt/platform/runtime/observer/data
+      - KIS_MOCK_MODE=true
+      - COLLECTORS_ENABLED=false
+      - PYTHONPATH=/opt/platform/observer/src
+
+    volumes:
+      - observer-data:/opt/platform/runtime/observer/data
+      - ../../prj_obs/ops/test_tools/generate_mock_files.py:/opt/generator.py:ro
+
+    command: >
+      sh -c "
+        echo '========================================' &&
+        echo 'Observer E2E Test Container Starting' &&
+        echo '========================================' &&
+        mkdir -p /opt/platform/runtime/observer/data/assets/scalp &&
+        mkdir -p /opt/platform/runtime/observer/data/assets/swing &&
+        chown -R observer:observer /opt/platform/runtime/observer/data &&
+        echo 'Generating mock data...' &&
+        su observer -c 'python /opt/generator.py' &&
+        echo 'Mock data generated successfully' &&
+        echo 'Starting Observer main loop...' &&
+        su observer -c 'python -m observer'
+      "
+
+    ports:
+      - "8000:8000"
+
+    networks:
+      - e2e-network
+
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 5
+
+  # =========================================================================
+  # QTS Service - ETEDA Pipeline 실행
+  # =========================================================================
+  qts:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: qts-local:latest
+    container_name: qts-e2e
+
+    environment:
+      # 런타임 모드
+      - RUN_MODE=container
+      - QTS_DEPLOYMENT_MODE=docker
+      - QTS_ENV=development
+
+      # Observer 연결 (File-based)
+      - OBSERVER_TYPE=file
+      - OBSERVER_ASSETS_DIR=/opt/platform/runtime/observer/data/assets
+
+      # 안전장치
+      - BROKER_TYPE=MOCK
+      - TRADING_ENABLED=true
+      - LIVE_ENABLED=false
+      - REAL_ORDER_ENABLED=false
+
+      # 디버그
+      - LOG_LEVEL=DEBUG
+
+    volumes:
+      # Observer 데이터 (읽기 전용)
+      - observer-data:/opt/platform/runtime/observer/data:ro
+      # QTS 설정
+      - ../config:/opt/platform/qts/config:ro
+
+    command: >
+      python -m src.runtime.main
+      --local-only
+      --verbose
+      --max-iterations 50
+      --scope scalp
+
+    networks:
+      - e2e-network
+
+    depends_on:
+      observer:
+        condition: service_healthy
+
+    restart: "no"
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  observer-data:
+    name: e2e-observer-data
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  e2e-network:
+    name: qts-e2e-network
+    driver: bridge

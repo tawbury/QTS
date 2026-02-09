@@ -121,20 +121,28 @@ class FileObserverClient:
     def _map_to_snapshot(self, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Observer 데이터를 ETEDA Snapshot 구조로 변환
-        
-        Observer Data (Example):
+
+        Observer Data Format (nested objects from real observer):
+        {
+            "symbol": "005930",
+            "price": {"current": 71000, "open": 70500, "high": 71200, "low": 70300, "change_rate": 0.5},
+            "volume": {"accumulated": 100000, "trade_value": 7100000000},
+            "timestamp": "2024-01-01T09:00:00"
+        }
+
+        Also supports flat format:
         {
             "symbol": "005930",
             "price": 70000,
             "volume": 100,
             "timestamp": "2024-01-01T09:00:00"
         }
-        
+
         Target Snapshot:
         {
             "trigger": "observer_file",
             "observation": {
-                 "inputs": { "price": ..., "volume": ... }
+                 "inputs": { "price": ..., "volume": ..., "open": ..., "high": ..., "low": ... }
             },
             "context": { "symbol": ... },
             "meta": { "timestamp_ms": ... }
@@ -142,31 +150,60 @@ class FileObserverClient:
         """
         try:
             symbol = data.get("symbol") or data.get("code")
-            # Support various price field names from different sources (observer, kiwoom, etc)
-            price = data.get("price") or data.get("trade_price") or data.get("current_price") or data.get("close")
-            
+
             if not symbol:
-                # logger.debug(f"Skipping line without symbol: {data.keys()}")
                 return None
-                
+
+            # Handle nested price object (from real observer)
+            price_data = data.get("price")
+            if isinstance(price_data, dict):
+                price = price_data.get("current") or price_data.get("close")
+                open_price = price_data.get("open")
+                high_price = price_data.get("high")
+                low_price = price_data.get("low")
+                change_rate = price_data.get("change_rate", 0)
+            else:
+                # Flat format
+                price = price_data or data.get("trade_price") or data.get("current_price") or data.get("close")
+                open_price = data.get("open")
+                high_price = data.get("high")
+                low_price = data.get("low")
+                change_rate = data.get("change_rate", 0)
+
             if price is None:
-                # logger.debug(f"Skipping line without price: {symbol} {data.keys()}")
                 return None
-                
+
+            # Handle nested volume object
+            volume_data = data.get("volume")
+            if isinstance(volume_data, dict):
+                volume = volume_data.get("accumulated") or volume_data.get("trade_volume", 0)
+                trade_value = volume_data.get("trade_value", 0)
+            else:
+                volume = volume_data or data.get("trade_volume", 0) or 0
+                trade_value = data.get("trade_value", 0)
+
             return {
                 "trigger": "observer_file",
                 "observation": {
                     "inputs": {
                         "price": float(price),
-                        "volume": float(data.get("volume", 0) or data.get("trade_volume", 0))
+                        "volume": float(volume),
+                        "open": float(open_price) if open_price else float(price),
+                        "high": float(high_price) if high_price else float(price),
+                        "low": float(low_price) if low_price else float(price),
+                        "change_rate": float(change_rate),
+                        "trade_value": float(trade_value),
                     }
                 },
                 "context": {
                     "symbol": symbol
                 },
                 "meta": {
-                    "timestamp": data.get("timestamp"), # ISO String expected
-                    "timestamp_ms": 0 # TODO: Parse timestamp if needed
+                    "timestamp": data.get("timestamp"),
+                    "execution_time": data.get("execution_time"),
+                    "source": data.get("source"),
+                    "session_id": data.get("session_id"),
+                    "timestamp_ms": 0
                 }
             }
         except Exception as e:

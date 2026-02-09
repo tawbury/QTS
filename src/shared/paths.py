@@ -114,10 +114,18 @@ def _resolve_project_root(start: Optional[Path] = None) -> Path:
     Resolve QTS project root directory.
 
     Resolution rules (first match wins):
-    1. Directory containing '.git'
-    2. Directory containing 'pyproject.toml'
-    3. Directory containing both 'src' and 'tests'
+    1. Container mode: Use PLATFORM_CODE_ROOT environment variable
+    2. Directory containing '.git'
+    3. Directory containing 'pyproject.toml'
+    4. Directory containing both 'src' and 'tests'
+    5. Directory containing 'src' (container fallback)
     """
+
+    # Container mode: use PLATFORM_CODE_ROOT directly
+    if is_container_mode():
+        code_root = PLATFORM_CODE_ROOT
+        if code_root.exists() and (code_root / "src").exists():
+            return code_root
 
     # Normal QTS project resolution
     current = start.resolve() if start else Path(__file__).resolve()
@@ -131,6 +139,12 @@ def _resolve_project_root(start: Optional[Path] = None) -> Path:
             return parent
         if (parent / "app").exists() and (parent / "shared").exists():
             return parent
+
+    # Container fallback: directory containing 'src'
+    if is_container_mode():
+        for parent in [current] + list(current.parents):
+            if (parent / "src").exists():
+                return parent
 
     raise RuntimeError("QTS project root could not be resolved")
 
