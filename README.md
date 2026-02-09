@@ -74,7 +74,7 @@ python -m app.main --local-only --verbose
 
 ```bash
 # Docker Compose 기반 실행
-docker-compose up -d
+docker-compose -f docker/docker-compose.test.yml up -d
 ```
 
 ## 설정 관리

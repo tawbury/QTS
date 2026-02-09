@@ -36,7 +36,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     # Platform paths
     PLATFORM_CODE_ROOT=/opt/platform/qts \
     PLATFORM_RUNTIME_ROOT=/opt/platform/runtime/qts \
-    PYTHONPATH=/opt/platform/qts/src \
+    PYTHONPATH=/opt/platform/qts \
     # Deployment mode
     QTS_DEPLOYMENT_MODE=kubernetes \
     # Runtime paths (overridable by K8s)
@@ -71,8 +71,8 @@ COPY config /opt/platform/qts/config
 
 # Setup permissions for both code and runtime directories
 RUN mkdir -p /opt/platform/runtime/qts/data \
-             /opt/platform/runtime/qts/logs \
-             /opt/platform/runtime/qts/config && \
+    /opt/platform/runtime/qts/logs \
+    /opt/platform/runtime/qts/config && \
     chown -R qts:qts /opt/platform /home/qts/.local
 
 # Switch to non-root user

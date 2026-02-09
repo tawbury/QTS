@@ -3,7 +3,7 @@ version: '3.8'
 services:
   observer:
     build:
-      context: ../prj_obs
+      context: ../../prj_obs
       dockerfile: docker/Dockerfile
     image: observer-test:latest
     container_name: observer-test
@@ -15,14 +15,14 @@ services:
       - GENERATE_TEST_DATA=true
     volumes:
       - observer-data:/opt/platform/runtime/observer/data
-      - ./ops/test_tools/generate_mock_files.py:/opt/generator.py
+      - ../ops/test_tools/generate_mock_files.py:/opt/generator.py
     # Run the mock data generator script
     command: python /opt/generator.py
 
   qts:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
     image: qts-test:latest
     container_name: qts-test
     environment:
@@ -35,7 +35,7 @@ services:
       # Mount the observer's data volume to QTS's expected location
       - observer-data:/opt/platform/runtime/qts/data/observer_assets:ro
       # Mount local config for preflight check / runtime config
-      - ./config:/opt/platform/qts/config:ro
+      - ../config:/opt/platform/qts/config:ro
     depends_on:
       - observer
     # Run the application in file-observer mode
