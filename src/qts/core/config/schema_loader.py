@@ -44,7 +44,7 @@ class SchemaLoader:
             project_root: 프로젝트 루트 경로
         """
         self.project_root = project_root
-        self.schema_path = project_root / "config" / "schema" / "credentials.json"
+        self.schema_path = project_root / "config" / "schemas" / "gssheet.json"
         self.logger = logging.getLogger(__name__)
         
         # 캐싱
