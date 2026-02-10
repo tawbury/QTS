@@ -29,7 +29,7 @@ class OrderAdapterToBrokerEngineAdapter(BrokerEngine):
     OrderResponse → ExecutionResponse 변환
     """
 
-    def __init__(self, order_adapter: BaseBrokerAdapter):
+    def __init__(self, order_adapter: BaseBrokerAdapter, live_allowed: bool = False):
         """
         OrderAdapterToBrokerEngineAdapter 초기화
 
@@ -37,7 +37,11 @@ class OrderAdapterToBrokerEngineAdapter(BrokerEngine):
             order_adapter: BaseBrokerAdapter 인스턴스 (KiwoomOrderAdapter 등)
         """
         self._adapter = order_adapter
-        _log.info(f"OrderAdapterToBrokerEngineAdapter initialized (broker={self._adapter.broker_id})")
+        self._live_allowed = live_allowed
+        _log.info(
+            f"OrderAdapterToBrokerEngineAdapter initialized "
+            f"(broker={self._adapter.broker_id}, live_allowed={self._live_allowed})"
+        )
 
     def submit_intent(self, intent: ExecutionIntent) -> ExecutionResponse:
         """
@@ -50,6 +54,16 @@ class OrderAdapterToBrokerEngineAdapter(BrokerEngine):
             ExecutionResponse
         """
         try:
+            # 0. Safety Switch Check
+            if not self._live_allowed:
+                return ExecutionResponse(
+                    intent_id=intent.intent_id,
+                    accepted=False,
+                    broker=self._adapter.broker_id,
+                    message="Blocked by Safety Switch (live_allowed=False)",
+                    timestamp=datetime.now(),
+                )
+
             # 1. ExecutionIntent → OrderRequest 변환
             order_request = self._intent_to_order_request(intent)
 

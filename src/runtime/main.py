@@ -261,7 +261,7 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
 
     # 3. Google Sheets 인증 (production 모드만)
     if not local_only and deployment_mode == "local":
-        credentials = project_root / "config" / "schema" / "credentials.json"
+        credentials = project_root / "config" / "schemas" / "credentials.json"
         if not credentials.exists():
             _LOG.warning(f"Google credentials not found: {credentials}")
 

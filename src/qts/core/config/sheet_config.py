@@ -24,7 +24,7 @@ from .config_constants import (
 from .config_models import ConfigEntry, ConfigLoadResult, ConfigScope
 
 if TYPE_CHECKING:
-    from ..data.google_sheets_client import GoogleSheetsClient
+    from src.db.google_sheets_client import GoogleSheetsClient
 
 
 def _scope_to_sheet_name(scope: ConfigScope) -> str:
@@ -53,9 +53,9 @@ async def _load_sheet_config_async(
     """
     sheet_name = _scope_to_sheet_name(scope)
 
-    from ..data.google_sheets_client import APIError, AuthenticationError, GoogleSheetsClient
-    from ..data.repositories.config_scalp_repository import ConfigScalpRepository
-    from ..data.repositories.config_swing_repository import ConfigSwingRepository
+    from src.db.google_sheets_client import APIError, AuthenticationError, GoogleSheetsClient
+    from src.db.repositories.config_scalp_repository import ConfigScalpRepository
+    from src.db.repositories.config_swing_repository import ConfigSwingRepository
 
     try:
         if client is None:
