@@ -43,11 +43,17 @@ def create_observer_client(
             raise ValueError("UDS client requires endpoint (socket path)")
         return UDSObserverClient(socket_path=endpoint)
 
+    elif client_type == "api":
+        if not endpoint:
+            raise ValueError("API client requires endpoint (http url)")
+        from .api_client import APIObserverClient
+        return APIObserverClient(endpoint=endpoint)
+
     elif client_type == "ipc":
         raise NotImplementedError("IPC client not implemented yet")
 
     else:
         raise ValueError(
             f"Unsupported observer client type: {client_type}. "
-            f"Supported types: stub, uds, ipc"
+            f"Supported types: stub, uds, api, ipc"
         )

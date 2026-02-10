@@ -8,8 +8,8 @@ app:
 
 # Observer Client Configuration
 observer:
-  type: "stub"  # stub, uds, ipc
-  endpoint: null
+  type: "api"  # stub, uds, api, ipc
+  endpoint: "http://local-observer:8000"
   timeout_sec: 5
   reconnect_attempts: 3
 
@@ -24,7 +24,7 @@ broker:
 # ETEDA Pipeline Configuration
 pipeline:
   interval_ms: 1000
-  max_iterations: null  # null = unlimited
+  max_iterations: -1  # -1 = unlimited
   error_backoff_ms: 5000
   error_backoff_max_retries: 3
 

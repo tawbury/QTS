@@ -344,8 +344,10 @@ def main() -> int:
 
     # 5. Observer Client 생성
     try:
+
         import os
         observer_type = os.environ.get("OBSERVER_TYPE", "stub").lower()
+        observer_endpoint = os.environ.get("OBSERVER_ENDPOINT")
 
         if observer_type == "file":
             from src.observer_client.file_client import FileObserverClient
@@ -355,6 +357,10 @@ def main() -> int:
             )
             observer = FileObserverClient(assets_dir=assets_dir)
             _LOG.info(f"Observer Client: File (dir={assets_dir})")
+        elif observer_type in ("api", "remote"):
+            from src.observer_client.factory import create_observer_client
+            observer = create_observer_client(client_type="api", endpoint=observer_endpoint)
+            _LOG.info(f"Observer Client: API (endpoint={observer_endpoint})")
         else:
             observer = create_observer_client(client_type="stub")
             _LOG.info("Observer Client: Stub (mock)")
@@ -369,21 +375,13 @@ def main() -> int:
     # 6. Runner 생성
     # K8s 모드에서는 mock runner 사용 (GoogleSheetsClient 불필요)
     try:
-        if use_local_config:
-            _LOG.info(f"Creating Mock Runner (use_local_config={use_local_config})")
-            runner, snapshot_source, should_stop_fn = _create_mock_runner(
-                config=config,
-                project_root=project_root,
-                max_iterations=args.max_iterations,
-                observer_client=observer,
-            )
-        else:
-            runner, snapshot_source, should_stop_fn = _create_production_runner(
-                config=config,
-                project_root=project_root,
-                broker_type=args.broker,
-                observer_client=observer,
-            )
+        # Always use RealRunner (production runner) for local docker
+        runner, snapshot_source, should_stop_fn = _create_production_runner(
+            config=config,
+            project_root=project_root,
+            broker_type=args.broker,
+            observer_client=observer,
+        )
 
         _LOG.info("Runner created successfully")
 
