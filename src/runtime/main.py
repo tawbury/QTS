@@ -106,72 +106,16 @@ def _setup_signal_handlers() -> None:
         signal.signal(signal.SIGTERM, handler)
 
 
-def _create_mock_runner(
-    config: UnifiedConfig,
-    project_root: Path,
-    max_iterations: int,
-    observer_client,
-):
-    """
-    --local-only 모드용 Runner 생성
+class NoopSheetsClient:
+    """Google Sheets를 사용하지 않는 환경용 Stub 클라이언트"""
+    def __getattr__(self, name):
+        def method(*args, **kwargs):
+            _LOG.debug(f"NoopSheetsClient.{name} called (doing nothing)")
+            return None
+        return method
 
-    Mock 클라이언트들을 주입하여 API 의존성 없이 파이프라인을 테스트합니다.
-    """
-    from tests.mocks.db.mock_sheets_client import MockSheetsClient
-    from tests.mocks.pipeline.mock_safety_hook import MockSafetyHook
-    from tests.mocks.pipeline.mock_snapshot_source import (
-        MockSnapshotSource,
-        create_mock_should_stop,
-    )
-    from src.pipeline.eteda_runner import ETEDARunner
-    from src.provider.brokers.noop_broker import NoopBroker
-
-    _LOG.info("Creating Mock Runner (local-only mode)")
-
-    # Mock Sheets Client
-    mock_sheets = MockSheetsClient()
-
-    # Mock Safety Hook
-    mock_safety = MockSafetyHook(initial_state="NORMAL")
-
-    # Broker: NoopBroker (실주문 없음)
-    broker = NoopBroker()
-
-    # Runner 생성 (Mock 주입)
-    runner = ETEDARunner(
-        config=config,
-        sheets_client=mock_sheets,
-        project_root=project_root,
-        broker=broker,
-        safety_hook=mock_safety,
-    )
-
-    # Mock Snapshot Source
-    if hasattr(observer_client, "get_next_snapshot"):
-        snapshot_source = observer_client.get_next_snapshot
-        _LOG.info("Using FileObserverClient as snapshot source")
-    else:
-        snapshot_source = MockSnapshotSource(
-            symbols=["005930", "000660"],  # 삼성전자, SK하이닉스
-            base_prices={"005930": 70000.0, "000660": 150000.0},
-            volatility=0.002,
-            max_iterations=max_iterations,
-        )
-
-    # should_stop 함수: 시그널 + 최대 반복 횟수 체크
-    def combined_should_stop() -> bool:
-        global _shutdown_requested
-        if _shutdown_requested:
-            return True
-        if max_iterations > 0 and getattr(snapshot_source, "iteration_count", 0) >= max_iterations:
-            return True
-        # Config의 PIPELINE_PAUSED 체크
-        paused = config.get_flat("PIPELINE_PAUSED")
-        if paused and str(paused).strip().lower() in ("1", "true", "yes", "on"):
-            return True
-        return False
-
-    return runner, snapshot_source, combined_should_stop
+    async def authenticate(self) -> bool:
+        return True
 
 
 def _create_production_runner(
@@ -179,6 +123,7 @@ def _create_production_runner(
     project_root: Path,
     broker_type: str,
     observer_client,
+    local_only: bool = False,
 ):
     """
     프로덕션 모드용 Runner 생성
@@ -187,49 +132,58 @@ def _create_production_runner(
     """
     from src.pipeline.eteda_runner import ETEDARunner
     from src.pipeline.loop.eteda_loop_policy import default_should_stop_from_config
-    from src.qts.core.config.env_loader import get_broker_config, is_real_order_enabled
-    from src.provider.adapters.order_adapter_to_broker_engine_adapter import (
-        OrderAdapterToBrokerEngineAdapter,
-    )
-    from src.provider.brokers.live_broker import LiveBroker
-    from src.db.google_sheets_client import GoogleSheetsClient
-    from src.provider.clients.broker.adapters.registry import get_broker
     from src.safety.layer import SafetyLayer
 
-    _LOG.info(f"Creating Production Runner (broker={broker_type})")
+    _LOG.info(f"Creating Runner (broker={broker_type}, local_only={local_only})")
 
     # Google Sheets Client
-    sheets_client = GoogleSheetsClient()
+    if local_only:
+        _LOG.info("Using NoopSheetsClient (local-only mode)")
+        sheets_client = NoopSheetsClient()
+    else:
+        from src.db.google_sheets_client import GoogleSheetsClient
+        sheets_client = GoogleSheetsClient()
 
     # Broker Adapter
-    broker_config = get_broker_config(broker_type.upper())
-    
-    client = None
-    if broker_type == "kis":
-        from src.provider.clients.broker.kis.kis_client import KISClient
-        client = KISClient(
-            app_key=broker_config.app_key,
-            app_secret=broker_config.app_secret,
-            base_url=broker_config.base_url,
-            account_no=broker_config.account_no,
-            acnt_prdt_cd=broker_config.acnt_prdt_cd,
-            trading_mode=broker_config.trading_mode
+    if local_only:
+        from src.provider.brokers.noop_broker import NoopBroker
+        _LOG.info("Using NoopBroker (local-only mode)")
+        broker = NoopBroker()
+    else:
+        from src.qts.core.config.env_loader import get_broker_config, is_real_order_enabled
+        from src.provider.adapters.order_adapter_to_broker_engine_adapter import (
+            OrderAdapterToBrokerEngineAdapter,
+        )
+        from src.provider.clients.broker.adapters.registry import get_broker
+
+        broker_config = get_broker_config(broker_type.upper())
+        
+        client = None
+        if broker_type == "kis":
+            from src.provider.clients.broker.kis.kis_client import KISClient
+            client = KISClient(
+                app_key=broker_config.app_key,
+                app_secret=broker_config.app_secret,
+                base_url=broker_config.base_url,
+                account_no=broker_config.account_no,
+                acnt_prdt_cd=broker_config.acnt_prdt_cd,
+                trading_mode=broker_config.trading_mode
+            )
+
+        adapter = get_broker(
+            broker_type, 
+            client=client,
+            acnt_no=broker_config.account_no,
+            acnt_prdt_cd=broker_config.acnt_prdt_cd
         )
 
-    adapter = get_broker(
-        broker_type, 
-        client=client,
-        acnt_no=broker_config.account_no,
-        acnt_prdt_cd=broker_config.acnt_prdt_cd
-    )
-
-    # Broker Engine
-    live_allowed = is_real_order_enabled()
-    broker = OrderAdapterToBrokerEngineAdapter(adapter, live_allowed=live_allowed)
-    if live_allowed:
-        _LOG.warning("LIVE TRADING ENABLED - Real orders will be executed")
-    else:
-        _LOG.info("PAPER TRADING MODE - Orders will be simulated")
+        # Broker Engine
+        live_allowed = is_real_order_enabled()
+        broker = OrderAdapterToBrokerEngineAdapter(adapter, live_allowed=live_allowed)
+        if live_allowed:
+            _LOG.warning("LIVE TRADING ENABLED - Real orders will be executed")
+        else:
+            _LOG.info("PAPER TRADING MODE - Orders will be simulated")
 
     # Safety Layer (Safety Hook)
     kill_switch_enabled = config.get_flat("safety.kill_switch_enabled") or False
@@ -355,10 +309,10 @@ def main() -> int:
     # 4. Config 로드
     try:
         deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
-        use_local_config = local_only or deployment_mode in ("kubernetes", "docker")
-
+        use_local_config = local_only
+        
         if use_local_config:
-            _LOG.info(f"Loading Local-Only Config (mode={deployment_mode}, local_only={local_only})")
+            _LOG.info(f"Loading Local-Only Config (local_only={local_only})")
             merge_result = load_local_only_config(project_root)
         else:
             scope_str = args.scope.upper()
@@ -409,21 +363,13 @@ def main() -> int:
     # 6. Runner 생성
     # K8s 모드에서는 mock runner 사용 (GoogleSheetsClient 불필요)
     try:
-        if use_local_config:
-            _LOG.info(f"Creating Mock Runner (use_local_config={use_local_config})")
-            runner, snapshot_source, should_stop_fn = _create_mock_runner(
-                config=config,
-                project_root=project_root,
-                max_iterations=args.max_iterations,
-                observer_client=observer,
-            )
-        else:
-            runner, snapshot_source, should_stop_fn = _create_production_runner(
-                config=config,
-                project_root=project_root,
-                broker_type=args.broker,
-                observer_client=observer,
-            )
+        runner, snapshot_source, should_stop_fn = _create_production_runner(
+            config=config,
+            project_root=project_root,
+            broker_type=args.broker,
+            observer_client=observer,
+            local_only=local_only,
+        )
 
         _LOG.info("Runner created successfully")
 
