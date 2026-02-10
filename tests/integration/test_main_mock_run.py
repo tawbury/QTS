@@ -24,11 +24,11 @@ if str(_ROOT) not in sys.path:
 
 from src.qts.core.config.config_loader import load_local_only_config
 from src.qts.core.config.config_models import UnifiedConfig
-from src.db.mock_sheets_client import MockSheetsClient
-from src.pipeline.mock_safety_hook import MockSafetyHook
-from src.pipeline.loop.mock_snapshot_source import MockSnapshotSource
+from tests.mocks.db.mock_sheets_client import MockSheetsClient
+from tests.mocks.pipeline.mock_safety_hook import MockSafetyHook
+from tests.mocks.pipeline.mock_snapshot_source import MockSnapshotSource
 from src.provider.brokers.noop_broker import NoopBroker
-from src.provider.brokers.mock_broker import MockBroker
+from tests.mocks.brokers.mock_broker import MockBroker
 from src.provider.models.intent import ExecutionIntent
 from src.provider.models.response import ExecutionResponse
 from src.pipeline.eteda_runner import ETEDARunner

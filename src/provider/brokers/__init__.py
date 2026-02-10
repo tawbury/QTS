@@ -15,7 +15,6 @@ from typing import Any
 
 from src.provider.interfaces.broker import BrokerEngine
 from src.provider.brokers.live_broker import LiveBroker
-from src.provider.brokers.mock_broker import MockBroker
 from src.provider.brokers.noop_broker import NoopBroker
 
 
@@ -43,6 +42,5 @@ __all__ = [
     "BrokerEngine",
     "LiveBroker",
     "NoopBroker",
-    "MockBroker",
     "create_broker_for_execution",
 ]

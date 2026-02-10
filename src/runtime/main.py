@@ -117,9 +117,9 @@ def _create_mock_runner(
 
     Mock 클라이언트들을 주입하여 API 의존성 없이 파이프라인을 테스트합니다.
     """
-    from src.db.mock_sheets_client import MockSheetsClient
-    from src.pipeline.mock_safety_hook import MockSafetyHook
-    from src.pipeline.loop.mock_snapshot_source import (
+    from tests.mocks.db.mock_sheets_client import MockSheetsClient
+    from tests.mocks.pipeline.mock_safety_hook import MockSafetyHook
+    from tests.mocks.pipeline.mock_snapshot_source import (
         MockSnapshotSource,
         create_mock_should_stop,
     )
