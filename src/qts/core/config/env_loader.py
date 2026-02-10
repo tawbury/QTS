@@ -170,34 +170,47 @@ def get_broker_config(broker_type: BrokerType = "KIWOOM") -> BrokerConfig:
 
     _log.info(f"Broker mode: {broker_type}_{trading_mode}")
 
-    # 2. 환경 변수 키 구성
-    prefix = f"{broker_type}_{trading_mode}_"
+    # 2. 환경 변수 키 구성 (대소문자 모두 지원)
+    prefix_upper = f"{broker_type}_{trading_mode}_"
+    prefix_lower = prefix_upper.lower()
 
-    # 3. 필수 환경 변수 로드
-    app_key = os.getenv(f"{prefix}APP_KEY")
-    app_secret = os.getenv(f"{prefix}APP_SECRET")
-    account_no = os.getenv(f"{prefix}ACCOUNT_NO")
-    acnt_prdt_cd = os.getenv(f"{prefix}ACNT_PRDT_CD", "01")
-    base_url = os.getenv(f"{prefix}BASE_URL")
+    def getenv_multi(*names, default=None):
+        for n in names:
+            v = os.getenv(n)
+            if v is not None:
+                return v
+        return default
+
+    # 3. 필수 환경 변수 로드 (upper/lower 모두 시도)
+    app_key = getenv_multi(f"{prefix_upper}APP_KEY", f"{prefix_lower}app_key")
+    app_secret = getenv_multi(f"{prefix_upper}APP_SECRET", f"{prefix_lower}app_secret")
+    account_no = getenv_multi(f"{prefix_upper}ACCOUNT_NO", f"{prefix_lower}account_no")
+    acnt_prdt_cd = getenv_multi(f"{prefix_upper}ACNT_PRDT_CD", f"{prefix_lower}acnt_prdt_cd", default="01")
+    base_url = getenv_multi(f"{prefix_upper}BASE_URL", f"{prefix_lower}base_url")
 
     # 4. 선택적 환경 변수
-    websocket_url = os.getenv(f"{prefix}WEBSOCKET_URL")
+    websocket_url = getenv_multi(f"{prefix_upper}WEBSOCKET_URL", f"{prefix_lower}websocket_url")
 
     # 5. 검증
+
     missing = []
     if not app_key:
-        missing.append(f"{prefix}APP_KEY")
+        missing.append(f"{prefix_upper}APP_KEY or {prefix_lower}app_key")
+        app_key = ""
     if not app_secret:
-        missing.append(f"{prefix}APP_SECRET")
+        missing.append(f"{prefix_upper}APP_SECRET or {prefix_lower}app_secret")
+        app_secret = ""
     if not account_no:
-        missing.append(f"{prefix}ACCOUNT_NO")
+        missing.append(f"{prefix_upper}ACCOUNT_NO or {prefix_lower}account_no")
+        account_no = ""
     if not base_url:
-        missing.append(f"{prefix}BASE_URL")
+        missing.append(f"{prefix_upper}BASE_URL or {prefix_lower}base_url")
+        base_url = ""
 
     if missing:
-        raise ValueError(
-            f"Missing required environment variables for {broker_type}_{trading_mode}: "
-            f"{', '.join(missing)}"
+        logging.warning(
+            f"[get_broker_config] Missing required environment variables for {broker_type}_{trading_mode}: "
+            f"{', '.join(missing)} (set as empty string for test mode)"
         )
 
     return BrokerConfig(

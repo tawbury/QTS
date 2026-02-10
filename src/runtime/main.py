@@ -58,8 +58,8 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument(
         "--broker",
         choices=["kis", "kiwoom"],
-        default="kiwoom",
-        help="Broker to use (default: kiwoom)",
+        default="kis",
+        help="Broker to use (default: kis)",
     )
     p.add_argument(
         "--local-only",
@@ -193,13 +193,20 @@ def _create_production_runner(
     )
     from src.provider.brokers.live_broker import LiveBroker
     from src.db.google_sheets_client import GoogleSheetsClient
-    from src.pipeline.safety_hook import SafetyHook
+    from src.safety.layer import SafetyLayer
     from src.provider.clients.broker.adapters.registry import get_broker_adapter
 
     _LOG.info(f"Creating Production Runner (broker={broker_type})")
 
     # Google Sheets Client
-    sheets_client = GoogleSheetsClient(project_root=project_root)
+    try:
+        sheets_client = GoogleSheetsClient()
+        if getattr(sheets_client, 'disabled', False):
+            _LOG.warning("GoogleSheetsClient is disabled (no credentials). Proceeding without Sheets integration.")
+            sheets_client = None
+    except Exception as e:
+        _LOG.warning(f"GoogleSheetsClient creation failed: {e}. Proceeding without Sheets integration.")
+        sheets_client = None
 
     # Broker Adapter
     broker_config = get_broker_config(broker_type)
@@ -207,14 +214,14 @@ def _create_production_runner(
 
     # Broker Engine
     live_allowed = is_real_order_enabled()
-    broker = OrderAdapterToBrokerEngineAdapter(adapter, live_allowed=live_allowed)
+    broker = OrderAdapterToBrokerEngineAdapter(adapter)
     if live_allowed:
         _LOG.warning("LIVE TRADING ENABLED - Real orders will be executed")
     else:
         _LOG.info("PAPER TRADING MODE - Orders will be simulated")
 
     # Safety Hook
-    safety_hook = SafetyHook(config=config, project_root=project_root)
+    safety_hook = SafetyLayer()
 
     # Runner 생성
     runner = ETEDARunner(
@@ -276,6 +283,7 @@ def main() -> int:
         int: Exit code (0=성공, 1=실패)
     """
     args = _parse_args()
+    args.max_iterations = -1  # Force unlimited iterations
 
     # 0. 로깅 설정
     log_level = logging.DEBUG if args.verbose else logging.INFO

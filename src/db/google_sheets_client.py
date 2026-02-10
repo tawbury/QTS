@@ -67,29 +67,28 @@ class GoogleSheetsClient:
         
         self.credentials_path = credentials_path or os.getenv('GOOGLE_CREDENTIALS_FILE')
         self.spreadsheet_id = spreadsheet_id or os.getenv('GOOGLE_SHEET_KEY')
-        
-        if not self.credentials_path:
-            raise ValueError("Google credentials file path is required")
-        
-        if not self.spreadsheet_id:
-            raise ValueError("Google spreadsheet ID is required")
-        
+
+        self.disabled = False
+        # 로거 설정
+        self.logger = logging.getLogger(__name__)
+
+        if not self.credentials_path or not self.spreadsheet_id:
+            self.logger.warning("Google Sheets credentials or spreadsheet_id not set. GoogleSheetsClient is disabled.")
+            self.disabled = True
+
         self.service = None
         self.gspread_client = None
         self.spreadsheet = None
         self._token_cache = None
         self._token_expiry = None
-        
-        # 로거 설정
-        self.logger = logging.getLogger(__name__)
-        
+
         # API 제한 설정
         self.api_quota = int(os.getenv('GOOGLE_SHEETS_API_QUOTA', '100'))
         self.max_retries = 3
         self.base_delay = 1.0
         self.max_delay = 60.0
-        
-        self.logger.info(f"GoogleSheetsClient initialized with spreadsheet_id: {self.spreadsheet_id}")
+
+        self.logger.info(f"GoogleSheetsClient initialized with spreadsheet_id: {self.spreadsheet_id}, disabled={self.disabled}")
     
     async def authenticate(self) -> bool:
         """
