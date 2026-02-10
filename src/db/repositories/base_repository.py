@@ -140,13 +140,12 @@ class BaseSheetRepository(ABC):
                 header_range = f"{self.sheet_name}!A{self.header_row}:Z{self.header_row}"
                 header_data = await self.client.get_sheet_data(header_range)
                 
-                if header_data and len(header_data) > 0:
+                if header_data and len(header_data) > 0 and header_data[0]:
                     self._headers_cache = [str(cell).strip() for cell in header_data[0] if cell.strip()]
                 else:
                     self._headers_cache = []
                 
-                else:
-                    self._headers_cache = []
+
                 
                 self._last_cache_update = now_kst()
                 self.logger.debug(f"Retrieved headers: {self._headers_cache}")

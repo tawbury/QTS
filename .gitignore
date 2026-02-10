@@ -37,6 +37,7 @@ myenv/
 secrets.*
 secret.*
 config/service_account.json
+config/credentials.json
 
 # OAuth / 토큰 캐시
 token.json

@@ -193,17 +193,35 @@ def _create_production_runner(
     )
     from src.provider.brokers.live_broker import LiveBroker
     from src.db.google_sheets_client import GoogleSheetsClient
-    from src.pipeline.safety_hook import SafetyHook
-    from src.provider.clients.broker.adapters.registry import get_broker_adapter
+    from src.provider.clients.broker.adapters.registry import get_broker
+    from src.safety.layer import SafetyLayer
 
     _LOG.info(f"Creating Production Runner (broker={broker_type})")
 
     # Google Sheets Client
-    sheets_client = GoogleSheetsClient(project_root=project_root)
+    sheets_client = GoogleSheetsClient()
 
     # Broker Adapter
-    broker_config = get_broker_config(broker_type)
-    adapter = get_broker_adapter(broker_type, broker_config)
+    broker_config = get_broker_config(broker_type.upper())
+    
+    client = None
+    if broker_type == "kis":
+        from src.provider.clients.broker.kis.kis_client import KISClient
+        client = KISClient(
+            app_key=broker_config.app_key,
+            app_secret=broker_config.app_secret,
+            base_url=broker_config.base_url,
+            account_no=broker_config.account_no,
+            acnt_prdt_cd=broker_config.acnt_prdt_cd,
+            trading_mode=broker_config.trading_mode
+        )
+
+    adapter = get_broker(
+        broker_type, 
+        client=client,
+        acnt_no=broker_config.account_no,
+        acnt_prdt_cd=broker_config.acnt_prdt_cd
+    )
 
     # Broker Engine
     live_allowed = is_real_order_enabled()
@@ -213,8 +231,14 @@ def _create_production_runner(
     else:
         _LOG.info("PAPER TRADING MODE - Orders will be simulated")
 
-    # Safety Hook
-    safety_hook = SafetyHook(config=config, project_root=project_root)
+    # Safety Layer (Safety Hook)
+    kill_switch_enabled = config.get_flat("safety.kill_switch_enabled") or False
+    safe_mode_enabled = config.get_flat("safety.safe_mode_enabled") or False  # Assuming this key exists or defaulting False
+    
+    safety_hook = SafetyLayer(
+        kill_switch=bool(kill_switch_enabled),
+        safe_mode=bool(safe_mode_enabled)
+    )
 
     # Runner 생성
     runner = ETEDARunner(
@@ -261,7 +285,12 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
 
     # 3. Google Sheets 인증 (production 모드만)
     if not local_only and deployment_mode == "local":
-        credentials = project_root / "config" / "schemas" / "credentials.json"
+        env_cred_path = os.getenv("GOOGLE_CREDENTIALS_FILE")
+        if env_cred_path:
+            credentials = project_root / env_cred_path
+        else:
+            credentials = project_root / "config" / "credentials.json"
+
         if not credentials.exists():
             _LOG.warning(f"Google credentials not found: {credentials}")
 
