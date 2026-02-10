@@ -19,6 +19,20 @@ import requests
 
 _log = logging.getLogger(__name__)
 
+# ============================================================
+# API Constants
+# ============================================================
+API_PATH_TOKEN = "/oauth2/token"
+API_PATH_ORDER = "/api/dostk/ordr"
+API_PATH_BALANCE = "/api/v1/balance"
+API_PATH_POSITIONS = "/api/v1/positions"
+
+# Header: api-id
+API_ID_BUY = "kt10000"
+API_ID_SELL = "kt10001"
+API_ID_ORDER_QUERY = "kt10002"
+API_ID_ORDER_CANCEL = "kt10003"
+
 
 class KiwoomAPIError(Exception):
     """Kiwoom API 에러"""
@@ -88,7 +102,7 @@ class KiwoomClient:
                 return self._access_token
 
         # 토큰 발급 (openapi.kiwoom.com: Body secretkey, 응답 token / expires_dt)
-        url = urljoin(self.base_url, "/oauth2/token")
+        url = urljoin(self.base_url, API_PATH_TOKEN)
         headers = {"Content-Type": "application/json;charset=UTF-8"}
         payload = {
             "grant_type": "client_credentials",
@@ -219,9 +233,9 @@ class KiwoomClient:
         payload에 _api_id가 있으면 헤더로 사용 후 body에서 제거.
         """
         body = dict(payload)
-        api_id = body.pop("_api_id", None) or "kt10000"
+        api_id = body.pop("_api_id", None) or API_ID_BUY
         _log.info("Placing Kiwoom order: api_id=%s, stk_cd=%s", api_id, body.get("stk_cd"))
-        return self._request("POST", "/api/dostk/ordr", body=body, api_id=api_id)
+        return self._request("POST", API_PATH_ORDER, body=body, api_id=api_id)
 
     def get_order(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -230,7 +244,7 @@ class KiwoomClient:
         order_id = params.get("order_id") or params.get("ord_no")
         _log.info("Getting Kiwoom order: %s", order_id)
         body = {"ord_no": order_id}
-        return self._request("POST", "/api/dostk/ordr", body=body, api_id="kt10002")
+        return self._request("POST", API_PATH_ORDER, body=body, api_id=API_ID_ORDER_QUERY)
 
     def cancel_order(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -239,7 +253,7 @@ class KiwoomClient:
         order_id = params.get("order_id") or params.get("ord_no")
         _log.info("Canceling Kiwoom order: %s", order_id)
         body = {"ord_no": order_id}
-        return self._request("POST", "/api/dostk/ordr", body=body, api_id="kt10003")
+        return self._request("POST", API_PATH_ORDER, body=body, api_id=API_ID_ORDER_CANCEL)
 
     def get_balance(self) -> Dict[str, Any]:
         """
@@ -253,7 +267,7 @@ class KiwoomClient:
             "account_no": self.account_no,
             "acnt_prdt_cd": self.acnt_prdt_cd,
         }
-        return self._request("GET", "/api/v1/balance", params=params)
+        return self._request("GET", API_PATH_BALANCE, params=params)
 
     def get_positions(self) -> Dict[str, Any]:
         """
@@ -267,4 +281,4 @@ class KiwoomClient:
             "account_no": self.account_no,
             "acnt_prdt_cd": self.acnt_prdt_cd,
         }
-        return self._request("GET", "/api/v1/positions", params=params)
+        return self._request("GET", API_PATH_POSITIONS, params=params)

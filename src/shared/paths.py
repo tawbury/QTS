@@ -265,6 +265,13 @@ def observer_data_dir() -> Path:
     ))
 
 
+def observer_asset_dir() -> Path:
+    """
+    Canonical Observer ASSET directory for JSON/JSONL artifacts.
+    """
+    return observer_data_dir() / "assets"
+
+
 # ------------------------------------------------------------
 # Ops subdomains
 # ------------------------------------------------------------

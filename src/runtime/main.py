@@ -36,6 +36,7 @@ from src.pipeline.loop.eteda_loop import run_eteda_loop
 from src.observer_client.factory import create_observer_client
 
 # shared imports
+from src.shared import paths
 from src.shared.paths import get_project_root
 from src.shared.timezone_utils import get_kst_now
 
@@ -252,15 +253,21 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
     import os
     _LOG.info("Running preflight checks...")
 
-    # 1. 필수 디렉토리 존재 확인 (K8s 환경에서는 QTS_LOG_DIR 사용)
-    logs_dir = Path(os.environ.get("QTS_LOG_DIR", str(project_root / "logs")))
+    # 1. 필수 디렉토리 존재 확인
+    logs_dir = paths.log_dir()
     if not logs_dir.exists():
         logs_dir.mkdir(parents=True, exist_ok=True)
         _LOG.info(f"Created logs directory: {logs_dir}")
 
-    # 2. Config 파일 존재 확인 (K8s 환경에서는 ConfigMap 사용하므로 선택적)
-    config_local = project_root / "config" / "local" / "config_local.json"
-    deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
+    # 2. Config 파일 존재 확인
+    # paths.config_dir() 사용 시 container 모드면 /opt/.../config (read-only)
+    # local 모드면 project_root/config
+    # config_local.json 위치: config_dir() / "local" / "config_local.json"
+    
+    config_dir = paths.config_dir()
+    config_local = config_dir / "local" / "config_local.json"
+    deployment_mode = paths.get_deployment_mode()
+    
     if deployment_mode == "local" and not config_local.exists():
         raise FileNotFoundError(f"Config file not found: {config_local}")
     elif deployment_mode != "local":
@@ -268,7 +275,7 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
 
     # 3. Google Sheets 인증 (production 모드만)
     if not local_only and deployment_mode == "local":
-        credentials = project_root / "config" / "schema" / "credentials.json"
+        credentials = paths.google_credentials_path()
         if not credentials.exists():
             _LOG.warning(f"Google credentials not found: {credentials}")
 
@@ -289,7 +296,7 @@ def main() -> int:
     log_level = logging.DEBUG if args.verbose else logging.INFO
     # K8s 환경에서는 QTS_LOG_DIR 환경변수 사용, 로컬에서는 _ROOT/logs
     import os
-    log_dir = Path(os.environ.get("QTS_LOG_DIR", str(_ROOT / "logs")))
+    log_dir = paths.log_dir()
     log_file = log_dir / "qts.log"
     configure_central_logging(
         level=log_level,
@@ -359,10 +366,7 @@ def main() -> int:
 
         if observer_type == "file":
             from src.observer_client.file_client import FileObserverClient
-            assets_dir = os.environ.get(
-                "OBSERVER_ASSETS_DIR",
-                "/opt/platform/runtime/observer/data/assets"
-            )
+            assets_dir = str(paths.observer_asset_dir())
             observer = FileObserverClient(assets_dir=assets_dir)
             _LOG.info(f"Observer Client: File (dir={assets_dir})")
         elif observer_type in ("api", "remote"):
