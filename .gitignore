@@ -35,7 +35,9 @@ env/
 # 비밀 키 및 자격 증명 파일
 secrets.*
 secret.*
-credentials.json
+!**/config/schema/credentials.json
+!**/config/local/config_local.json
+!**/config/local/dividend_db.json
 config/service_account.json
 
 # OAuth / 토큰 캐시
