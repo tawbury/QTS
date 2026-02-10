@@ -20,6 +20,7 @@ from ..db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRep
 from ..db.repositories.t_ledger_repository import T_LedgerRepository
 from ..db.repositories.history_repository import HistoryRepository
 from ..db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
+from ..db.trade_recorder import TradeRecorder
 
 
 def _default_project_root() -> Path:
@@ -81,6 +82,7 @@ class ETEDARunner:
         self._t_ledger_repo = T_LedgerRepository(self._sheets_client, sid)
         self._history_repo = HistoryRepository(self._sheets_client, sid)
         self._performance_repo = EnhancedPerformanceRepository(self._sheets_client, sid, self._project_root)
+        self._trade_recorder = TradeRecorder()
         
         # 엔진 초기화 (리포지토리 주입)
         self._portfolio_engine = PortfolioEngine(
@@ -266,6 +268,7 @@ class ETEDARunner:
                     "mode": gate.mode.value,
                 }
                 self._log.info(f"[{gate.mode.value}] Act result: {out}")
+                self._trade_recorder.record_trade(out)
                 return out
             except Exception as e:
                 self._log.exception("Act submit_intent failed: %s", e)

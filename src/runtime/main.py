@@ -275,14 +275,25 @@ def main() -> int:
     Returns:
         int: Exit code (0=성공, 1=실패)
     """
+    # 0. Cleanup
+    from src.maintenance.cleanup import cleanup_logs, cleanup_trade_data
+    try:
+        cleanup_logs()
+        cleanup_trade_data()
+    except Exception as e:
+        # 실패해도 시스템 시작은 계속
+        logging.warning(f"Cleanup failed: {e}", exc_info=True)
+
     args = _parse_args()
 
     # 0. 로깅 설정
+    from datetime import datetime
     log_level = logging.DEBUG if args.verbose else logging.INFO
     # K8s 환경에서는 QTS_LOG_DIR 환경변수 사용, 로컬에서는 _ROOT/logs
     import os
     log_dir = Path(os.environ.get("QTS_LOG_DIR", str(_ROOT / "logs")))
-    log_file = log_dir / "qts.log"
+    log_file_name = f"qts_{datetime.now().strftime('%Y%m%d')}.log"
+    log_file = log_dir / log_file_name
     configure_central_logging(
         level=log_level,
         format_string="%(asctime)s [%(name)s] %(levelname)s %(message)s",
