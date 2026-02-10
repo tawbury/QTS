@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from src.maintenance._types import MaintenanceReport
-from src.maintenance.backup.runner import build_backup_plan, run_backup
+from src.backup import build_backup_plan, run_backup
 from src.maintenance.cleanup.executor import execute_cleanup
 from src.retention.policy import FileRetentionPolicy
 from src.maintenance.retention.scanner import scan_expired
