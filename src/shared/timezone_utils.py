@@ -22,7 +22,38 @@ get_kst_now = now_kst
 
 
 def to_kst(dt: datetime) -> datetime:
-    """datetime을 KST로 변환합니다. naive면 KST로 간주하고 localize."""
+    """
+    datetime을 KST로 변환합니다.
+    - naive: KST로 간주하고 localize (주의: 시스템 로컬 타임이 아님을 가정)
+    - aware: KST로 astimezone 변환
+    """
     if dt.tzinfo is None:
         return dt.replace(tzinfo=KST)
     return dt.astimezone(KST)
+
+
+def utcnow() -> datetime:
+    """현재 시각을 UTC 기준으로 반환합니다 (timezone-aware)."""
+    return datetime.now(timezone.utc)
+
+
+def utc_to_kst(dt: datetime) -> datetime:
+    """UTC 시간을 KST로 변환합니다."""
+    if dt.tzinfo is None:
+        # Naive datetime is assumed to be UTC if passed to this function
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(KST)
+
+
+def is_kst(dt: datetime) -> bool:
+    """datetime 객체가 KST인지 확인합니다."""
+    return dt.tzinfo == KST
+
+
+def format_iso_kst(dt: Optional[datetime] = None) -> str:
+    """datetime을 ISO 8601 형식의 문자열로 반환합니다 (KST 기준)."""
+    if dt is None:
+        dt = now_kst()
+    else:
+        dt = to_kst(dt)
+    return dt.isoformat()

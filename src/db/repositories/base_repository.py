@@ -11,6 +11,7 @@ import logging
 from datetime import datetime
 
 from ..google_sheets_client import GoogleSheetsClient
+from ...shared.timezone_utils import now_kst
 
 
 class BaseSheetRepository(ABC):
@@ -144,7 +145,11 @@ class BaseSheetRepository(ABC):
                 else:
                     self._headers_cache = []
                 
-                self._last_cache_update = datetime.now()
+                else:
+                    self._headers_cache = []
+                
+                self._last_cache_update = now_kst()
+                self.logger.debug(f"Retrieved headers: {self._headers_cache}")
                 self.logger.debug(f"Retrieved headers: {self._headers_cache}")
                 
             except Exception as e:

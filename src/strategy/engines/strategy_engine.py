@@ -12,6 +12,7 @@ from typing import Dict, Any, Optional
 
 from .base_engine import BaseEngine
 from ...qts.core.config.config_models import UnifiedConfig
+from ...shared.timezone_utils import now_kst
 
 
 class StrategyEngine(BaseEngine):
@@ -55,7 +56,7 @@ class StrategyEngine(BaseEngine):
         Execute engine operation (Engine I/O Contract aligned with ETEDA).
         operation 'calculate_signal' => data: market_data, position_data.
         """
-        start_time = datetime.now()
+        start_time = now_kst()
         try:
             operation = data.get("operation")
             if operation == "calculate_signal":
@@ -63,14 +64,14 @@ class StrategyEngine(BaseEngine):
                 position_data = data.get("position_data") or data.get("position")
                 pos = position_data if isinstance(position_data, dict) else {}
                 result = self.calculate_signal(market_data, pos)
-                execution_time = (datetime.now() - start_time).total_seconds()
+                execution_time = (now_kst() - start_time).total_seconds()
                 self._update_metrics(execution_time, success=True)
                 return {"success": True, "data": result, "execution_time": execution_time}
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             return {"success": False, "error": f"Unknown operation: {operation}", "execution_time": execution_time}
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             self._update_state(self.state.is_running, error=str(e))
             return {"success": False, "error": str(e), "execution_time": execution_time}

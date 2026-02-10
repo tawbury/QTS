@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from .base_repository import BaseSheetRepository
+from ...shared.timezone_utils import now_kst
 from ..google_sheets_client import ValidationError
 
 
@@ -425,7 +426,7 @@ class ConfigSwingRepository(BaseSheetRepository):
                 'categories': {cat: len(configs) for cat, configs in categories.items()},
                 'tags': {tag: len(configs) for tag, configs in tags.items()},
                 'category_details': categories,
-                'last_updated': datetime.now().isoformat()
+                'last_updated': now_kst().isoformat()
             }
             
             return summary

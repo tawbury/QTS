@@ -32,6 +32,7 @@ from .strategy import (
     BackupPlan,
     build_backup_plan,
 )
+from ..shared.timezone_utils import now_kst
 
 if TYPE_CHECKING:
     from src.maintenance._types import BackupResult
@@ -67,7 +68,7 @@ class BackupManager:
     # -------------------------
 
     def _now(self) -> datetime:
-        return datetime.now(tz=timezone.utc)
+        return now_kst()
 
     def _collect_files(self) -> List[Path]:
         if not self.source_root.exists():

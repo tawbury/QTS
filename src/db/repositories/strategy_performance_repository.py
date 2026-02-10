@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from .base_repository import BaseSheetRepository
+from ...shared.timezone_utils import now_kst
 from ..google_sheets_client import ValidationError
 
 
@@ -318,7 +319,7 @@ class StrategyPerformanceRepository(BaseSheetRepository):
                 'average_return': total_return / len(strategy_returns) if strategy_returns else 0,
                 'strategy_returns': strategy_returns,
                 'strategy_filter': strategy_name,
-                'calculation_time': datetime.now().isoformat()
+                'calculation_time': now_kst().isoformat()
             }
             
             return result

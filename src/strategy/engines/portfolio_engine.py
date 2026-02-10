@@ -16,7 +16,9 @@ from .base_engine import BaseEngine, EngineState, EngineMetrics
 from ...qts.core.config.config_models import UnifiedConfig
 from ...db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
 from ...db.repositories.position_repository import PositionRepository
+from ...db.repositories.position_repository import PositionRepository
 from ...db.repositories.t_ledger_repository import T_LedgerRepository
+from ...shared.timezone_utils import now_kst
 
 
 @dataclass
@@ -164,7 +166,7 @@ class PortfolioEngine(BaseEngine):
         Returns:
             Dict[str, Any]: 실행 결과
         """
-        start_time = datetime.now()
+        start_time = now_kst()
         
         try:
             operation = data.get('operation')
@@ -191,8 +193,9 @@ class PortfolioEngine(BaseEngine):
                 'execution_time': execution_time
             }
             
+            
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             self._update_state(is_running=True, error=str(e))
             
@@ -242,8 +245,9 @@ class PortfolioEngine(BaseEngine):
                 strategy_allocation=strategy_allocation
             )
             
+            
             self._portfolio_summary_cache = summary
-            self._last_cache_update = datetime.now()
+            self._last_cache_update = now_kst()
             
             await self._emit_event('portfolio_summary_updated', asdict(summary))
             

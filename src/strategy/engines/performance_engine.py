@@ -18,6 +18,7 @@ from .base_engine import BaseEngine, EngineState, EngineMetrics
 from ...qts.core.config.config_models import UnifiedConfig
 from ...db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 from ...db.repositories.history_repository import HistoryRepository
+from ...shared.timezone_utils import now_kst
 
 
 @dataclass
@@ -178,7 +179,7 @@ class PerformanceEngine(BaseEngine):
         Returns:
             Dict[str, Any]: 실행 결과
         """
-        start_time = datetime.now()
+        start_time = now_kst()
         
         try:
             operation = data.get('operation')
@@ -209,8 +210,9 @@ class PerformanceEngine(BaseEngine):
                 'execution_time': execution_time
             }
             
+            
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             self._update_state(is_running=True, error=str(e))
             
@@ -267,8 +269,9 @@ class PerformanceEngine(BaseEngine):
                 calmar_ratio=calmar_ratio
             )
             
+            
             self._performance_cache = metrics
-            self._last_cache_update = datetime.now()
+            self._last_cache_update = now_kst()
             
             # Performance 대시보드에 KPI 업데이트
             kpi_data = {
@@ -360,7 +363,7 @@ class PerformanceEngine(BaseEngine):
         """
         try:
             if year is None:
-                year = datetime.now().year
+                year = now_kst().year
             
             # HistoryRepository를 통해 연도별 데이터 조회 및 월별 집계
             history_data = await self._history_repo.get_all()

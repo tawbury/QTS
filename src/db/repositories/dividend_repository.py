@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from .base_repository import BaseSheetRepository
+from ...shared.timezone_utils import now_kst
 from ..google_sheets_client import ValidationError
 
 

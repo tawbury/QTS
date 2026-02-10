@@ -18,8 +18,13 @@ import json
 import os
 import random
 import sys
-from datetime import datetime, timedelta
+import random
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+# KST Timezone definition
+KST = timezone(timedelta(hours=9))
 
 
 # 테스트용 종목 데이터
@@ -92,10 +97,10 @@ def generate_jsonl_file(
     scope_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = scope_dir / f"{date_str}.jsonl"
-    session_id = f"mock_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    session_id = f"mock_test_{datetime.now(KST).strftime('%Y%m%d_%H%M%S')}"
 
     # 시작 시간 (오늘 09:00 KST)
-    base_time = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+    base_time = datetime.now(KST).replace(hour=9, minute=0, second=0, microsecond=0)
 
     records = []
     for i in range(record_count):
@@ -141,7 +146,7 @@ def main():
     print(f"Selected Symbols: {[s['symbol'] for s in selected_symbols]}")
 
     # 오늘 날짜
-    today = datetime.now().strftime("%Y%m%d")
+    today = datetime.now(KST).strftime("%Y%m%d")
 
     # scalp 및 swing 데이터 생성
     for scope in ["scalp", "swing"]:

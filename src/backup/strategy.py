@@ -30,6 +30,7 @@ from typing import List, Optional
 
 from .checksum import calculate_sha256
 from .manifest import BackupManifest
+from ..shared.timezone_utils import now_kst
 
 
 # BackupResult를 여기서 정의하여 순환 import 방지
@@ -43,12 +44,12 @@ class BackupResult:
     error: Optional[str] = None
 
 
-def _utc_stamp() -> str:
-    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+def _kst_stamp() -> str:
+    return now_kst().strftime("%Y%m%d_%H%M%S")
 
 
-def _utc_now() -> datetime:
-    return datetime.now(tz=timezone.utc)
+def _kst_now() -> datetime:
+    return now_kst()
 
 
 @dataclass(frozen=True)
@@ -104,7 +105,7 @@ class ArchiveBackupStrategy(BackupStrategy):
         try:
             plan.backup_root.mkdir(parents=True, exist_ok=True)
 
-            timestamp = _utc_now()
+            timestamp = _kst_now()
             archive_name = f"observer_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}.tar.gz"
             archive_path = plan.backup_root / archive_name
 
@@ -144,7 +145,7 @@ class ArchiveBackupStrategy(BackupStrategy):
     def get_manifest(self, plan: BackupPlan, backup_path: Path) -> BackupManifest:
         checksum = calculate_sha256(backup_path)
         return BackupManifest(
-            backup_at=_utc_now(),
+            backup_at=_kst_now(),
             source=str(plan.source_root),
             archive_name=backup_path.name,
             record_count=len(plan.source_files),
@@ -177,7 +178,7 @@ class FileBackupStrategy(BackupStrategy):
 
     def execute(self, plan: BackupPlan) -> BackupResult:
         try:
-            stamp = _utc_stamp()
+            stamp = _kst_stamp()
             target_root = plan.backup_root / f"backup_{stamp}"
             target_root.mkdir(parents=True, exist_ok=True)
 
@@ -197,7 +198,7 @@ class FileBackupStrategy(BackupStrategy):
             # 매니페스트 생성
             manifest_data = {
                 "schema_version": "1.0",
-                "captured_at_utc": datetime.now(timezone.utc).isoformat(),
+                "captured_at_kst": now_kst().isoformat(),
                 "file_count": len(plan.source_files),
                 "copied_files": copied,
             }
@@ -218,7 +219,7 @@ class FileBackupStrategy(BackupStrategy):
 
     def get_manifest(self, plan: BackupPlan, backup_path: Path) -> BackupManifest:
         return BackupManifest(
-            backup_at=_utc_now(),
+            backup_at=_kst_now(),
             source=str(plan.source_root),
             archive_name=backup_path.name,
             record_count=len(plan.source_files),

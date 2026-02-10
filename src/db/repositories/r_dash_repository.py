@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 
 from .base_repository import BaseSheetRepository
+from ...shared.timezone_utils import now_kst
 from ..google_sheets_client import ValidationError
 
 
@@ -99,7 +100,7 @@ class R_DashRepository(BaseSheetRepository):
                 'risk_panel': {},
                 'metrics': {},
                 'alerts': [],
-                'last_updated': datetime.now().isoformat()
+                'last_updated': now_kst().isoformat()
             }
             
             for record in all_data:

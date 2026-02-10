@@ -13,6 +13,7 @@ from datetime import datetime
 from dataclasses import dataclass
 
 from ...qts.core.config.config_models import UnifiedConfig
+from ...shared.timezone_utils import now_kst
 
 
 @dataclass
@@ -182,7 +183,7 @@ class BaseEngine(ABC):
             error: 에러 메시지
         """
         self.state.is_running = is_running
-        self.state.last_updated = datetime.now()
+        self.state.last_updated = now_kst()
         
         if error:
             self.state.last_error = error

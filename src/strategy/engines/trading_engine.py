@@ -15,7 +15,9 @@ from .base_engine import BaseEngine
 from ...qts.core.config.config_models import UnifiedConfig
 from ...provider.interfaces.broker import BrokerEngine
 from ...provider.models.intent import ExecutionIntent
+from ...provider.models.intent import ExecutionIntent
 from ...provider.models.response import ExecutionResponse
+from ...shared.timezone_utils import now_kst
 
 
 def _intent_from_data(data: Dict[str, Any]) -> ExecutionIntent:
@@ -83,20 +85,20 @@ class TradingEngine(BaseEngine):
         return True
 
     async def execute(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        start_time = datetime.now()
+        start_time = now_kst()
         try:
             operation = data.get("operation")
             if operation == "submit_intent":
                 intent = _intent_from_data(data)
                 response = self._broker.submit_intent(intent)
-                execution_time = (datetime.now() - start_time).total_seconds()
+                execution_time = (now_kst() - start_time).total_seconds()
                 self._update_metrics(execution_time, success=True)
                 return {
                     "success": True,
                     "data": _response_to_dict(response),
                     "execution_time": execution_time,
                 }
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             return {
                 "success": False,
@@ -104,7 +106,7 @@ class TradingEngine(BaseEngine):
                 "execution_time": execution_time,
             }
         except Exception as e:
-            execution_time = (datetime.now() - start_time).total_seconds()
+            execution_time = (now_kst() - start_time).total_seconds()
             self._update_metrics(execution_time, success=False)
             self._update_state(self.state.is_running, error=str(e))
             return {"success": False, "error": str(e), "execution_time": execution_time}
