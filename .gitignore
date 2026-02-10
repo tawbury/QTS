@@ -35,9 +35,6 @@ env/
 # 비밀 키 및 자격 증명 파일
 secrets.*
 secret.*
-!**/config/schema/credentials.json
-!**/config/local/config_local.json
-!**/config/local/dividend_db.json
 config/service_account.json
 
 # OAuth / 토큰 캐시
@@ -117,11 +114,15 @@ reports/schema/**/*.md
 # [특수 규칙] 프로젝트 특정 규칙
 # ------------------------------------------------------------
 # JSON 기본 차단
-*.json
+# *.json
 
 # 시스템 계약 자산
 !schemas/*.json
 !schemas/history/*.json
+!config/schemas/*.json
+!config/local/
+!config/local/config_local.json
+!config/local/dividend_db.json
 
 # 문서/도구용 JSON 허용 (선제 방어)
 !docs/**/*.json
@@ -149,9 +150,6 @@ agent-transcripts/
 # notebook 내 secrets 폴더 (이중 방어)
 notebook/secrets/
 **/secrets/
-
-# config 내 local 설정 (개인별 상이, config_local.json 등)
-config/local/
 
 # __pycache__ 하위 모든 항목
 **/__pycache__/

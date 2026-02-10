@@ -1,0 +1,11 @@
+{
+  "category": "DIVIDEND_DB",
+  "subcategory": "DIVIDEND_INFO", 
+  "key": "TICKER_005930",
+  "value": {
+    "ticker": "005930",
+    "name": "삼성전자",
+    "pay_date": "2025-04-01",
+    "dividend_per_share": 1444
+  }
+}

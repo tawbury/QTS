@@ -1,0 +1,290 @@
+[
+  {
+    "category": "SYSTEM",
+    "subcategory": "BROKER",
+    "key": "BASE_EQUITY",
+    "value": "0",
+    "description": "초기 자본금",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "BROKER",
+    "key": "BROKER_RETRY_INTERVAL",
+    "value": "1",
+    "description": "재시도 간격",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "BROKER",
+    "key": "BROKER_RETRY_LIMIT",
+    "value": "3",
+    "description": "재시도 횟수",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "BROKER",
+    "key": "BROKER_TIMEOUT_SEC",
+    "value": "3",
+    "description": "API 타임아웃",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "ENABLE_FAILSAFE",
+    "value": "1",
+    "description": "비상 모드 활성화",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "ENABLE_VERSIONING",
+    "value": "1",
+    "description": "버전 관리",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "PERFORMANCE",
+    "key": "ENGINE_LOOP_INTERVAL_SCALP",
+    "value": "1",
+    "description": "엔진 실행 주기",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "PERFORMANCE",
+    "key": "ENGINE_LOOP_INTERVAL_SWING",
+    "value": "60",
+    "description": "엔진 실행 주기",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "FAILSAFE_TRIGGER",
+    "value": "ERROR",
+    "description": "비상 트리거 기준",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "KS_ENABLED",
+    "value": "1",
+    "description": "킬스위치 활성 여부",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "KS_TRIGGER_DAILY_LOSS_SCALP",
+    "value": "-0.02",
+    "description": "일일 손실 제한",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "KS_TRIGGER_DAILY_LOSS_SWING",
+    "value": "-0.07",
+    "description": "일일 손실 제한",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "KS_TRIGGER_DD_SCALP",
+    "value": "0.07",
+    "description": "DD 10% 도달 시 종료",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "KS_TRIGGER_DD_SWING",
+    "value": "0.3",
+    "description": "DD 10% 도달 시 종료",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "MAX_ALLOWED_ERRORS",
+    "value": "3",
+    "description": "허용 오류 횟수",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "MAX_TOTAL_EXPOSURE_SCALP",
+    "value": "0.5",
+    "description": "총 익스포저",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "RISK",
+    "key": "MAX_TOTAL_EXPOSURE_SWING",
+    "value": "0.8",
+    "description": "총 익스포저",
+    "tag": "risk"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "FILTER",
+    "key": "MIN_MARKET_CAP_SCALP",
+    "value": "500000000000",
+    "description": "Scalp 최소 시가총액",
+    "tag": "filter"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "FILTER",
+    "key": "MIN_MARKET_CAP_SWING",
+    "value": "200000000000",
+    "description": "Swing 최소 시가총액",
+    "tag": "filter"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "FILTER",
+    "key": "MIN_PRICE_SCALP",
+    "value": "5000",
+    "description": "Scalp 최소 주가 기준",
+    "tag": "filter"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "FILTER",
+    "key": "MIN_PRICE_SWING",
+    "value": "5000",
+    "description": "Swing 최소 주가 기준",
+    "tag": "filter"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ORDER",
+    "key": "ORDER_FAIL_MODE",
+    "value": "SKIP",
+    "description": "주문 실패 처리 방식",
+    "tag": "order"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ORDER",
+    "key": "ORDER_MAX_RETRY",
+    "value": "3",
+    "description": "주문 재시도 횟수",
+    "tag": "order"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ORDER",
+    "key": "ORDER_SLIPPAGE_PCT_SCALP",
+    "value": "0.0005",
+    "description": "슬리피지",
+    "tag": "order"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ORDER",
+    "key": "ORDER_SLIPPAGE_PCT_SWING",
+    "value": "0.001",
+    "description": "슬리피지",
+    "tag": "order"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "PERFORMANCE",
+    "key": "PRICE_REFRESH_INTERVAL_SCALP",
+    "value": "0.5",
+    "description": "가격 갱신 주기",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "PERFORMANCE",
+    "key": "PRICE_REFRESH_INTERVAL_SWING",
+    "value": "30",
+    "description": "가격 갱신 주기",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SYSTEM",
+    "key": "RESET_START_TIME",
+    "value": "1e-07",
+    "description": "기준 시간",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SYSTEM",
+    "key": "TRADING_HOLIDAYS",
+    "value": "1",
+    "description": "휴장일 감지",
+    "tag": "system"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "LOOP",
+    "key": "INTERVAL_MS",
+    "value": "1000",
+    "description": "ETEDA 루프 실행 주기 (ms)",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "LOOP",
+    "key": "ERROR_BACKOFF_MS",
+    "value": "5000",
+    "description": "에러 발생 시 백오프 대기 시간 (ms)",
+    "tag": "performance"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "LOOP",
+    "key": "ERROR_BACKOFF_MAX_RETRIES",
+    "value": "3",
+    "description": "연속 에러 허용 횟수",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "EXECUTION",
+    "key": "RUN_MODE",
+    "value": "PAPER",
+    "description": "실행 모드 (PAPER/LIVE)",
+    "tag": "execution"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "EXECUTION",
+    "key": "LIVE_ENABLED",
+    "value": "0",
+    "description": "LIVE 실행 허용 여부 (0/1)",
+    "tag": "execution"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "SAFETY",
+    "key": "PIPELINE_PAUSED",
+    "value": "0",
+    "description": "파이프라인 일시정지 여부 (0/1)",
+    "tag": "safety"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "EXECUTION",
+    "key": "trading_enabled",
+    "value": "1",
+    "description": "거래 활성화 여부 (0/1)",
+    "tag": "execution"
+  }
+]
