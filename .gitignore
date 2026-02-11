@@ -145,6 +145,14 @@ tmpclaude*/
 tmpclaude-*
 nul
 agent-transcripts/
+.bkit-*
+bkit-*
+.pdca-*
+pdca-*
+CLAUDE.md
+.bkit/
+**/agent-*
+agent-state.json
 
 # ------------------------------------------------------------
 # [Additional Security] 추가 보안 규칙

@@ -54,3 +54,7 @@ def pytest_configure(config):
         "markers",
         "real_broker: mark test as real broker smoke (opt-in; run with -m real_broker or env QTS_RUN_REAL_BROKER=1)",
     )
+    config.addinivalue_line("markers", "unit: pure unit tests (no external dependencies)")
+    config.addinivalue_line("markers", "integration: tests requiring external services or multi-component interaction")
+    config.addinivalue_line("markers", "api: tests requiring API endpoints")
+    config.addinivalue_line("markers", "slow: tests that take significant time to run")

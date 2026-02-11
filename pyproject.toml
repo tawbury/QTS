@@ -1,0 +1,23 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: pure unit tests (no external dependencies)",
+    "integration: tests requiring external services or multi-component interaction",
+    "api: tests requiring API endpoints",
+    "slow: tests that take significant time to run",
+    "live_sheets: tests requiring real Google Sheets API",
+    "real_broker: real broker smoke tests (opt-in)",
+]
+asyncio_mode = "strict"
+
+[tool.coverage.run]
+source = ["src"]
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "pass",
+]
