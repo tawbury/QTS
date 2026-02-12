@@ -97,21 +97,47 @@ jobs:
           cache-to: type=gha,mode=max
 
       # 배포 레포지토리의 태그를 자동으로 업데이트하는 단계 추가
+      # GitHub Contents API 사용 (atomic 업데이트, race condition 방지)
       - name: Update Deployment Repo
+        env:
+          GH_TOKEN: ${{ secrets.oci_deploy_ghcr }}
         run: |
-          # 1. 배포 레포지토리 클론 (PAT_TOKEN 필요)
-          git clone https://x-access-token:${{ secrets.oci_deploy_ghcr }}@github.com/tawbury/deployment.git deploy-repo
-          cd deploy-repo
+          APP_NAME="qts"
+          VALUES_PATH="infra/helm/${APP_NAME}/values.yaml"
+          TAG="${{ steps.meta.outputs.tag }}"
 
-          # 2. Helm values.yaml 이미지 태그 업데이트 (Source of Truth)
-          sed -i "s/tag: build-[0-9]*-[0-9]*/tag: ${{ steps.meta.outputs.tag }}/" infra/helm/qts/values.yaml
+          # 1. 현재 파일 내용 및 SHA 가져오기
+          RESPONSE=$(curl -sf -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/tawbury/Deployment/contents/${VALUES_PATH}")
+          if [ $? -ne 0 ]; then
+            echo "::error::Failed to fetch ${VALUES_PATH} from Deployment repo"
+            exit 1
+          fi
 
-          # 3. 변경사항 커밋 및 푸시
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "chore: update qts image to ${{ steps.meta.outputs.tag }}"
-          git push origin master
+          SHA=$(echo "$RESPONSE" | jq -r '.sha')
+          CONTENT=$(echo "$RESPONSE" | jq -r '.content' | base64 -d)
+
+          # 2. 이미지 태그 치환
+          UPDATED=$(echo "$CONTENT" | sed "s/tag: build-[0-9]*-[0-9]*/tag: ${TAG}/")
+
+          if [ "$CONTENT" = "$UPDATED" ]; then
+            echo "::warning::No tag pattern found to update in ${VALUES_PATH}"
+          fi
+
+          # 3. GitHub Contents API로 업데이트 (atomic, race condition 없음)
+          ENCODED=$(echo "$UPDATED" | base64 -w 0)
+          HTTP_CODE=$(curl -s -o /tmp/api_response.json -w "%{http_code}" \
+            -X PUT -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/tawbury/Deployment/contents/${VALUES_PATH}" \
+            -d "{\"message\":\"chore: update ${APP_NAME} image to ${TAG}\",\"content\":\"${ENCODED}\",\"sha\":\"${SHA}\"}")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Failed to update ${VALUES_PATH} (HTTP ${HTTP_CODE})"
+            cat /tmp/api_response.json
+            exit 1
+          fi
+
+          echo "Successfully updated ${APP_NAME} image tag to ${TAG}"
 
       - name: Summary
         run: |
