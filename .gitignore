@@ -127,7 +127,7 @@ reports/schema/**/*.md
 !config/local/dividend_db.json
 
 # 문서/도구용 JSON 허용 (선제 방어)
-!docs/**/*.json
+
 !tools/ops/**/*.json
 
 # ------------------------------------------------------------
