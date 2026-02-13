@@ -127,7 +127,8 @@ class TestSafetyBlockedExecution:
 class TestEmergencyEscapeIntegration:
     """Emergency Escape 통합."""
 
-    def test_escape_from_monitoring(self):
+    @pytest.mark.asyncio
+    async def test_escape_from_monitoring(self):
         pipeline = ExecutionPipeline()
         ctx = ExecutionContext(order=_make_order())
 
@@ -170,11 +171,12 @@ class TestEmergencyEscapeIntegration:
         # 실제로는 MONITORING state에서 pipeline이 끝남
         # 이미 MONITORING 상태가 아니면 별도 transition 필요
         if ctx2.state == ExecutionState.MONITORING:
-            pipeline.run_escape(ctx2, "SAFETY_FAIL")
+            await pipeline.run_escape(ctx2, "SAFETY_FAIL")
             assert ctx2.state == ExecutionState.ESCAPED
             assert any(a.code == "FS092" for a in ctx2.alerts)
 
-    def test_escape_cancels_pending(self):
+    @pytest.mark.asyncio
+    async def test_escape_cancels_pending(self):
         pipeline = ExecutionPipeline()
         ctx = ExecutionContext(order=_make_order())
         pipeline.run_precheck(ctx, available_capital=Decimal("10000000"))
@@ -189,7 +191,7 @@ class TestEmergencyEscapeIntegration:
 
         # 이제 MONITORING이 아닌 상태를 처리
         if can_transition(ctx.state, ExecutionState.ESCAPING):
-            pipeline.run_escape(ctx, "TIME_LIMIT")
+            await pipeline.run_escape(ctx, "TIME_LIMIT")
             assert ctx.state == ExecutionState.ESCAPED
             assert all(
                 s.status == SplitOrderStatus.CANCELLED

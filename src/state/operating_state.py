@@ -5,15 +5,19 @@
 - Hysteresis (최소 유지 시간, 쿨다운, 2-cycle 확인)
 - 수동 오버라이드 (7일 자동 만료)
 - Safety State와 직교적 관계 (Safety > Operating)
+- 상태 영속성: JSON 파일 저장/복구, JSONL 전환 이력
 """
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from src.safety.state import SafetyState
+from src.shared.paths import data_dir
 from src.state.contracts import (
     ManualOverride,
     OperatingState,
@@ -55,6 +59,7 @@ class OperatingStateManager:
     def __init__(
         self,
         initial_state: OperatingState = OperatingState.BALANCED,
+        state_file: Optional[Path] = None,
     ) -> None:
         self._state = initial_state
         self._previous_state: Optional[OperatingState] = None
@@ -66,6 +71,14 @@ class OperatingStateManager:
 
         # Hysteresis: 2-cycle 확인용
         self._pending_transition: Optional[tuple[OperatingState, int]] = None
+
+        # 상태 영속성
+        self._state_file: Path = state_file or (data_dir() / "operating_state.json")
+        self._history_file: Path = self._state_file.parent / "state_history.jsonl"
+
+        # state_file이 명시적으로 지정된 경우에만 저장된 상태를 자동 복구
+        if state_file is not None:
+            self.load_state()
 
     @property
     def current_state(self) -> OperatingState:
@@ -244,6 +257,78 @@ class OperatingStateManager:
             properties=self.properties,
         )
 
+    def save_state(self) -> None:
+        """현재 상태를 JSON 파일에 저장."""
+        payload = {
+            "current_state": self._state.value,
+            "previous_state": self._previous_state.value if self._previous_state else None,
+            "transition_timestamp": (
+                self._transition_timestamp.isoformat()
+                if self._transition_timestamp
+                else None
+            ),
+            "state_entered_at": self._state_entered_at.isoformat(),
+        }
+        try:
+            self._state_file.parent.mkdir(parents=True, exist_ok=True)
+            self._state_file.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+        except OSError:
+            logger.warning("상태 파일 저장 실패: %s", self._state_file, exc_info=True)
+
+    def load_state(self) -> None:
+        """저장된 상태를 로드하여 복구.
+
+        파일이 없거나 파싱 실패 시 조용히 기본값을 유지한다.
+        """
+        if not self._state_file.exists():
+            return
+        try:
+            raw = json.loads(self._state_file.read_text(encoding="utf-8"))
+            self._state = OperatingState(raw["current_state"])
+            self._previous_state = (
+                OperatingState(raw["previous_state"])
+                if raw.get("previous_state")
+                else None
+            )
+            self._transition_timestamp = (
+                datetime.fromisoformat(raw["transition_timestamp"])
+                if raw.get("transition_timestamp")
+                else None
+            )
+            self._state_entered_at = (
+                datetime.fromisoformat(raw["state_entered_at"])
+                if raw.get("state_entered_at")
+                else self._state_entered_at
+            )
+            logger.info("저장된 운영 상태 복구: %s", self._state.value)
+        except (json.JSONDecodeError, KeyError, ValueError):
+            logger.warning(
+                "상태 파일 파싱 실패, 기본값 사용: %s", self._state_file, exc_info=True
+            )
+
+    def _log_transition(
+        self,
+        from_state: OperatingState,
+        to_state: OperatingState,
+        reason: str,
+    ) -> None:
+        """전환 이력을 JSONL 로그 파일에 기록 (append-only)."""
+        entry = {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "from_state": from_state.value,
+            "to_state": to_state.value,
+            "reason": reason,
+        }
+        try:
+            self._history_file.parent.mkdir(parents=True, exist_ok=True)
+            with self._history_file.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except OSError:
+            logger.warning("전환 이력 기록 실패: %s", self._history_file, exc_info=True)
+
     def _apply_transition(
         self, to_state: OperatingState, reason: str
     ) -> TransitionResult:
@@ -260,6 +345,11 @@ class OperatingStateManager:
         logger.info(
             "Operating state: %s → %s (%s)", prev.value, to_state.value, reason
         )
+
+        # 상태 영속성: 저장 및 이력 기록
+        self.save_state()
+        self._log_transition(prev, to_state, reason)
+
         return TransitionResult(
             from_state=prev,
             to_state=to_state,

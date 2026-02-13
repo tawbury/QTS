@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -28,6 +28,7 @@ class InMemoryAdapter(DataSourceAdapter):
         self._ledger: list[LedgerEntry] = []
         self._ohlcv: list[OHLCV] = []
         self._ticks: list[TickData] = []
+        self._execution_logs: list[dict] = []
 
     async def fetch_positions(self) -> list[Position]:
         return list(self._positions.values())
@@ -95,6 +96,46 @@ class InMemoryAdapter(DataSourceAdapter):
             for t in self._ticks
             if t.symbol == symbol and start <= t.time < end
         ]
+
+    async def store_execution_log(
+        self,
+        order_id: str,
+        symbol: str,
+        stage: str,
+        latency_ms: float,
+        success: bool,
+        error_code: Optional[str] = None,
+    ) -> bool:
+        """실행 로그 저장."""
+        self._execution_logs.append({
+            "time": datetime.now(timezone.utc),
+            "order_id": order_id,
+            "symbol": symbol,
+            "stage": stage,
+            "latency_ms": latency_ms,
+            "success": success,
+            "error_code": error_code,
+        })
+        return True
+
+    async def fetch_execution_logs(
+        self,
+        *,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        order_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> list[dict]:
+        """실행 로그 조회."""
+        logs = self._execution_logs
+        if order_id:
+            logs = [log for log in logs if log["order_id"] == order_id]
+        if start:
+            logs = [log for log in logs if log["time"] >= start]
+        if end:
+            logs = [log for log in logs if log["time"] < end]
+        logs = sorted(logs, key=lambda x: x["time"], reverse=True)
+        return logs[:limit]
 
     async def health_check(self) -> HealthStatus:
         start = time.monotonic()

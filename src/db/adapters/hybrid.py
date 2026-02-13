@@ -110,6 +110,41 @@ class HybridAdapter(DataSourceAdapter):
             logger.warning("Primary fetch_tick_data failed: %s, fallback", e)
             return await self._secondary.fetch_tick_data(symbol, start, end)
 
+    async def store_execution_log(
+        self,
+        order_id: str,
+        symbol: str,
+        stage: str,
+        latency_ms: float,
+        success: bool,
+        error_code: Optional[str] = None,
+    ) -> bool:
+        """실행 로그 저장 — primary에 위임."""
+        return await self._primary.store_execution_log(
+            order_id, symbol, stage, latency_ms, success, error_code
+        )
+
+    async def fetch_execution_logs(
+        self,
+        *,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        order_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> list[dict]:
+        """실행 로그 조회 — primary 우선, 실패 시 secondary fallback."""
+        try:
+            return await self._primary.fetch_execution_logs(
+                start=start, end=end, order_id=order_id, limit=limit
+            )
+        except Exception as e:
+            logger.warning(
+                "Primary fetch_execution_logs failed: %s, fallback", e
+            )
+            return await self._secondary.fetch_execution_logs(
+                start=start, end=end, order_id=order_id, limit=limit
+            )
+
     async def health_check(self) -> HealthStatus:
         start = time.monotonic()
         p = await self._primary.health_check()

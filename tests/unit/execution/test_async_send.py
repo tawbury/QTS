@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from src.execution.contracts import OrderAck, SplitOrder, SplitOrderStatus
+from src.execution.contracts import CancelAck, ModifyAck, OrderAck, SplitOrder, SplitOrderStatus
 from src.execution.stages.async_send import AsyncSendStage
 from src.provider.models.order_request import OrderSide, OrderType
 
@@ -26,7 +26,10 @@ class MockBroker:
         return OrderAck(accepted=True, order_id=f"ORD-{self.call_count}")
 
     async def cancel_order(self, order_id):
-        return True
+        return CancelAck(accepted=True, order_id=order_id)
+
+    async def modify_order(self, order_id, *, new_price=None, new_qty=None):
+        return ModifyAck(accepted=True, order_id=order_id)
 
 
 class FailBroker:
@@ -36,7 +39,10 @@ class FailBroker:
         raise ConnectionError("broker down")
 
     async def cancel_order(self, order_id):
-        return False
+        return CancelAck(accepted=False, order_id=order_id, reject_reason="broker down")
+
+    async def modify_order(self, order_id, *, new_price=None, new_qty=None):
+        return ModifyAck(accepted=False, order_id=order_id, reject_reason="broker down")
 
 
 def _make_split(qty=100, seq=1) -> SplitOrder:

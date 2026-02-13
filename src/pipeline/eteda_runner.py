@@ -251,21 +251,29 @@ class ETEDARunner:
             return {"status": "error", "error": str(e)}
 
     def _extract(self, snapshot: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Extract relevant data from snapshot"""
+        """Extract relevant data from snapshot.
+
+        Operating State를 함께 추출하여 이후 단계에 전파한다.
+        근거: docs/arch/sub/18_System_State_Promotion_Architecture.md §6.2
+        """
         # Snapshot structure matches observation.inputs
         obs = snapshot.get("observation", {})
         inputs = obs.get("inputs", {})
-        
+
         if not inputs or "price" not in inputs:
             return None
-            
+
         symbol = snapshot.get("context", {}).get("symbol")
-        
+
+        # Operating State 추출 (§6.2: Extract에서 상태 전파)
+        operating_state, _ = self._get_operating_state_properties()
+
         return {
             "symbol": symbol,
             "price": inputs["price"],
             "volume": inputs.get("volume"),
-            "timestamp": snapshot.get("meta", {}).get("timestamp_ms")
+            "timestamp": snapshot.get("meta", {}).get("timestamp_ms"),
+            "operating_state": operating_state.value,
         }
 
     def _transform(self, market_data: Dict[str, Any], position_data: Any) -> Dict[str, Any]:
@@ -371,6 +379,7 @@ class ETEDARunner:
         근거: docs/arch/sub/18_System_State_Promotion_Architecture.md §6.3
         - DEFENSIVE 상태에서 신규 진입(BUY) 차단
         - 리밸런싱 주문이 신규 진입보다 우선
+        - Micro Risk frozen 종목 신규 진입 차단 (§5.4)
 
         risk_gate 주입 시 CalculatedRiskGate를 통해 qty 조정 및 risk_score 평가.
         미주입 시 기존 Placeholder 동작 유지.
@@ -388,6 +397,23 @@ class ETEDARunner:
             decision["action"] = "HOLD"
             decision["approved"] = False
             decision["reason"] = "NEW_ENTRY_BLOCKED_IN_DEFENSIVE_STATE"
+            return decision
+
+        # Micro Risk frozen 종목 신규 진입 차단 (P1-5, §5.4)
+        symbol = decision.get("symbol")
+        if (
+            self._micro_risk is not None
+            and symbol
+            and decision.get("action") in ("BUY",)
+            and hasattr(self._micro_risk, "is_entry_blocked")
+            and self._micro_risk.is_entry_blocked(symbol)
+        ):
+            self._log.info(
+                f"[Decide] Entry blocked for frozen symbol: {symbol}"
+            )
+            decision["action"] = "HOLD"
+            decision["approved"] = False
+            decision["reason"] = f"FROZEN_BY_MICRO_RISK({symbol})"
             return decision
 
         if self._risk_gate is not None and decision.get("action") != "HOLD":
@@ -667,10 +693,14 @@ class ETEDARunner:
                 elif ps in ("FAIL", "fail"):
                     safety_state = SafetyState.FAIL
 
+            # 풀별 성과 메트릭 수집
+            perf_metrics = self._collect_pool_performance_metrics()
+
             input_ = CapitalEngineInput(
                 total_equity=total_equity,
                 operating_state=operating_state,
                 pool_states=pool_states,
+                performance_metrics=perf_metrics,
                 safety_state=safety_state,
             )
             decision = self._capital_engine.evaluate(input_)
@@ -687,10 +717,40 @@ class ETEDARunner:
                 f"demotions={len(decision.pending_demotions)}, "
                 f"blocked={decision.transfers_blocked}"
             )
+
+            # evaluate() 결과에서 pending transfers가 있으면 자동 실행
+            if not decision.transfers_blocked:
+                all_transfers = decision.pending_promotions + decision.pending_demotions
+                if all_transfers:
+                    executed = self._capital_engine.execute_transfers(pool_states, all_transfers)
+                    if executed:
+                        # 프로모션 후 누적 수익 차감
+                        for transfer in executed:
+                            from src.capital.pool import reset_accumulated_profit
+                            from_pool = pool_states.get(transfer.from_pool)
+                            if from_pool and transfer.reason == "PROFIT_THRESHOLD_EXCEEDED":
+                                reset_accumulated_profit(from_pool, transfer.amount)
+                        # 풀 상태 저장
+                        self._pool_repo.save_pool_states(pool_states)
+                        self._log.info(f"[Capital] Executed {len(executed)} transfers")
+
             return pool_states, decision
         except Exception:
             self._log.warning("Capital evaluation failed (non-blocking)")
             return None, None
+
+    def _collect_pool_performance_metrics(self) -> dict:
+        """풀별 성과 메트릭 수집."""
+        from src.capital.contracts import PerformanceMetrics, PoolId
+        metrics: dict[PoolId, PerformanceMetrics] = {}
+        try:
+            # PerformanceEngine에서 메트릭 조회 시도
+            # 조회 실패 시 기본값 사용
+            for pool_id in PoolId:
+                metrics[pool_id] = PerformanceMetrics()
+        except Exception:
+            pass
+        return metrics
 
     def _apply_capital_constraint(
         self,

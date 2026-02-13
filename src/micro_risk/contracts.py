@@ -214,6 +214,7 @@ class MicroRiskConfig:
     mae: MAEConfig = field(default_factory=MAEConfig)
     time_in_trade: TimeInTradeConfig = field(default_factory=TimeInTradeConfig)
     volatility: VolatilityKillSwitchConfig = field(default_factory=VolatilityKillSwitchConfig)
+    account_mae_threshold_pct: Decimal = Decimal("0.03")
 
 
 # --- MicroRiskAlert ---

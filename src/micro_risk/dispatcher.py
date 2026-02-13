@@ -112,6 +112,25 @@ class ActionDispatcher:
     def frozen_symbols(self) -> frozenset[str]:
         return frozenset(self._frozen_symbols)
 
+    def is_entry_blocked(self, symbol: str) -> bool:
+        """ETEDA 신규 진입 차단 여부 확인.
+
+        frozen_symbols에 포함된 종목은 신규 매수 진입 불가.
+        근거: docs/arch/sub/16_Micro_Risk_Loop_Architecture.md §5.4
+        """
+        return symbol in self._frozen_symbols
+
+    def unfreeze(self, symbol: str) -> bool:
+        """포지션 동결 해제.
+
+        Returns:
+            해제 성공 여부 (이미 해제된 경우 False)
+        """
+        if symbol in self._frozen_symbols:
+            self._frozen_symbols.discard(symbol)
+            return True
+        return False
+
     def dispatch(self, action: MicroRiskAction) -> list[MicroRiskAlert]:
         """액션 디스패치."""
         self._dispatch_log.append(action)

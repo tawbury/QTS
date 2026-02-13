@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import Any, Optional
 
 from src.micro_risk.contracts import (
@@ -57,6 +58,7 @@ class MicroRiskLoop:
         self._consecutive_errors = 0
         self._cycle_count = 0
         self._alerts_log: list[MicroRiskAlert] = []
+        self._total_equity: Decimal = Decimal("0")
 
     @property
     def is_running(self) -> bool:
@@ -96,6 +98,10 @@ class MicroRiskLoop:
         """메인 포지션 동기화."""
         return self.shadow_manager.sync_from_main(main_positions)
 
+    def set_total_equity(self, total_equity: Decimal) -> None:
+        """계정 총 자산 설정 (계정 수준 MAE 평가용)."""
+        self._total_equity = total_equity
+
     def run_cycle(self, market_data: Optional[MarketData] = None) -> list[MicroRiskAlert]:
         """단일 사이클 실행 (테스트 가능한 동기식).
 
@@ -125,6 +131,19 @@ class MicroRiskLoop:
                     dispatch_alerts = self.dispatcher.dispatch(action)
                     alerts.extend(dispatch_alerts)
 
+            # 4. 계정 수준 MAE 평가 (P1-6)
+            if self._total_equity > 0:
+                active_shadows = [
+                    s for _, s in self.shadow_manager.items() if s.qty != 0
+                ]
+                if active_shadows:
+                    account_action = self.evaluator.evaluate_account_mae(
+                        active_shadows, self._total_equity,
+                    )
+                    if account_action is not None:
+                        dispatch_alerts = self.dispatcher.dispatch(account_action)
+                        alerts.extend(dispatch_alerts)
+
             self._consecutive_errors = 0
             self._cycle_count += 1
 
@@ -148,6 +167,13 @@ class MicroRiskLoop:
 
         self._alerts_log.extend(alerts)
         return alerts
+
+    def is_entry_blocked(self, symbol: str) -> bool:
+        """ETEDA 신규 진입 차단 여부 확인 (frozen 종목).
+
+        근거: docs/arch/sub/16_Micro_Risk_Loop_Architecture.md §5.4
+        """
+        return self.dispatcher.is_entry_blocked(symbol)
 
     def get_position_summary(self) -> dict[str, dict]:
         """모니터링 중인 포지션 요약."""

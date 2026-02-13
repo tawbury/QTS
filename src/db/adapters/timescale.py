@@ -235,6 +235,81 @@ class TimescaleDBAdapter(DataSourceAdapter):
             for r in rows
         ]
 
+    async def store_execution_log(
+        self,
+        order_id: str,
+        symbol: str,
+        stage: str,
+        latency_ms: float,
+        success: bool,
+        error_code: Optional[str] = None,
+    ) -> bool:
+        """실행 로그 저장."""
+        self._ensure_pool()
+        await self._pool.execute(
+            """INSERT INTO execution_logs
+            (time, order_id, symbol, stage, latency_ms, success, error_code)
+            VALUES (NOW(), $1, $2, $3, $4, $5, $6)""",
+            order_id,
+            symbol,
+            stage,
+            latency_ms,
+            success,
+            error_code,
+        )
+        return True
+
+    async def fetch_execution_logs(
+        self,
+        *,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        order_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> list[dict]:
+        """실행 로그 조회."""
+        self._ensure_pool()
+        conditions: list[str] = []
+        params: list[Any] = []
+        idx = 1
+        if start:
+            conditions.append(f"time >= ${idx}")
+            params.append(start)
+            idx += 1
+        if end:
+            conditions.append(f"time < ${idx}")
+            params.append(end)
+            idx += 1
+        if order_id:
+            conditions.append(f"order_id = ${idx}")
+            params.append(order_id)
+            idx += 1
+        where = " AND ".join(conditions) if conditions else "TRUE"
+        rows = await self._pool.fetch(
+            f"SELECT * FROM execution_logs WHERE {where} "
+            f"ORDER BY time DESC LIMIT {limit}",
+            *params,
+        )
+        return [dict(r) for r in rows]
+
+    async def initialize_retention_policies(self) -> None:
+        """보존 정책 초기화."""
+        self._ensure_pool()
+        policies = {
+            "tick_data": "7 days",
+            "execution_logs": "90 days",
+        }
+        for table, interval in policies.items():
+            try:
+                await self._pool.execute(
+                    f"SELECT add_retention_policy('{table}', "
+                    f"INTERVAL '{interval}', if_not_exists => TRUE);"
+                )
+            except Exception:
+                logger.warning(
+                    "Failed to add retention policy for %s", table
+                )
+
     async def health_check(self) -> HealthStatus:
         if self._pool is None:
             return HealthStatus(

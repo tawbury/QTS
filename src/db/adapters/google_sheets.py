@@ -136,6 +136,33 @@ class GoogleSheetsAdapter(DataSourceAdapter):
             "Google Sheets does not support tick data"
         )
 
+    async def store_execution_log(
+        self,
+        order_id: str,
+        symbol: str,
+        stage: str,
+        latency_ms: float,
+        success: bool,
+        error_code: Optional[str] = None,
+    ) -> bool:
+        """실행 로그 저장 — Google Sheets 미지원."""
+        raise NotImplementedError(
+            "Google Sheets does not support execution logs"
+        )
+
+    async def fetch_execution_logs(
+        self,
+        *,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        order_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> list[dict]:
+        """실행 로그 조회 — Google Sheets 미지원."""
+        raise NotImplementedError(
+            "Google Sheets does not support execution logs"
+        )
+
     async def health_check(self) -> HealthStatus:
         start_t = time.monotonic()
         try:

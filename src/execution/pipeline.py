@@ -38,12 +38,13 @@ class ExecutionPipeline:
         self,
         split_config: Optional[SplitConfig] = None,
         slippage_config: Optional[SlippageConfig] = None,
+        broker_adapter: Optional[object] = None,
     ) -> None:
         self.precheck = PreCheckStage()
         self.splitter = OrderSplitStage(split_config)
         self.fill_monitor = FillMonitorStage()
         self.adjuster = AdaptiveAdjustStage(slippage_config)
-        self.escape = EmergencyEscapeStage()
+        self.escape = EmergencyEscapeStage(broker_adapter=broker_adapter)
 
     def run_precheck(
         self,
@@ -146,11 +147,11 @@ class ExecutionPipeline:
 
         return True
 
-    def run_escape(self, ctx: ExecutionContext, reason: str) -> None:
+    async def run_escape(self, ctx: ExecutionContext, reason: str) -> None:
         """Stage 6: Emergency Escape."""
         transition(ctx, ExecutionState.ESCAPING)
 
-        result, alerts = self.escape.execute(ctx, reason)
+        result, alerts = await self.escape.execute(ctx, reason)
         ctx.alerts.extend(alerts)
 
         transition(ctx, ExecutionState.ESCAPED)

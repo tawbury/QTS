@@ -20,6 +20,7 @@ from src.event.contracts import (
     EventPriority,
 )
 from src.event.handlers import EventHandler
+from src.event.latency import LatencyTracker
 from src.event.queue import EventQueue, create_queue
 from src.safety.state import SafetyState
 
@@ -75,6 +76,8 @@ class EventDispatcher:
         self._tasks: list[asyncio.Task[None]] = []
         self._dispatch_count: int = 0
         self._reject_count: int = 0
+        self._dead_letter: list[Event] = []
+        self._latency_tracker = LatencyTracker()
 
         # 큐 초기화
         for priority, qc in self._config.queue_configs.items():
@@ -95,6 +98,14 @@ class EventDispatcher:
     @property
     def reject_count(self) -> int:
         return self._reject_count
+
+    @property
+    def dead_letter_queue(self) -> list[Event]:
+        return self._dead_letter
+
+    @property
+    def latency_tracker(self) -> LatencyTracker:
+        return self._latency_tracker
 
     def set_degradation_level(self, level: DegradationLevel) -> None:
         """성능 저하 레벨 수동 설정."""
@@ -177,6 +188,13 @@ class EventDispatcher:
                 name="event-consumer-p3",
             )
         )
+        # 백프레셔 모니터
+        self._tasks.append(
+            asyncio.create_task(
+                self._monitor_backpressure(),
+                name="event-backpressure-monitor",
+            )
+        )
 
     async def stop(self) -> None:
         """디스패처 중지 (graceful shutdown)."""
@@ -207,6 +225,13 @@ class EventDispatcher:
                 await asyncio.sleep(0.5)
                 continue
 
+            # P0 양보: P0보다 낮은 우선순위는 P0 큐가 비었을 때만 처리
+            if priority.value > 0:  # P1, P2, P3
+                p0_queue = self._queues.get(EventPriority.P0_CRITICAL)
+                if p0_queue is not None and p0_queue.size() > 0:
+                    await asyncio.sleep(0.001)
+                    continue
+
             events = await queue.get_batch(
                 max_count=qc.batch_size,
                 timeout_ms=qc.batch_timeout_ms or 100,
@@ -216,23 +241,33 @@ class EventDispatcher:
             await self._handle_batch(priority, events)
 
     async def _handle_event(
-        self, priority: EventPriority, event: Event
+        self, priority: EventPriority, event: Event, max_retries: int = 3
     ) -> None:
-        """단일 이벤트를 등록된 핸들러들에게 전달."""
+        """단일 이벤트를 등록된 핸들러들에게 전달 (재시도 포함)."""
+        start_time = time.monotonic()
         for handler in self._handlers[priority]:
-            try:
-                await handler.handle(event)
-            except Exception:
-                logger.exception(
-                    "Handler error: priority=%s event=%s",
-                    priority.name,
-                    event.event_type.value,
-                )
+            for attempt in range(max_retries):
+                try:
+                    await handler.handle(event)
+                    break
+                except Exception:
+                    if attempt == max_retries - 1:
+                        self._dead_letter.append(event)
+                        logger.error(
+                            "Event %s failed after %d retries, sent to DLQ",
+                            event.event_id,
+                            max_retries,
+                        )
+                    else:
+                        await asyncio.sleep(0.01 * (attempt + 1))
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+        self._latency_tracker.record(priority.value, elapsed_ms)
 
     async def _handle_batch(
         self, priority: EventPriority, events: list[Event]
     ) -> None:
         """배치 이벤트를 등록된 핸들러들에게 전달."""
+        start_time = time.monotonic()
         for handler in self._handlers[priority]:
             try:
                 await handler.handle_batch(events)
@@ -242,6 +277,29 @@ class EventDispatcher:
                     priority.name,
                     len(events),
                 )
+        elapsed_ms = (time.monotonic() - start_time) * 1000
+        for _ in events:
+            self._latency_tracker.record(priority.value, elapsed_ms / len(events))
+
+    async def _monitor_backpressure(self) -> None:
+        """큐 백프레셔 모니터링."""
+        while self._running:
+            for priority, queue in self._queues.items():
+                utilization = queue.utilization()
+                # 높은 사용률 경고
+                if utilization > 0.9:
+                    logger.warning(
+                        "Queue %s critical: %.1f%% full",
+                        priority.name,
+                        utilization * 100,
+                    )
+                elif utilization > 0.7:
+                    logger.info(
+                        "Queue %s warning: %.1f%% full",
+                        priority.name,
+                        utilization * 100,
+                    )
+            await asyncio.sleep(1.0)
 
     def queue_stats(self) -> dict[str, dict[str, int | float]]:
         """큐 상태 통계."""

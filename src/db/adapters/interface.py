@@ -72,5 +72,30 @@ class DataSourceAdapter(ABC):
         """틱 데이터 조회."""
 
     @abstractmethod
+    async def store_execution_log(
+        self,
+        order_id: str,
+        symbol: str,
+        stage: str,
+        latency_ms: float,
+        success: bool,
+        error_code: Optional[str] = None,
+    ) -> bool:
+        """실행 로그 저장."""
+        ...
+
+    @abstractmethod
+    async def fetch_execution_logs(
+        self,
+        *,
+        start: Optional[datetime] = None,
+        end: Optional[datetime] = None,
+        order_id: Optional[str] = None,
+        limit: int = 1000,
+    ) -> list[dict]:
+        """실행 로그 조회."""
+        ...
+
+    @abstractmethod
     async def health_check(self) -> HealthStatus:
         """데이터 소스 상태 확인."""

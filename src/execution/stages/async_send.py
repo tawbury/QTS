@@ -4,7 +4,9 @@ from __future__ import annotations
 from typing import Protocol, runtime_checkable
 
 from src.execution.contracts import (
+    CancelAck,
     ExecutionAlert,
+    ModifyAck,
     OrderAck,
     SendResult,
     SplitOrder,
@@ -20,7 +22,15 @@ class AsyncBrokerProtocol(Protocol):
         self, symbol: str, side: str, qty: int, price: float | None, order_type: str
     ) -> OrderAck: ...
 
-    async def cancel_order(self, order_id: str) -> bool: ...
+    async def cancel_order(self, order_id: str) -> CancelAck: ...
+
+    async def modify_order(
+        self,
+        order_id: str,
+        *,
+        new_price: float | None = None,
+        new_qty: int | None = None,
+    ) -> ModifyAck: ...
 
 
 class AsyncSendStage:
