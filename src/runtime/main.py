@@ -37,7 +37,7 @@ from src.pipeline.loop.eteda_loop import run_eteda_loop
 from src.observer_client.factory import create_observer_client
 
 # shared imports
-from src.shared.paths import get_project_root
+from src.shared.paths import data_dir, get_project_root
 from src.shared.timezone_utils import get_kst_now
 
 
@@ -208,7 +208,7 @@ def _create_production_runner(
     from src.feedback.sheet_adapter import JsonlFeedbackDB
 
     feedback_db = JsonlFeedbackDB(
-        storage_path=project_root / "data" / "feedback" / "feedback_log.jsonl"
+        storage_path=data_dir() / "feedback" / "feedback_log.jsonl"
     )
     feedback_agg = FeedbackAggregator(db=feedback_db)
     _LOG.info("Feedback loop initialized (JSONL storage)")
@@ -218,7 +218,7 @@ def _create_production_runner(
     from src.capital.pool_repository import CapitalPoolRepository
 
     capital_pool_repo = CapitalPoolRepository(
-        storage_path=project_root / "data" / "capital" / "pool_states.jsonl"
+        storage_path=data_dir() / "capital" / "pool_states.jsonl"
     )
     capital_engine = CapitalEngine()
     _LOG.info("Capital Engine initialized (JSONL storage)")
