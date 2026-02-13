@@ -271,6 +271,8 @@ class ETEDARunner:
                 }
                 self._log.info(f"[{gate.mode.value}] Act result: {out}")
                 self._trade_recorder.record_trade(out)
+                # Google Sheets T_Ledger 기록 (실패해도 매매 결과에 영향 없음)
+                await self._record_to_sheets(out, decision)
                 return out
             except Exception as e:
                 self._log.exception("Act submit_intent failed: %s", e)
@@ -278,4 +280,30 @@ class ETEDARunner:
 
         # broker 미주입: 기존 동작(로그만, Contract 없음)
         self._log.info(f"[{gate.mode.value}] Action: {action}, Symbol: {decision.get('symbol')}")
-        return {"status": "executed", "mode": gate.mode.value, "details": decision}
+        out = {"status": "executed", "mode": gate.mode.value, "details": decision}
+        # Google Sheets T_Ledger 기록 (broker 미주입 시에도 기록)
+        await self._record_to_sheets(out, decision)
+        return out
+
+    async def _record_to_sheets(self, act_result: Dict[str, Any], decision: Dict[str, Any]) -> None:
+        """
+        Act 결과를 Google Sheets T_Ledger에 기록.
+
+        시트 기록 실패 시에도 매매 결과에 영향을 주지 않도록 에러 격리.
+        """
+        try:
+            trade_data = {
+                "timestamp": act_result.get("timestamp"),
+                "symbol": decision.get("symbol", ""),
+                "side": decision.get("action", ""),
+                "qty": decision.get("qty") or decision.get("final_qty", ""),
+                "price": decision.get("price", ""),
+                "intent_id": act_result.get("intent_id", ""),
+                "broker": act_result.get("broker", ""),
+                "strategy": decision.get("strategy", ""),
+                "mode": act_result.get("mode", ""),
+            }
+            await self._t_ledger_repo.append_trade(trade_data)
+            self._log.info(f"Recorded trade to T_Ledger sheet: {trade_data.get('intent_id', 'N/A')}")
+        except Exception as e:
+            self._log.warning(f"Failed to record trade to T_Ledger sheet (non-fatal): {e}")
