@@ -169,6 +169,15 @@ def _create_production_runner(
                 acnt_prdt_cd=broker_config.acnt_prdt_cd,
                 trading_mode=broker_config.trading_mode
             )
+        elif broker_type == "kiwoom":
+            from src.provider.clients.broker.kiwoom.kiwoom_client import KiwoomClient
+            client = KiwoomClient(
+                app_key=broker_config.app_key,
+                app_secret=broker_config.app_secret,
+                base_url=broker_config.base_url,
+                account_no=broker_config.account_no,
+                acnt_prdt_cd=broker_config.acnt_prdt_cd,
+            )
 
         adapter = get_broker(
             broker_type, 
@@ -186,12 +195,11 @@ def _create_production_runner(
             _LOG.info("PAPER TRADING MODE - Orders will be simulated")
 
     # Safety Layer (Safety Hook)
-    kill_switch_enabled = config.get_flat("safety.kill_switch_enabled") or False
-    safe_mode_enabled = config.get_flat("safety.safe_mode_enabled") or False  # Assuming this key exists or defaulting False
-    
+    # KS_ENABLED / FAILSAFE_ENABLED = "true"는 기능 활성화 의미 (거래 차단이 아님)
+    # 기본 상태: kill_switch=False (정상 동작), 런타임 SafetyStateManager가 상태 전이 관리
     safety_hook = SafetyLayer(
-        kill_switch=bool(kill_switch_enabled),
-        safe_mode=bool(safe_mode_enabled)
+        kill_switch=False,
+        safe_mode=False,
     )
 
     # Runner 생성

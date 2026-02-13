@@ -226,11 +226,13 @@ class ETEDARunner:
         # Guard/Fail-Safe 연계: Config로 Act 비활성화 시 run_once 없이 skip
         if self._config.get_flat("trading_enabled") in ("0", "false", "False"):
             return {"status": "skipped", "reason": "trading_enabled=False"}
-        if self._config.get_flat("KILLSWITCH_STATUS") in ("ON", "ACTIVE", "1", "true"):
+        ks_val = str(self._config.get_flat("KS_ENABLED", "false")).lower()
+        if ks_val in ("on", "active"):
             return {"status": "skipped", "reason": "kill_switch"}
         if self._config.get_flat("PIPELINE_PAUSED") in ("1", "true", "True"):
             return {"status": "skipped", "reason": "pipeline_paused"}
-        if self._config.get_flat("safe_mode") in ("1", "true", "True"):
+        failsafe_val = str(self._config.get_flat("FAILSAFE_ENABLED", "false")).lower()
+        if failsafe_val in ("active", "on"):
             return {"status": "skipped", "reason": "safe_mode"}
 
         gate = decide_execution_mode(

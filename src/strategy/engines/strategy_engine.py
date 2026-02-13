@@ -76,6 +76,31 @@ class StrategyEngine(BaseEngine):
             self._update_state(self.state.is_running, error=str(e))
             return {"success": False, "error": str(e), "execution_time": execution_time}
 
+    def _get_target_symbols(self) -> set:
+        """VTS 검증 대상 종목 목록 반환"""
+        raw = self.config.get_flat("VTS_TARGET_SYMBOLS", "005930")
+        return set(s.strip() for s in raw.split(",") if s.strip())
+
+    def _calculate_buy_qty(self, price: float) -> int:
+        """기준 자산 대비 1% 한도로 매수 수량 계산"""
+        if price <= 0:
+            return 0
+        base_equity = float(self.config.get_flat("BASE_EQUITY", "10000000"))
+        max_per_stock = base_equity * 0.01
+        return max(1, int(max_per_stock / price))
+
+    def _hold_signal(self, symbol: str, price: float, market_data: Dict[str, Any], reason: str) -> Dict[str, Any]:
+        """HOLD 신호 생성 헬퍼"""
+        return {
+            'symbol': symbol,
+            'action': 'HOLD',
+            'qty': 0,
+            'weight': 0.0,
+            'price': price,
+            'timestamp': market_data.get('timestamp'),
+            'reason': reason,
+        }
+
     def calculate_signal(self, market_data: Dict[str, Any], position_data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Calculate trading signal
@@ -87,25 +112,31 @@ class StrategyEngine(BaseEngine):
         Returns:
             Dict[str, Any]: Signal dictionary (e.g., {'action': 'BUY', 'qty': 10, 'reason': 'RSI < 30'})
         """
-        # Placeholder logic for Phase 5 initial implementation
-        # In a real scenario, this would load a specific Strategy class based on Config
-
-        # Example: Simple Random/Pass-through logic for testing
         symbol = market_data.get('symbol')
         price_val = market_data.get('price', 0.0)
         close_price = float(price_val.get('close', 0.0)) if isinstance(price_val, dict) else float(price_val or 0.0)
 
-        # position_data가 dict가 아니면 빈 dict로 처리
         pos = position_data if isinstance(position_data, dict) else {}
         current_qty = pos.get('quantity', 0) if pos else 0
 
-        # Default: HOLD (실제 전략 구현 시 여기를 교체)
-        return {
-            'symbol': symbol,
-            'action': 'HOLD',
-            'qty': 0,
-            'weight': 0.0,
-            'price': close_price,
-            'timestamp': market_data.get('timestamp'),
-            'reason': 'Default HOLD (no strategy loaded)'
-        }
+        # VTS 검증용: 목표 종목 필터
+        target_symbols = self._get_target_symbols()
+        if symbol not in target_symbols:
+            return self._hold_signal(symbol, close_price, market_data, 'Not in target list')
+
+        # 포지션 없으면 BUY (VTS 검증 목적)
+        if current_qty == 0:
+            buy_qty = self._calculate_buy_qty(close_price)
+            if buy_qty > 0:
+                self.logger.info(f"[VTS] BUY signal: {symbol} qty={buy_qty} @ {close_price}")
+                return {
+                    'symbol': symbol,
+                    'action': 'BUY',
+                    'qty': buy_qty,
+                    'weight': 1.0,
+                    'price': close_price,
+                    'timestamp': market_data.get('timestamp'),
+                    'reason': f'VTS test: No position, buy {buy_qty} @ {close_price}',
+                }
+
+        return self._hold_signal(symbol, close_price, market_data, 'Position exists or no signal')

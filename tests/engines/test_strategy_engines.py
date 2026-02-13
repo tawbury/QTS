@@ -178,7 +178,7 @@ class TestStrategyEngine:
         })
         assert result["success"] is True
         assert result["data"]["symbol"] == "005930"
-        assert result["data"]["action"] == "HOLD"
+        assert result["data"]["action"] == "BUY"  # 005930 = VTS 목표 종목, 포지션 없음 → BUY
         assert "execution_time" in result
 
     @pytest.mark.asyncio
@@ -266,7 +266,7 @@ class TestStrategyEngine:
             {"symbol": "005930", "price": 70000},
             None,
         )
-        assert signal["action"] == "HOLD"
+        assert signal["action"] == "BUY"  # 005930 = VTS 목표 종목, 포지션 없음 → BUY
 
     def test_calculate_signal_empty_market_data(self, minimal_config):
         engine = StrategyEngine(minimal_config)
