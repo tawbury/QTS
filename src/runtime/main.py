@@ -203,6 +203,45 @@ def _create_production_runner(
         safe_mode=False,
     )
 
+    # Feedback Loop 초기화
+    from src.feedback.aggregator import FeedbackAggregator
+    from src.feedback.sheet_adapter import JsonlFeedbackDB
+
+    feedback_db = JsonlFeedbackDB(
+        storage_path=project_root / "data" / "feedback" / "feedback_log.jsonl"
+    )
+    feedback_agg = FeedbackAggregator(db=feedback_db)
+    _LOG.info("Feedback loop initialized (JSONL storage)")
+
+    # Capital Engine 초기화
+    from src.capital.engine import CapitalEngine
+    from src.capital.pool_repository import CapitalPoolRepository
+
+    capital_pool_repo = CapitalPoolRepository(
+        storage_path=project_root / "data" / "capital" / "pool_states.jsonl"
+    )
+    capital_engine = CapitalEngine()
+    _LOG.info("Capital Engine initialized (JSONL storage)")
+
+    # Micro Risk Loop 초기화 (§4.2 독립 실행)
+    from src.micro_risk.loop import MicroRiskLoop
+    from src.micro_risk.bridges import (
+        BrokerEmergencyChannel,
+        ETEDALoopController,
+        SafetyLayerNotifier,
+    )
+    from src.micro_risk.async_runner import MicroRiskLoopRunner
+
+    eteda_loop_controller = ETEDALoopController()
+
+    micro_risk_loop = MicroRiskLoop(
+        order_channel=BrokerEmergencyChannel(broker) if not local_only else None,
+        eteda_controller=eteda_loop_controller,
+        safety_notifier=SafetyLayerNotifier(safety_hook),
+    )
+    micro_risk_runner = MicroRiskLoopRunner(micro_risk_loop)
+    _LOG.info("Micro Risk Loop initialized")
+
     # Runner 생성
     runner = ETEDARunner(
         config=config,
@@ -210,6 +249,10 @@ def _create_production_runner(
         project_root=project_root,
         broker=broker,
         safety_hook=safety_hook,
+        feedback_aggregator=feedback_agg,
+        capital_engine=capital_engine,
+        capital_pool_repo=capital_pool_repo,
+        micro_risk_loop=micro_risk_loop,
     )
 
     # Snapshot Source: Observer Client를 통해 실시간 데이터 수신
@@ -222,7 +265,7 @@ def _create_production_runner(
     # should_stop 함수
     should_stop_fn = default_should_stop_from_config(config)
 
-    return runner, snapshot_source, should_stop_fn
+    return runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_loop_controller
 
 
 def preflight_check(project_root: Path, local_only: bool) -> None:
@@ -369,7 +412,7 @@ def main() -> int:
     # 6. Runner 생성
     # K8s 모드에서는 mock runner 사용 (GoogleSheetsClient 불필요)
     try:
-        runner, snapshot_source, should_stop_fn = _create_production_runner(
+        runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_ctrl = _create_production_runner(
             config=config,
             project_root=project_root,
             broker_type=args.broker,
@@ -383,21 +426,42 @@ def main() -> int:
         _LOG.error(f"Failed to create runner: {e}", exc_info=True)
         return 1
 
-    # 7. ETEDA Loop 실행
+    # 7. ETEDA Loop + Micro Risk Loop 병렬 실행
+    async def _run_parallel():
+        """ETEDA Loop와 Micro Risk Loop를 병렬 실행 (§4.1)."""
+        micro_task = micro_risk_runner.start_background()
+        _LOG.info("Micro Risk Loop started as background task")
+
+        # ETEDA should_stop: 원래 조건 + Micro Risk ETEDA 정지
+        original_stop = should_stop_fn
+        def combined_should_stop():
+            return original_stop() or eteda_ctrl.should_stop()
+
+        try:
+            await run_eteda_loop(
+                runner=runner,
+                config=config,
+                should_stop=combined_should_stop,
+                snapshot_source=snapshot_source,
+            )
+        finally:
+            micro_risk_runner.stop()
+            if not micro_task.done():
+                micro_task.cancel()
+                try:
+                    await micro_task
+                except asyncio.CancelledError:
+                    pass
+
     try:
-        _LOG.info("Starting ETEDA Loop...")
-        asyncio.run(run_eteda_loop(
-            runner=runner,
-            config=config,
-            should_stop=should_stop_fn,
-            snapshot_source=snapshot_source,
-        ))
-        _LOG.info("ETEDA Loop completed")
+        _LOG.info("Starting ETEDA Loop + Micro Risk Loop...")
+        asyncio.run(_run_parallel())
+        _LOG.info("Loops completed")
 
     except KeyboardInterrupt:
         _LOG.info("Interrupted by user (Ctrl+C)")
     except Exception as e:
-        _LOG.error(f"ETEDA Loop error: {e}", exc_info=True)
+        _LOG.error(f"Loop error: {e}", exc_info=True)
         return 1
     finally:
         # 8. Cleanup

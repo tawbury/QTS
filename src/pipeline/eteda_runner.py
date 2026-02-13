@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 import os
 import uuid
+from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -21,6 +23,41 @@ from ..db.repositories.t_ledger_repository import T_LedgerRepository
 from ..db.repositories.history_repository import HistoryRepository
 from ..db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 from ..db.trade_recorder import TradeRecorder
+from ..feedback.aggregator import FeedbackAggregator
+from ..feedback.contracts import FeedbackSummary
+from ..capital.contracts import CapitalPoolContract, PoolId
+from ..capital.engine import CapitalEngine, CapitalEngineInput, CapitalEngineOutput
+from ..capital.pool_repository import CapitalPoolRepository
+from ..safety.state import SafetyState
+
+# Optional: Execution Pipeline integration
+try:
+    from ..execution.pipeline import ExecutionPipeline
+    from ..execution.contracts import (
+        OrderDecision as ExecOrderDecision,
+        ExecutionContext as ExecPipelineCtx,
+        ExecutionResult,
+        FillEvent as ExecFillEvent,
+        SplitOrderStatus,
+    )
+    from ..execution.stages.async_send import AsyncSendStage
+    from ..execution.broker_adapter import BrokerEngineAdapter
+    from ..provider.models.order_request import OrderSide, OrderType
+    _HAS_EXECUTION_PIPELINE = True
+except ImportError:
+    _HAS_EXECUTION_PIPELINE = False
+
+# Optional: Risk Gate integration
+try:
+    from ..risk.gates.calculated_risk_gate import CalculatedRiskGate
+    from ..strategy.interfaces.strategy import (
+        Intent as StrategyIntent,
+        MarketContext as StrategyMarketCtx,
+        ExecutionContext as StrategyExecCtx,
+    )
+    _HAS_RISK_GATE = True
+except ImportError:
+    _HAS_RISK_GATE = False
 
 
 def _default_project_root() -> Path:
@@ -43,6 +80,11 @@ class ETEDARunner:
     - project_root: optional. If None, resolved via paths.project_root() or cwd.
     - broker: optional BrokerEngine. If provided, Act 단계에서 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용.
     - safety_hook: optional PipelineSafetyHook. If provided, run_once 시작 시 should_run() 확인, Act 단계 Broker Fail-Safe 시 record_fail_safe() 호출.
+    - feedback_aggregator: optional FeedbackAggregator. If provided, Act 결과를 피드백 데이터로 수집하고 다음 사이클 Strategy 보정에 활용.
+    - capital_engine: optional CapitalEngine. If provided, Transform 후 풀 배분 결정, Evaluate에서 자본 제약 적용.
+    - capital_pool_repo: optional CapitalPoolRepository. If provided, 풀 상태 로드/저장.
+    - risk_gate: optional CalculatedRiskGate. If provided, Decide에서 Risk Gate 적용 (qty 조정, risk_score 평가).
+    - execution_pipeline: optional ExecutionPipeline. If provided, Act에서 6단계 실행 파이프라인 위임.
     """
 
     def __init__(
@@ -53,6 +95,12 @@ class ETEDARunner:
         project_root: Optional[Path] = None,
         broker: Optional[BrokerEngine] = None,
         safety_hook: Optional[PipelineSafetyHook] = None,
+        feedback_aggregator: Optional[FeedbackAggregator] = None,
+        capital_engine: Optional[CapitalEngine] = None,
+        capital_pool_repo: Optional[CapitalPoolRepository] = None,
+        risk_gate: Optional[Any] = None,
+        execution_pipeline: Optional[Any] = None,
+        micro_risk_loop: Optional[Any] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
@@ -99,6 +147,12 @@ class ETEDARunner:
         self._strategy_engine = StrategyEngine(config=config)
         self._broker = broker
         self._safety_hook = safety_hook
+        self._feedback_agg = feedback_aggregator
+        self._capital_engine = capital_engine
+        self._pool_repo = capital_pool_repo
+        self._risk_gate = risk_gate
+        self._execution_pipeline = execution_pipeline
+        self._micro_risk = micro_risk_loop
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -122,7 +176,10 @@ class ETEDARunner:
             market_data = self._extract(snapshot)
             if not market_data:
                 return {"status": "skipped", "reason": "no_market_data"}
-                
+
+            # 1.5 Capital Pool 로드 + Engine 평가 (Fire-and-Forget)
+            pool_states, capital_decision = self._load_and_evaluate_capital()
+
             # 2. Transform
             # Fetch position data for context
             symbol = market_data.get("symbol")
@@ -134,16 +191,32 @@ class ETEDARunner:
                 self._log.warning(f"Failed to fetch position data for {symbol}: {e}")
                 position_data = None
 
+            # 2.5 Feedback Summary 조회 (Fire-and-Forget)
+            feedback_summary = self._get_feedback_summary(symbol)
+
             transformed_data = self._transform(market_data, position_data)
 
-            # 3. Evaluate
-            signal = self._evaluate(transformed_data)
+            # 3. Evaluate (+ Feedback 보정 + Capital 제약)
+            signal = self._evaluate(
+                transformed_data,
+                feedback_summary=feedback_summary,
+                capital_decision=capital_decision,
+            )
 
             # 4. Decide
             decision = self._decide(signal)
 
             # 5. Act
             act_result = await self._act(decision)
+
+            # 6. Feedback Collection (Fire-and-Forget)
+            self._collect_feedback(decision, act_result)
+
+            # 6.5 Capital Pool 갱신 (Fire-and-Forget)
+            self._update_capital_after_act(pool_states, decision, act_result)
+
+            # 6.6 Micro Risk Loop 포지션 동기화 (Fire-and-Forget, §6.2)
+            self._sync_to_micro_risk(decision, act_result)
 
             # Log/Emit result
             result = {
@@ -187,30 +260,105 @@ class ETEDARunner:
             "position": position_data
         }
 
-    def _evaluate(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Generate signal via StrategyEngine"""
+    def _evaluate(
+        self,
+        data: Dict[str, Any],
+        *,
+        feedback_summary: Optional[FeedbackSummary] = None,
+        capital_decision: Optional[CapitalEngineOutput] = None,
+    ) -> Dict[str, Any]:
+        """Generate signal via StrategyEngine + Feedback 보정 + Capital 제약."""
         market = data.get("market", {})
         price = market.get("price")
         symbol = market.get("symbol")
-        
-        # Log the context for the decision
-        self._log.info(f"[_evaluate] Evaluating {symbol} @ {price} | Vol: {market.get('volume')} | Time: {market.get('timestamp')}")
-        
-        return self._strategy_engine.calculate_signal(
-            data["market"], 
-            data["position"]
+
+        self._log.info(
+            f"[_evaluate] Evaluating {symbol} @ {price} | Vol: {market.get('volume')} | Time: {market.get('timestamp')}"
         )
 
+        signal = self._strategy_engine.calculate_signal(
+            data["market"],
+            data["position"],
+        )
+
+        if (
+            feedback_summary is not None
+            and feedback_summary.sample_count >= 5
+            and signal.get("action") != "HOLD"
+        ):
+            try:
+                signal = self._apply_feedback_adjustments(signal, feedback_summary)
+            except Exception:
+                self._log.warning("Feedback adjustment failed, using original signal")
+
+        # Capital 제약 (Fire-and-Forget)
+        if capital_decision is not None and signal.get("action") != "HOLD":
+            try:
+                signal = self._apply_capital_constraint(signal, capital_decision)
+            except Exception:
+                self._log.warning("Capital constraint failed, using original signal")
+
+        return signal
+
     def _decide(self, signal: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply Risk Logic (Validation)"""
-        # Placeholder for Risk Gate
-        # If signal is not HOLD, check limits
-        
+        """Apply Risk Logic (Validation).
+
+        risk_gate 주입 시 CalculatedRiskGate를 통해 qty 조정 및 risk_score 평가.
+        미주입 시 기존 Placeholder 동작 유지.
+        """
         decision = signal.copy()
+
+        if self._risk_gate is not None and decision.get("action") != "HOLD":
+            gate_result = self._apply_risk_gate(decision)
+            if gate_result is not None:
+                return gate_result
+
         decision["approved"] = True
-        decision["reason"] = "Risk checks passed (Placeholder)"
-        
+        decision["reason"] = "Risk checks passed"
         return decision
+
+    def _apply_risk_gate(self, decision: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """CalculatedRiskGate 적용. 실패 시 None 반환 (fallback to 기존 로직)."""
+        if not _HAS_RISK_GATE:
+            return None
+        try:
+            intent = StrategyIntent(
+                symbol=decision.get("symbol", ""),
+                side=str(decision.get("action", "BUY")).upper(),
+                qty=int(decision.get("qty") or decision.get("final_qty") or 0),
+                reason=decision.get("strategy", "scalp"),
+            )
+            market = StrategyMarketCtx(
+                symbol=decision.get("symbol", ""),
+                price=float(decision.get("price", 0)),
+            )
+            exec_ctx = StrategyExecCtx(
+                position_qty=int(decision.get("position_qty", 0)),
+                cash=float(decision.get("available_cash", 100_000_000)),
+            )
+
+            gate_decision = self._risk_gate.apply(intent, market, exec_ctx)
+
+            result = decision.copy()
+            result["risk_evaluated"] = True
+            result["risk_score"] = gate_decision.risk.risk_score
+
+            if not gate_decision.allowed:
+                result["approved"] = False
+                result["reason"] = f"Risk gate blocked: {gate_decision.risk.reason}"
+                self._log.info(f"[Decide] Risk gate blocked: {gate_decision.risk.reason}")
+                return result
+
+            if gate_decision.adjusted_intent is not None:
+                result["qty"] = gate_decision.adjusted_intent.qty
+                result["risk_qty_adjusted"] = True
+
+            result["approved"] = True
+            result["reason"] = "Risk gate passed"
+            return result
+        except Exception:
+            self._log.warning("Risk gate evaluation failed, falling back to default")
+            return None
 
     async def _act(self, decision: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -244,7 +392,16 @@ class ETEDARunner:
         if gate.mode != ExecutionMode.PAPER and not (gate.mode == ExecutionMode.LIVE and gate.live_allowed):
             return {"status": "skipped", "reason": gate.reason}
 
-        # Broker 주입 시 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용
+        # ExecutionPipeline 위임 (주입 시)
+        if self._execution_pipeline is not None and self._broker is not None and _HAS_EXECUTION_PIPELINE:
+            try:
+                pipeline_result = await self._act_via_pipeline(decision, gate)
+                if pipeline_result is not None:
+                    return pipeline_result
+            except Exception as e:
+                self._log.warning(f"Execution pipeline failed, falling back to direct broker: {e}")
+
+        # Broker 주입 시 ExecutionIntent → submit_intent → ExecutionResponse Contract 사용 (fallback)
         if self._broker is not None:
             try:
                 intent = ExecutionIntent(
@@ -285,6 +442,231 @@ class ETEDARunner:
         await self._record_to_sheets(out, decision)
         return out
 
+    def _get_feedback_summary(self, symbol: Optional[str]) -> Optional[FeedbackSummary]:
+        """종목별 Feedback Summary 조회 (Fire-and-Forget)."""
+        if self._feedback_agg is None or not symbol:
+            return None
+        try:
+            summary = self._feedback_agg.get_summary(symbol, lookback_days=30)
+            if summary.sample_count > 0:
+                self._log.info(
+                    f"[Feedback] {symbol}: sample={summary.sample_count}, "
+                    f"slippage={summary.avg_slippage_bps:.1f}bps, "
+                    f"quality={summary.avg_quality_score:.3f}"
+                )
+            return summary
+        except Exception:
+            self._log.warning(f"Feedback summary fetch failed for {symbol}")
+            return None
+
+    def _apply_feedback_adjustments(
+        self,
+        signal: Dict[str, Any],
+        summary: FeedbackSummary,
+    ) -> Dict[str, Any]:
+        """FeedbackSummary 기반 신호 보정.
+
+        적용 항목:
+        1. 진입가 슬리피지 보정
+        2. 시장 충격 기반 수량 조정
+        3. 실행 품질 기반 신뢰도 보정
+        """
+        from ..feedback.strategy_enhancer import (
+            adjust_confidence,
+            adjust_qty_for_market_impact,
+            calculate_adjusted_entry_price,
+        )
+
+        adjusted = signal.copy()
+        price = signal.get("price", 0)
+        qty = signal.get("qty", 0)
+        side = signal.get("action", "BUY")
+
+        # 1. 슬리피지 보정 진입가
+        if price and price > 0:
+            adj_price = calculate_adjusted_entry_price(
+                Decimal(str(price)),
+                summary.avg_slippage_bps,
+                side,
+            )
+            adjusted["adjusted_entry_price"] = float(adj_price)
+
+        # 2. 시장 충격 기반 수량 조정
+        if qty and qty > 0:
+            adj_qty = adjust_qty_for_market_impact(
+                Decimal(str(qty)),
+                summary.avg_market_impact_bps,
+                max_acceptable_impact_bps=20.0,
+            )
+            adjusted["adjusted_qty"] = int(adj_qty)
+
+        # 3. 신뢰도 보정
+        raw_confidence = signal.get("weight", 1.0)
+        adjusted["confidence"] = adjust_confidence(
+            raw_confidence, summary.avg_quality_score,
+        )
+
+        # 4. 보정 메타데이터
+        adjusted["feedback_applied"] = True
+        adjusted["feedback_sample_count"] = summary.sample_count
+        adjusted["feedback_avg_slippage_bps"] = summary.avg_slippage_bps
+        adjusted["feedback_avg_quality_score"] = summary.avg_quality_score
+
+        self._log.info(
+            f"[Feedback] {signal.get('symbol')}: "
+            f"price {price}->{adjusted.get('adjusted_entry_price', price)}, "
+            f"qty {qty}->{adjusted.get('adjusted_qty', qty)}, "
+            f"confidence {raw_confidence:.2f}->{adjusted['confidence']:.2f}"
+        )
+
+        return adjusted
+
+    def _collect_feedback(
+        self,
+        decision: Dict[str, Any],
+        act_result: Dict[str, Any],
+    ) -> None:
+        """Act 결과로부터 FeedbackData 생성 및 저장.
+
+        Fire-and-Forget: 실패해도 파이프라인에 영향 없음.
+        """
+        if self._feedback_agg is None:
+            return
+        if not act_result.get("accepted") and act_result.get("status") != "executed":
+            return
+        try:
+            symbol = decision.get("symbol", "")
+            price = decision.get("price", 0)
+            qty = decision.get("qty", 0) or decision.get("final_qty", 0)
+            now = datetime.now(timezone.utc)
+
+            self._feedback_agg.aggregate_and_store(
+                symbol=symbol,
+                order_id=act_result.get("intent_id", ""),
+                execution_start=now,
+                execution_end=now,
+                decision_price=Decimal(str(price)),
+                avg_fill_price=Decimal(str(price)),
+                filled_qty=Decimal(str(qty)),
+                original_qty=Decimal(str(qty)),
+                partial_fill_ratio=0.0 if act_result.get("accepted") else 1.0,
+                avg_fill_latency_ms=0.0,
+                strategy_tag=decision.get("strategy", ""),
+                order_type=decision.get("order_type", "MARKET"),
+            )
+            self._log.info(f"Feedback collected for {symbol}")
+        except Exception:
+            self._log.exception("Feedback collection failed (non-blocking)")
+
+    # --- Capital Engine Integration ---
+
+    def _load_and_evaluate_capital(
+        self,
+    ) -> tuple[Optional[dict[PoolId, CapitalPoolContract]], Optional[CapitalEngineOutput]]:
+        """Capital Pool 로드 + Engine 평가. Fire-and-Forget."""
+        if self._capital_engine is None or self._pool_repo is None:
+            return None, None
+        try:
+            pool_states = self._pool_repo.load_pool_states()
+            if pool_states is None:
+                return None, None
+
+            total_equity = sum(p.total_capital for p in pool_states.values())
+
+            operating_state_str = self._config.get_flat("OPERATING_STATE", "BALANCED")
+            from ..state.contracts import OperatingState
+            operating_state = OperatingState(operating_state_str)
+
+            safety_state = SafetyState.NORMAL
+            if self._safety_hook is not None:
+                ps = self._safety_hook.pipeline_state()
+                if ps in ("LOCKDOWN", "lockdown"):
+                    safety_state = SafetyState.LOCKDOWN
+                elif ps in ("FAIL", "fail"):
+                    safety_state = SafetyState.FAIL
+
+            input_ = CapitalEngineInput(
+                total_equity=total_equity,
+                operating_state=operating_state,
+                pool_states=pool_states,
+                safety_state=safety_state,
+            )
+            decision = self._capital_engine.evaluate(input_)
+
+            for alert in decision.alerts:
+                if alert.severity == "CRITICAL":
+                    self._log.error(f"[Capital] {alert.code}: {alert.message}")
+                else:
+                    self._log.warning(f"[Capital] {alert.code}: {alert.message}")
+
+            self._log.info(
+                f"[Capital] Evaluated: rebalancing={decision.rebalancing_required}, "
+                f"promotions={len(decision.pending_promotions)}, "
+                f"demotions={len(decision.pending_demotions)}, "
+                f"blocked={decision.transfers_blocked}"
+            )
+            return pool_states, decision
+        except Exception:
+            self._log.warning("Capital evaluation failed (non-blocking)")
+            return None, None
+
+    def _apply_capital_constraint(
+        self,
+        signal: Dict[str, Any],
+        capital_decision: CapitalEngineOutput,
+    ) -> Dict[str, Any]:
+        """풀 자본 제약 적용. Safety LOCKDOWN 시 HOLD 전환."""
+        adjusted = signal.copy()
+
+        if capital_decision.transfers_blocked:
+            adjusted["action"] = "HOLD"
+            adjusted["capital_blocked"] = True
+            adjusted["capital_blocked_reason"] = "Safety state: transfers blocked"
+            self._log.warning("[Capital] Transfers blocked → HOLD")
+            return adjusted
+
+        adjusted["capital_evaluated"] = True
+        return adjusted
+
+    def _update_capital_after_act(
+        self,
+        pool_states: Optional[dict[PoolId, CapitalPoolContract]],
+        decision: Dict[str, Any],
+        act_result: Dict[str, Any],
+    ) -> None:
+        """Act 결과로 풀 invested_capital 갱신. Fire-and-Forget."""
+        if self._pool_repo is None or pool_states is None:
+            return
+        if act_result.get("status") != "executed":
+            return
+        try:
+            action = decision.get("action", "HOLD")
+            price = Decimal(str(decision.get("price", 0)))
+            qty = Decimal(str(decision.get("qty") or decision.get("final_qty") or 0))
+            fill_amount = price * qty
+
+            if fill_amount <= 0:
+                return
+
+            # 현재 Scalp Pool 기준 (향후 전략 태그로 풀 분기)
+            scalp_pool = pool_states.get(PoolId.SCALP)
+            if scalp_pool is None:
+                return
+
+            if action == "BUY":
+                scalp_pool.invested_capital += fill_amount
+            elif action == "SELL":
+                scalp_pool.invested_capital -= fill_amount
+                if scalp_pool.invested_capital < Decimal("0"):
+                    scalp_pool.invested_capital = Decimal("0")
+            else:
+                return
+
+            self._pool_repo.save_pool_states(pool_states)
+            self._log.info(f"[Capital] Pool updated: {action} {fill_amount}")
+        except Exception:
+            self._log.warning("Capital pool update failed (non-blocking)")
+
     async def _record_to_sheets(self, act_result: Dict[str, Any], decision: Dict[str, Any]) -> None:
         """
         Act 결과를 Google Sheets T_Ledger에 기록.
@@ -307,3 +689,143 @@ class ETEDARunner:
             self._log.info(f"Recorded trade to T_Ledger sheet: {trade_data.get('intent_id', 'N/A')}")
         except Exception as e:
             self._log.warning(f"Failed to record trade to T_Ledger sheet (non-fatal): {e}")
+
+    # --- Micro Risk Loop Integration (§6.2) ---
+
+    def _sync_to_micro_risk(
+        self,
+        decision: Dict[str, Any],
+        act_result: Dict[str, Any],
+    ) -> None:
+        """Act 결과를 Micro Risk Loop에 동기화. Fire-and-Forget."""
+        if self._micro_risk is None:
+            return
+        if act_result.get("status") != "executed":
+            return
+        try:
+            symbol = decision.get("symbol")
+            if not symbol:
+                return
+            price = decision.get("price", 0)
+            qty = decision.get("qty") or decision.get("final_qty") or 0
+            self._micro_risk.sync_from_main({
+                symbol: {
+                    "qty": int(qty),
+                    "avg_price": float(price),
+                    "current_price": float(price),
+                    "unrealized_pnl": 0.0,
+                    "unrealized_pnl_pct": 0.0,
+                }
+            })
+            self._log.info(f"[MicroRisk] Position synced: {symbol} qty={qty}")
+        except Exception:
+            self._log.warning("Micro Risk sync failed (non-blocking)")
+
+    # --- Execution Pipeline Integration ---
+
+    async def _act_via_pipeline(self, decision: Dict[str, Any], gate: Any) -> Optional[Dict[str, Any]]:
+        """6단계 ExecutionPipeline 실행. 실패 시 None (fallback to 직접 broker 호출)."""
+        action_str = str(decision.get("action", "BUY")).upper()
+        qty = int(decision.get("qty") or decision.get("final_qty") or 0)
+        if qty <= 0:
+            return None
+
+        price_val = decision.get("price")
+        price = Decimal(str(price_val)) if price_val else None
+
+        # OrderDecision 생성
+        order = ExecOrderDecision(
+            symbol=str(decision.get("symbol", "")),
+            side=OrderSide.BUY if action_str == "BUY" else OrderSide.SELL,
+            qty=qty,
+            price=price,
+            order_type=OrderType.MARKET,
+            strategy_id=decision.get("strategy", "scalp"),
+        )
+        ctx = ExecPipelineCtx(order=order)
+
+        # Safety State
+        safety_state = SafetyState.NORMAL
+        if self._safety_hook is not None:
+            ps = self._safety_hook.pipeline_state()
+            if ps in ("LOCKDOWN", "lockdown"):
+                safety_state = SafetyState.LOCKDOWN
+
+        available_capital = Decimal(str(decision.get("available_cash", 100_000_000)))
+
+        # Stage 1: PreCheck
+        if not self._execution_pipeline.run_precheck(
+            ctx, available_capital=available_capital, safety_state=safety_state
+        ):
+            result = self._execution_pipeline.build_result(ctx)
+            return self._execution_result_to_dict(result, gate)
+
+        # Stage 2: Split
+        if not self._execution_pipeline.run_split(ctx):
+            result = self._execution_pipeline.build_result(ctx)
+            return self._execution_result_to_dict(result, gate)
+
+        # Stage 3: AsyncSend
+        adapter = BrokerEngineAdapter(self._broker)
+        send_stage = AsyncSendStage(adapter)
+        send_result, send_alerts = await send_stage.execute(ctx.splits)
+        ctx.alerts.extend(send_alerts)
+
+        if not self._execution_pipeline.process_send_results(
+            ctx, send_result.sent_count, send_result.failed_count
+        ):
+            result = self._execution_pipeline.build_result(ctx)
+            return self._execution_result_to_dict(result, gate)
+
+        # Stage 4: Fill 처리 (동기 브로커 → 즉시 체결 가정)
+        fill_events = self._create_fill_events_from_sends(ctx, send_result)
+        self._execution_pipeline.process_fills(ctx, fill_events)
+
+        # Build Result
+        result = self._execution_pipeline.build_result(ctx)
+        out = self._execution_result_to_dict(result, gate)
+
+        self._log.info(f"[Pipeline] {result.state.value}: filled={result.filled_qty}/{result.requested_qty}")
+        self._trade_recorder.record_trade(out)
+        await self._record_to_sheets(out, decision)
+
+        return out
+
+    def _execution_result_to_dict(self, result: Any, gate: Any) -> Dict[str, Any]:
+        """ExecutionResult → act_result dict 변환."""
+        is_complete = getattr(result, "state", None) and result.state.value == "COMPLETE"
+        return {
+            "status": "executed" if is_complete else "failed",
+            "intent_id": result.order_id,
+            "accepted": is_complete,
+            "broker": getattr(self._broker, "NAME", "unknown"),
+            "message": (
+                f"Pipeline: {result.state.value}, "
+                f"filled={result.filled_qty}/{result.requested_qty}"
+            ),
+            "mode": gate.mode.value,
+            "pipeline_state": result.state.value,
+            "filled_qty": result.filled_qty,
+            "requested_qty": result.requested_qty,
+            "avg_fill_price": float(result.avg_fill_price) if result.avg_fill_price else None,
+            "splits_count": result.splits_count,
+            "alerts": [
+                {"code": a.code, "severity": a.severity, "message": a.message}
+                for a in result.alerts
+            ],
+            "execution_pipeline_used": True,
+        }
+
+    def _create_fill_events_from_sends(self, ctx: Any, send_result: Any) -> list:
+        """동기 브로커 전송 성공 → FillEvent 생성."""
+        fills = []
+        for split in send_result.orders:
+            if split.status == SplitOrderStatus.SENT:
+                fills.append(ExecFillEvent(
+                    order_id=split.broker_order_id or split.split_id,
+                    symbol=split.symbol,
+                    side=split.side,
+                    filled_qty=split.qty,
+                    filled_price=split.price or ctx.order.price or Decimal("0"),
+                ))
+        return fills

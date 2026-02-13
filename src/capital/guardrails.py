@@ -178,9 +178,66 @@ def check_pool_mdd_critical(
     return None
 
 
+def check_daily_transfer_limit(
+    daily_transferred: Decimal,
+    total_equity: Decimal,
+    limit_pct: Decimal = Decimal("0.10"),
+) -> Optional[CapitalAlert]:
+    """GR054: 일일 자본 이동 > 한도."""
+    if total_equity <= 0:
+        return None
+    limit = total_equity * limit_pct
+    if daily_transferred > limit:
+        return CapitalAlert(
+            code="GR054",
+            pool_id=None,
+            message=f"일일 자본 이동 {daily_transferred} > 한도 {limit}",
+            severity="WARNING",
+        )
+    return None
+
+
+def check_abnormal_capital_change(
+    current_total: Decimal,
+    previous_total: Decimal,
+    threshold_pct: Decimal = Decimal("0.05"),
+) -> Optional[CapitalAlert]:
+    """FS083: 비정상 자본 변동 감지."""
+    if previous_total <= 0:
+        return None
+    change_pct = abs(current_total - previous_total) / previous_total
+    if change_pct > threshold_pct:
+        return CapitalAlert(
+            code="FS083",
+            pool_id=None,
+            message=f"비정상 자본 변동: {change_pct:.2%} > {threshold_pct:.2%}. 모든 이동 중단.",
+            severity="CRITICAL",
+        )
+    return None
+
+
+def check_pool_state_mismatch(
+    pools: dict[PoolId, CapitalPoolContract],
+    total_equity: Decimal,
+    tolerance: Decimal = Decimal("1000"),
+) -> Optional[CapitalAlert]:
+    """FS084: 풀 합계 ≠ 총 자본 (절대값 허용 오차)."""
+    pool_sum = sum(p.total_capital for p in pools.values())
+    if abs(pool_sum - total_equity) > tolerance:
+        return CapitalAlert(
+            code="FS084",
+            pool_id=None,
+            message=f"풀 합계 {pool_sum} ≠ 총 자본 {total_equity}. 동기화 필요.",
+            severity="CRITICAL",
+        )
+    return None
+
+
 def run_all_guardrails(
     pools: dict[PoolId, CapitalPoolContract],
     total_equity: Decimal,
+    *,
+    previous_total: Optional[Decimal] = None,
 ) -> list[CapitalAlert]:
     """모든 가드레일 실행."""
     alerts: list[CapitalAlert] = []
@@ -192,6 +249,17 @@ def run_all_guardrails(
 
     # FS081
     alerts.extend(check_negative_pool_capital(pools))
+
+    # FS083
+    if previous_total is not None:
+        fs083 = check_abnormal_capital_change(total_equity, previous_total)
+        if fs083:
+            alerts.append(fs083)
+
+    # FS084
+    fs084 = check_pool_state_mismatch(pools, total_equity)
+    if fs084:
+        alerts.append(fs084)
 
     # GR050
     gr050 = check_allocation_sum(pools)
