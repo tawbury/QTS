@@ -223,6 +223,14 @@ def _create_production_runner(
     capital_engine = CapitalEngine()
     _LOG.info("Capital Engine initialized (JSONL storage)")
 
+    # Event Priority System 초기화 (§6 ETEDA Integration)
+    from src.event.dispatcher import EventDispatcher
+    from src.event.bridges import SafetyEventBridge
+
+    event_dispatcher = EventDispatcher()
+    safety_event_bridge = SafetyEventBridge(event_dispatcher, safety_hook)
+    _LOG.info("Event Priority System initialized")
+
     # Micro Risk Loop 초기화 (§4.2 독립 실행)
     from src.micro_risk.loop import MicroRiskLoop
     from src.micro_risk.bridges import (
@@ -253,6 +261,7 @@ def _create_production_runner(
         capital_engine=capital_engine,
         capital_pool_repo=capital_pool_repo,
         micro_risk_loop=micro_risk_loop,
+        event_dispatcher=event_dispatcher,
     )
 
     # Snapshot Source: Observer Client를 통해 실시간 데이터 수신
@@ -265,7 +274,7 @@ def _create_production_runner(
     # should_stop 함수
     should_stop_fn = default_should_stop_from_config(config)
 
-    return runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_loop_controller
+    return runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_loop_controller, event_dispatcher, safety_event_bridge
 
 
 def preflight_check(project_root: Path, local_only: bool) -> None:
@@ -412,7 +421,7 @@ def main() -> int:
     # 6. Runner 생성
     # K8s 모드에서는 mock runner 사용 (GoogleSheetsClient 불필요)
     try:
-        runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_ctrl = _create_production_runner(
+        runner, snapshot_source, should_stop_fn, micro_risk_runner, eteda_ctrl, event_dispatcher, safety_event_bridge = _create_production_runner(
             config=config,
             project_root=project_root,
             broker_type=args.broker,
@@ -429,6 +438,10 @@ def main() -> int:
     # 7. ETEDA Loop + Micro Risk Loop 병렬 실행
     async def _run_parallel():
         """ETEDA Loop와 Micro Risk Loop를 병렬 실행 (§4.1)."""
+        # Event Dispatcher 시작
+        await event_dispatcher.start()
+        _LOG.info("Event Dispatcher started")
+
         micro_task = micro_risk_runner.start_background()
         _LOG.info("Micro Risk Loop started as background task")
 
@@ -445,6 +458,10 @@ def main() -> int:
                 snapshot_source=snapshot_source,
             )
         finally:
+            # Event Dispatcher 정지
+            await event_dispatcher.stop()
+            _LOG.info("Event Dispatcher stopped")
+
             micro_risk_runner.stop()
             if not micro_task.done():
                 micro_task.cancel()

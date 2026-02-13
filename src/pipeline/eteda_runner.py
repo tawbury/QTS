@@ -101,6 +101,7 @@ class ETEDARunner:
         risk_gate: Optional[Any] = None,
         execution_pipeline: Optional[Any] = None,
         micro_risk_loop: Optional[Any] = None,
+        event_dispatcher: Optional[Any] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
@@ -153,6 +154,7 @@ class ETEDARunner:
         self._risk_gate = risk_gate
         self._execution_pipeline = execution_pipeline
         self._micro_risk = micro_risk_loop
+        self._event_dispatcher = event_dispatcher
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -172,6 +174,9 @@ class ETEDARunner:
                     "reason": "safety",
                     "pipeline_state": self._safety_hook.pipeline_state(),
                 }
+            # 0.5 Event: ETEDA_CYCLE_START (P2, §6.1)
+            self._emit_event("ETEDA_CYCLE_START", "ETEDA_SCHEDULER")
+
             # 1. Extract
             market_data = self._extract(snapshot)
             if not market_data:
@@ -218,6 +223,16 @@ class ETEDARunner:
             # 6.6 Micro Risk Loop 포지션 동기화 (Fire-and-Forget, §6.2)
             self._sync_to_micro_risk(decision, act_result)
 
+            # 6.7 Event: Act 결과 발행 (P0, §6.1)
+            self._emit_act_events(act_result)
+
+            # 6.8 Event: METRIC_RECORD (P3)
+            self._emit_event("METRIC_RECORD", "ETEDA", payload={
+                "symbol": symbol,
+                "action": decision.get("action"),
+                "status": act_result.get("status"),
+            })
+
             # Log/Emit result
             result = {
                 "timestamp": snapshot.get("meta", {}).get("timestamp"),
@@ -260,6 +275,19 @@ class ETEDARunner:
             "position": position_data
         }
 
+    def _get_operating_state_properties(self) -> tuple:
+        """현재 OperatingState 및 속성을 로드한다.
+
+        근거: docs/arch/sub/18_System_State_Promotion_Architecture.md §6.2
+        """
+        from ..state.contracts import OperatingState, STATE_PROPERTIES
+        state_str = self._config.get_flat("OPERATING_STATE", "BALANCED")
+        try:
+            state = OperatingState(state_str)
+        except ValueError:
+            state = OperatingState.BALANCED
+        return state, STATE_PROPERTIES[state]
+
     def _evaluate(
         self,
         data: Dict[str, Any],
@@ -267,7 +295,12 @@ class ETEDARunner:
         feedback_summary: Optional[FeedbackSummary] = None,
         capital_decision: Optional[CapitalEngineOutput] = None,
     ) -> Dict[str, Any]:
-        """Generate signal via StrategyEngine + Feedback 보정 + Capital 제약."""
+        """Generate signal via StrategyEngine + Operating State 필터링 + Feedback 보정 + Capital 제약.
+
+        근거: docs/arch/sub/18_System_State_Promotion_Architecture.md §6.2
+        - DEFENSIVE 상태 시 Scalp 비활성화
+        - entry_signal_threshold 미달 신호 필터링
+        """
         market = data.get("market", {})
         price = market.get("price")
         symbol = market.get("symbol")
@@ -276,10 +309,42 @@ class ETEDARunner:
             f"[_evaluate] Evaluating {symbol} @ {price} | Vol: {market.get('volume')} | Time: {market.get('timestamp')}"
         )
 
+        # Operating State 로드 및 엔진 활성화 결정
+        operating_state, state_props = self._get_operating_state_properties()
+
+        # DEFENSIVE 상태에서 Scalp Engine 비활성화 (§6.2)
+        if not state_props.scalp_engine_active:
+            self._log.info(f"[State] Scalp engine inactive in {operating_state.value} state")
+            return {
+                "symbol": symbol,
+                "price": price,
+                "action": "HOLD",
+                "signal": "NONE",
+                "reason": f"SCALP_DISABLED_IN_{operating_state.value}",
+                "operating_state": operating_state.value,
+            }
+
         signal = self._strategy_engine.calculate_signal(
             data["market"],
             data["position"],
         )
+
+        # 신호 임계값 필터링: confidence < entry_signal_threshold → HOLD
+        signal_confidence = signal.get("weight", signal.get("confidence", 1.0))
+        if signal.get("action") != "HOLD" and signal_confidence < state_props.entry_signal_threshold:
+            self._log.info(
+                f"[State] Signal confidence {signal_confidence:.2f} < threshold {state_props.entry_signal_threshold} "
+                f"in {operating_state.value} → HOLD"
+            )
+            signal = signal.copy()
+            signal["action"] = "HOLD"
+            signal["reason"] = f"BELOW_STATE_THRESHOLD({operating_state.value})"
+            signal["operating_state"] = operating_state.value
+            signal["filtered_confidence"] = signal_confidence
+            return signal
+
+        signal = signal.copy() if not isinstance(signal, dict) else signal
+        signal["operating_state"] = operating_state.value
 
         if (
             feedback_summary is not None
@@ -301,12 +366,29 @@ class ETEDARunner:
         return signal
 
     def _decide(self, signal: Dict[str, Any]) -> Dict[str, Any]:
-        """Apply Risk Logic (Validation).
+        """Apply Risk Logic + Operating State 기반 결정 오버라이드.
+
+        근거: docs/arch/sub/18_System_State_Promotion_Architecture.md §6.3
+        - DEFENSIVE 상태에서 신규 진입(BUY) 차단
+        - 리밸런싱 주문이 신규 진입보다 우선
 
         risk_gate 주입 시 CalculatedRiskGate를 통해 qty 조정 및 risk_score 평가.
         미주입 시 기존 Placeholder 동작 유지.
         """
         decision = signal.copy()
+
+        # Operating State 기반 결정 오버라이드 (§6.3)
+        _, state_props = self._get_operating_state_properties()
+
+        # DEFENSIVE 상태에서 신규 진입 차단
+        if not state_props.new_entry_enabled and decision.get("action") in ("BUY",):
+            self._log.info(
+                f"[Decide] New entry blocked in {decision.get('operating_state', 'DEFENSIVE')} state"
+            )
+            decision["action"] = "HOLD"
+            decision["approved"] = False
+            decision["reason"] = "NEW_ENTRY_BLOCKED_IN_DEFENSIVE_STATE"
+            return decision
 
         if self._risk_gate is not None and decision.get("action") != "HOLD":
             gate_result = self._apply_risk_gate(decision)
@@ -720,6 +802,47 @@ class ETEDARunner:
             self._log.info(f"[MicroRisk] Position synced: {symbol} qty={qty}")
         except Exception:
             self._log.warning("Micro Risk sync failed (non-blocking)")
+
+    # --- Event Dispatcher Integration (§6.1) ---
+
+    def _emit_event(
+        self,
+        event_type_str: str,
+        source: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """이벤트 발행. Fire-and-Forget."""
+        if self._event_dispatcher is None:
+            return
+        try:
+            from src.event.contracts import EventType, create_event
+            event_type = EventType(event_type_str)
+            event = create_event(event_type, source=source, payload=payload)
+            import asyncio
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._event_dispatcher.dispatch(event))
+            except RuntimeError:
+                # 이벤트 루프 없을 때 무시
+                pass
+        except Exception:
+            self._log.debug("Event emit failed: %s (non-blocking)", event_type_str)
+
+    def _emit_act_events(self, act_result: Dict[str, Any]) -> None:
+        """Act 결과를 P0 이벤트로 발행."""
+        if self._event_dispatcher is None:
+            return
+        status = act_result.get("status")
+        if status == "executed":
+            self._emit_event("FILL_CONFIRMED", "BROKER", payload={
+                "intent_id": act_result.get("intent_id"),
+                "broker": act_result.get("broker"),
+            })
+        elif status == "rejected":
+            self._emit_event("ORDER_REJECTED", "BROKER", payload={
+                "intent_id": act_result.get("intent_id"),
+                "message": act_result.get("message"),
+            })
 
     # --- Execution Pipeline Integration ---
 
