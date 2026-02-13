@@ -144,11 +144,8 @@ class BaseSheetRepository(ABC):
                     self._headers_cache = [str(cell).strip() for cell in header_data[0] if cell.strip()]
                 else:
                     self._headers_cache = []
-                
 
-                
                 self._last_cache_update = now_kst()
-                self.logger.debug(f"Retrieved headers: {self._headers_cache}")
                 self.logger.debug(f"Retrieved headers: {self._headers_cache}")
                 
             except Exception as e:
@@ -252,7 +249,7 @@ class BaseSheetRepository(ABC):
     
     async def _get_next_empty_row(self) -> int:
         """
-        다음 빈 행 번호获取
+        다음 빈 행 번호 조회
         
         Returns:
             int: 다음 빈 행 번호
@@ -361,7 +358,7 @@ class BaseSheetRepository(ABC):
     async def count_records(self) -> int:
         """
         레코드 수 조회
-        
+
         Returns:
             int: 레코드 수
         """
@@ -371,7 +368,13 @@ class BaseSheetRepository(ABC):
         except Exception as e:
             self.logger.error(f"Failed to count records: {str(e)}")
             return 0
-    
+
+    def _get_worksheet(self):
+        """현재 시트의 gspread Worksheet 객체 획득"""
+        spreadsheet = getattr(self.client, "spreadsheet", None) or \
+            self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
+        return spreadsheet.worksheet(self.sheet_name)
+
     def update_cell(self, cell_address: str, value: Any) -> bool:
         """
         개별 셀 업데이트 (병합 영역 지원)
@@ -384,8 +387,7 @@ class BaseSheetRepository(ABC):
             bool: 업데이트 성공 여부
         """
         try:
-            spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
-            worksheet = spreadsheet.worksheet(self.sheet_name)
+            worksheet = self._get_worksheet()
             worksheet.update([[value]], range_name=cell_address)
             self.logger.debug(f"Updated cell {cell_address}: {value}")
             return True
@@ -405,8 +407,7 @@ class BaseSheetRepository(ABC):
             bool: 업데이트 성공 여부
         """
         try:
-            spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
-            worksheet = spreadsheet.worksheet(self.sheet_name)
+            worksheet = self._get_worksheet()
             worksheet.update(values, range_name=range_address)
             self.logger.debug(f"Updated range {range_address} with {len(values)} rows")
             return True
@@ -425,8 +426,7 @@ class BaseSheetRepository(ABC):
             Any: 셀 값
         """
         try:
-            spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
-            worksheet = spreadsheet.worksheet(self.sheet_name)
+            worksheet = self._get_worksheet()
             return worksheet.acell(cell_address).value
         except Exception as e:
             self.logger.error(f"Failed to get cell value {cell_address}: {str(e)}")
@@ -443,8 +443,7 @@ class BaseSheetRepository(ABC):
             List[List[Any]]: 범위 데이터
         """
         try:
-            spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
-            worksheet = spreadsheet.worksheet(self.sheet_name)
+            worksheet = self._get_worksheet()
             return worksheet.get(range_address)
         except Exception as e:
             self.logger.error(f"Failed to get range values {range_address}: {str(e)}")
@@ -461,8 +460,7 @@ class BaseSheetRepository(ABC):
             bool: 초기화 성공 여부
         """
         try:
-            spreadsheet = getattr(self.client, "spreadsheet", None) or self.client.gspread_client.open_by_key(self.client.spreadsheet_id)
-            worksheet = spreadsheet.worksheet(self.sheet_name)
+            worksheet = self._get_worksheet()
             worksheet.clear(range_address)
             self.logger.debug(f"Cleared range {range_address}")
             return True

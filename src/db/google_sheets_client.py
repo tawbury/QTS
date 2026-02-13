@@ -447,7 +447,7 @@ _client_instance: Optional[GoogleSheetsClient] = None
 
 async def get_google_sheets_client() -> GoogleSheetsClient:
     """
-    Google Sheets 클라이언트 인스턴스获取 (싱글톤)
+    Google Sheets 클라이언트 싱글톤 인스턴스 조회
     
     Returns:
         GoogleSheetsClient: 클라이언트 인스턴스

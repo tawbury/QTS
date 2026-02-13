@@ -94,9 +94,9 @@ class PerformanceEngine(BaseEngine):
         self._monthly_performance_cache: List[MonthlyPerformance] = []
         self._last_cache_update: Optional[datetime] = None
         
-        # 설정
-        self._risk_free_rate = 0.02  # 무위험 이자율 (연 2%)
-        self._trading_days_per_year = 252
+        # 설정 (Config에서 주입, 기본값 유지)
+        self._risk_free_rate = float(config.get_flat("RISK_FREE_RATE", "0.02"))
+        self._trading_days_per_year = int(config.get_flat("TRADING_DAYS_PER_YEAR", "252"))
         
         self.logger.info("PerformanceEngine created with injected repositories")
     

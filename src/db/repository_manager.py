@@ -81,7 +81,7 @@ class RepositoryManager:
     
     async def get_repository(self, sheet_name: str) -> BaseSheetRepository:
         """
-        리포지토리 인스턴스获取
+        리포지토리 인스턴스 조회
         
         Args:
             sheet_name: 시트 이름
@@ -133,7 +133,7 @@ class RepositoryManager:
     
     async def get_all_repositories(self) -> Dict[str, BaseSheetRepository]:
         """
-        모든 리포지토리 인스턴스获取
+        모든 리포지토리 인스턴스 조회
         
         Returns:
             Dict[str, BaseSheetRepository]: 모든 리포지토리
@@ -269,7 +269,7 @@ _repository_manager: Optional[RepositoryManager] = None
 
 async def get_repository_manager() -> RepositoryManager:
     """
-    전역 리포지토리 매니저 인스턴스获取
+    전역 리포지토리 매니저 인스턴스 조회
     
     Returns:
         RepositoryManager: 리포지토리 매니저 인스턴스

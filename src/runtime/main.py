@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import logging
+import os
 import signal
 import sys
 from pathlib import Path
@@ -228,7 +229,6 @@ def preflight_check(project_root: Path, local_only: bool) -> None:
     """
     앱 시작 전 사전 검증
     """
-    import os
     _LOG.info("Running preflight checks...")
 
     # 1. 필수 디렉토리 존재 확인 (K8s 환경에서는 QTS_LOG_DIR 사용)
@@ -281,7 +281,6 @@ def main() -> int:
     from datetime import datetime
     log_level = logging.DEBUG if args.verbose else logging.INFO
     # K8s 환경에서는 QTS_LOG_DIR 환경변수 사용, 로컬에서는 _ROOT/logs
-    import os
     log_dir = Path(os.environ.get("QTS_LOG_DIR", str(_ROOT / "logs")))
     log_file_name = f"qts_{datetime.now().strftime('%Y%m%d')}.log"
     log_file = log_dir / log_file_name
@@ -346,7 +345,6 @@ def main() -> int:
 
     # 5. Observer Client 생성
     try:
-        import os
         observer_type = os.environ.get("OBSERVER_TYPE", "stub").lower()
 
         if observer_type == "file":
