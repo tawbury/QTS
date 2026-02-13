@@ -125,9 +125,9 @@ reports/schema/**/*.md
 !config/local/
 !config/local/config_local.json
 !config/local/dividend_db.json
+!src/cache/
 
 # 문서/도구용 JSON 허용 (선제 방어)
-
 !tools/ops/**/*.json
 
 # ------------------------------------------------------------
