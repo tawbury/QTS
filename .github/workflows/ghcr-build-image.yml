@@ -139,9 +139,20 @@ jobs:
 
           echo "Successfully updated ${APP_NAME} image tag to ${TAG}"
 
+      # GHCR 구버전 이미지 정리 (최근 5개만 유지)
+      - name: Cleanup old GHCR images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: qts
+          package-type: container
+          min-versions-to-keep: 5
+          delete-only-untagged-versions: false
+        continue-on-error: true
+
       - name: Summary
         run: |
           echo "✅ Image pushed: ${{ env.REGISTRY }}/${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.tag }}"
           echo "✅ Deployment repo updated (Helm values.yaml)"
           echo "✅ ArgoCD sync will be triggered automatically"
+          echo "✅ Old GHCR images cleaned (keeping latest 5)"
 
