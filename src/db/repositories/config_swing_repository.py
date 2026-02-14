@@ -392,6 +392,23 @@ class ConfigSwingRepository(BaseSheetRepository):
             self.logger.error(f"Failed to get risk management settings: {str(e)}")
             raise
     
+    async def get_strategy_enabled(self) -> bool:
+        """STRATEGY_CONTROL 카테고리에서 STRATEGY_ENABLED 값 조회.
+
+        Returns:
+            bool: True=ON(기본값), False=OFF
+        """
+        try:
+            configs = await self.get_config_by_category('STRATEGY_CONTROL')
+            for config in configs:
+                if config.get('KEY', '').upper() == 'STRATEGY_ENABLED':
+                    value = config.get('VALUE', 'ON').strip().upper()
+                    return value != 'OFF'
+            return True  # 행이 없으면 기본 ON
+        except Exception as e:
+            self.logger.warning(f"Failed to read STRATEGY_ENABLED, defaulting to ON: {e}")
+            return True  # 읽기 실패 시 기본 ON (fail-open)
+
     async def get_config_summary(self) -> Dict[str, Any]:
         """
         설정 요약 정보 조회

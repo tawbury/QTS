@@ -39,6 +39,12 @@ class SwingStrategyEngine:
         if self._config_repo is None:
             return
         try:
+            # STRATEGY_ENABLED 토글 읽기
+            self._enabled = await self._config_repo.get_strategy_enabled()
+            if not self._enabled:
+                _log.info("SwingStrategyEngine DISABLED via Config_Swing sheet")
+                return
+
             mf = await self._config_repo.get_market_filters()
             self._config.min_market_cap = float(mf.get("MIN_MARKET_CAP", self._config.min_market_cap))
             self._config.min_avg_volume = int(mf.get("MIN_AVG_VOLUME", self._config.min_avg_volume))

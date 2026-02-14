@@ -39,6 +39,12 @@ class ScalpStrategyEngine:
         if self._config_repo is None:
             return
         try:
+            # STRATEGY_ENABLED 토글 읽기
+            self._enabled = await self._config_repo.get_strategy_enabled()
+            if not self._enabled:
+                _log.info("ScalpStrategyEngine DISABLED via Config_Scalp sheet")
+                return
+
             gc = await self._config_repo.get_golden_cross_parameters()
             self._config.short_ma_period = int(gc.get("SHORT_MA_PERIOD", self._config.short_ma_period))
             self._config.long_ma_period = int(gc.get("LONG_MA_PERIOD", self._config.long_ma_period))
