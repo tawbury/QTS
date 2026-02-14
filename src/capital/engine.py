@@ -71,6 +71,9 @@ class CapitalEngine:
     - 가드레일 검사
     """
 
+    def __init__(self, allocation_config: dict[str, str] | None = None) -> None:
+        self._allocation_config = allocation_config or {}
+
     def evaluate(self, input_: CapitalEngineInput) -> CapitalEngineOutput:
         """메인 평가 루프."""
         pools = input_.pool_states
@@ -96,7 +99,8 @@ class CapitalEngine:
 
         # 1. 목표 배분 계산
         target_alloc = calculate_target_allocation(
-            input_.operating_state, total
+            input_.operating_state, total,
+            config_overrides=self._allocation_config,
         )
 
         # 2. 프로모션 확인

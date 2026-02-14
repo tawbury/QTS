@@ -87,6 +87,100 @@ class TestCalculateTargetAmounts:
         assert amounts[PoolId.SCALP] == Decimal("3333000")
 
 
+class TestConfigOverrideAllocation:
+    """Config_Local 오버라이드 배분 비율."""
+
+    def test_override_disabled(self):
+        """T1: ALLOCATION_OVERRIDE_ENABLED=0이면 기존 STATE_PROPERTIES 사용."""
+        config = {"ALLOCATION_OVERRIDE_ENABLED": "0", "BALANCED_SCALP_PCT": "0.90"}
+        alloc = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=config
+        )
+        # 0.90이 아닌 STATE_PROPERTIES 중간값 기반
+        assert alloc[PoolId.SCALP] < Decimal("0.60")
+
+    def test_balanced_override(self):
+        """T2: BALANCED 50:30:20 설정 시 정확한 비율."""
+        config = {
+            "ALLOCATION_OVERRIDE_ENABLED": "1",
+            "BALANCED_SCALP_PCT": "0.50",
+            "BALANCED_SWING_PCT": "0.30",
+            "BALANCED_PORTFOLIO_PCT": "0.20",
+        }
+        alloc = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=config
+        )
+        assert sum(alloc.values()) == Decimal("1.0000")
+        assert alloc[PoolId.SCALP] == Decimal("0.5000")
+        assert alloc[PoolId.SWING] == Decimal("0.3000")
+        assert alloc[PoolId.PORTFOLIO] == Decimal("0.2000")
+
+    def test_normalization(self):
+        """T3: 합계 != 1.0이면 자동 정규화."""
+        config = {
+            "ALLOCATION_OVERRIDE_ENABLED": "1",
+            "BALANCED_SCALP_PCT": "0.50",
+            "BALANCED_SWING_PCT": "0.30",
+            "BALANCED_PORTFOLIO_PCT": "0.10",  # 합계 0.90
+        }
+        alloc = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=config
+        )
+        assert sum(alloc.values()) == Decimal("1.0000")
+
+    def test_constraint_clamp(self):
+        """T4: 제약 위반 시 POOL_CONSTRAINTS clamp."""
+        config = {
+            "ALLOCATION_OVERRIDE_ENABLED": "1",
+            "BALANCED_SCALP_PCT": "0.90",  # max_pct=0.80 초과
+            "BALANCED_SWING_PCT": "0.05",
+            "BALANCED_PORTFOLIO_PCT": "0.05",
+        }
+        alloc = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=config
+        )
+        assert sum(alloc.values()) == Decimal("1.0000")
+        # Scalp max_pct=0.80 이하로 clamp
+        assert alloc[PoolId.SCALP] <= Decimal("0.8500")
+
+    def test_partial_config_fallback(self):
+        """T5: 부분 설정이면 전체 fallback."""
+        config = {
+            "ALLOCATION_OVERRIDE_ENABLED": "1",
+            "BALANCED_SCALP_PCT": "0.70",
+            # SWING, PORTFOLIO 키 누락
+        }
+        alloc = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=config
+        )
+        # fallback: STATE_PROPERTIES 중간값
+        assert alloc[PoolId.SCALP] < Decimal("0.60")
+
+    def test_defensive_override(self):
+        """T6: DEFENSIVE 상태에서도 오버라이드 적용."""
+        config = {
+            "ALLOCATION_OVERRIDE_ENABLED": "1",
+            "DEFENSIVE_SCALP_PCT": "0.10",
+            "DEFENSIVE_SWING_PCT": "0.20",
+            "DEFENSIVE_PORTFOLIO_PCT": "0.70",
+        }
+        alloc = calculate_target_allocation(
+            OperatingState.DEFENSIVE, Decimal("30000000"), config_overrides=config
+        )
+        assert sum(alloc.values()) == Decimal("1.0000")
+        assert alloc[PoolId.PORTFOLIO] == Decimal("0.7000")
+
+    def test_no_config_overrides(self):
+        """T7: config_overrides=None이면 기존 동작."""
+        alloc_default = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000")
+        )
+        alloc_none = calculate_target_allocation(
+            OperatingState.BALANCED, Decimal("30000000"), config_overrides=None
+        )
+        assert alloc_default == alloc_none
+
+
 class TestCheckDrift:
     """드리프트 계산."""
 

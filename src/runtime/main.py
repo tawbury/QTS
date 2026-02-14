@@ -219,8 +219,20 @@ def _create_production_runner(
     capital_pool_repo = CapitalPoolRepository(
         storage_path=data_dir() / "capital" / "pool_states.jsonl"
     )
-    capital_engine = CapitalEngine()
-    _LOG.info("Capital Engine initialized (JSONL storage)")
+
+    # Config_Local에서 ALLOCATION 항목 추출 → CapitalEngine에 전달
+    allocation_config: dict[str, str] = {}
+    alloc_prefix = "SYSTEM.ALLOCATION."
+    for k, v in config.config_map.items():
+        if k.startswith(alloc_prefix):
+            flat_key = k[len(alloc_prefix):]
+            allocation_config[flat_key] = v
+
+    capital_engine = CapitalEngine(allocation_config=allocation_config)
+    _LOG.info(
+        "Capital Engine initialized (JSONL storage, allocation_override=%s)",
+        allocation_config.get("ALLOCATION_OVERRIDE_ENABLED", "0"),
+    )
 
     # Event Priority System 초기화 (§6 ETEDA Integration)
     from src.event.dispatcher import EventDispatcher

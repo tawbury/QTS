@@ -286,5 +286,85 @@
     "value": "1",
     "description": "거래 활성화 여부 (0/1)",
     "tag": "execution"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "ALLOCATION_OVERRIDE_ENABLED",
+    "value": "1",
+    "description": "Config_Local 비중 오버라이드 활성화 (0=기존 로직, 1=Config_Local 우선)",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "BALANCED_SCALP_PCT",
+    "value": "0.40",
+    "description": "BALANCED 상태 Scalp 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "BALANCED_SWING_PCT",
+    "value": "0.35",
+    "description": "BALANCED 상태 Swing 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "BALANCED_PORTFOLIO_PCT",
+    "value": "0.25",
+    "description": "BALANCED 상태 Portfolio 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "AGGRESSIVE_SCALP_PCT",
+    "value": "0.70",
+    "description": "AGGRESSIVE 상태 Scalp 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "AGGRESSIVE_SWING_PCT",
+    "value": "0.22",
+    "description": "AGGRESSIVE 상태 Swing 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "AGGRESSIVE_PORTFOLIO_PCT",
+    "value": "0.08",
+    "description": "AGGRESSIVE 상태 Portfolio 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "DEFENSIVE_SCALP_PCT",
+    "value": "0.10",
+    "description": "DEFENSIVE 상태 Scalp 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "DEFENSIVE_SWING_PCT",
+    "value": "0.20",
+    "description": "DEFENSIVE 상태 Swing 풀 목표 배분 비율",
+    "tag": "allocation"
+  },
+  {
+    "category": "SYSTEM",
+    "subcategory": "ALLOCATION",
+    "key": "DEFENSIVE_PORTFOLIO_PCT",
+    "value": "0.70",
+    "description": "DEFENSIVE 상태 Portfolio 풀 목표 배분 비율",
+    "tag": "allocation"
   }
 ]
