@@ -24,6 +24,7 @@ from ..db.repositories.enhanced_performance_repository import EnhancedPerformanc
 from ..db.trade_recorder import TradeRecorder
 from ..feedback.aggregator import FeedbackAggregator
 from ..feedback.contracts import FeedbackSummary
+from ..feedback.performance_feedback import PerformanceFeedbackProvider
 from ..capital.contracts import CapitalPoolContract, PoolId
 from ..capital.engine import CapitalEngine, CapitalEngineInput, CapitalEngineOutput
 from ..capital.pool_repository import CapitalPoolRepository
@@ -105,6 +106,9 @@ class ETEDARunner:
         execution_pipeline: Optional[Any] = None,
         micro_risk_loop: Optional[Any] = None,
         event_dispatcher: Optional[Any] = None,
+        feedback_repository: Optional[Any] = None,
+        decision_log_repo: Optional[Any] = None,
+        performance_feedback: Optional[Any] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
         self._config = config
@@ -164,6 +168,9 @@ class ETEDARunner:
         self._execution_pipeline = execution_pipeline
         self._micro_risk = micro_risk_loop
         self._event_dispatcher = event_dispatcher
+        self._feedback_repo = feedback_repository
+        self._decision_log_repo = decision_log_repo
+        self._performance_feedback = performance_feedback
 
     async def run_once(self, snapshot: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -185,6 +192,7 @@ class ETEDARunner:
                 }
             # 0.5 Event: ETEDA_CYCLE_START (P2, §6.1)
             self._emit_event("ETEDA_CYCLE_START", "ETEDA_SCHEDULER")
+            cycle_id = str(uuid.uuid4())
 
             # 1. Extract
             market_data = self._extract(snapshot)
@@ -206,7 +214,7 @@ class ETEDARunner:
                 position_data = None
 
             # 2.5 Feedback Summary 조회 (Fire-and-Forget)
-            feedback_summary = self._get_feedback_summary(symbol)
+            feedback_summary = await self._get_feedback_summary(symbol)
 
             transformed_data = self._transform(market_data, position_data)
 
@@ -217,6 +225,10 @@ class ETEDARunner:
                 capital_decision=capital_decision,
             )
 
+            # 3.5 Performance Constraint (MDD 기반 포지션 크기 조정)
+            if signal.get("action") != "HOLD":
+                signal = self._apply_performance_constraint(signal)
+
             # 4. Decide
             decision = self._decide(signal)
 
@@ -225,6 +237,9 @@ class ETEDARunner:
 
             # 6. Feedback Collection (Fire-and-Forget)
             self._collect_feedback(decision, act_result)
+
+            # 6.1 Decision Log 저장 (Fire-and-Forget)
+            await self._store_decision_log(cycle_id, signal, decision, act_result)
 
             # 6.5 Capital Pool 갱신 (Fire-and-Forget)
             self._update_capital_after_act(pool_states, decision, act_result)
@@ -642,9 +657,35 @@ class ETEDARunner:
         await self._record_to_sheets(out, decision)
         return out
 
-    def _get_feedback_summary(self, symbol: Optional[str]) -> Optional[FeedbackSummary]:
-        """종목별 Feedback Summary 조회 (Fire-and-Forget)."""
-        if self._feedback_agg is None or not symbol:
+    async def _get_feedback_summary(
+        self,
+        symbol: Optional[str],
+        strategy_tag: Optional[str] = None,
+    ) -> Optional[FeedbackSummary]:
+        """종목별 Feedback Summary 조회 (TimescaleDB 우선, JSONL fallback)."""
+        if not symbol:
+            return None
+        # 1순위: FeedbackRepository (TimescaleDB)
+        if self._feedback_repo is not None:
+            try:
+                if strategy_tag:
+                    summary = await self._feedback_repo.fetch_summary_by_strategy(
+                        symbol, strategy_tag, lookback_hours=24,
+                    )
+                else:
+                    summary = await self._feedback_repo.fetch_summary(
+                        symbol, lookback_hours=24,
+                    )
+                if summary and summary.sample_count > 0:
+                    self._log.info(
+                        f"[Feedback/DB] {symbol}: sample={summary.sample_count}, "
+                        f"slippage={summary.avg_slippage_bps:.1f}bps"
+                    )
+                return summary
+            except Exception:
+                self._log.debug("FeedbackRepository query failed, falling back to JSONL")
+        # 2순위: FeedbackAggregator (JSONL)
+        if self._feedback_agg is None:
             return None
         try:
             summary = self._feedback_agg.get_summary(symbol, lookback_days=30)
@@ -721,6 +762,37 @@ class ETEDARunner:
 
         return adjusted
 
+    def _apply_performance_constraint(self, signal: Dict[str, Any]) -> Dict[str, Any]:
+        """성능 피드백 기반 포지션 크기 조정 (MDD/연속손실)."""
+        if self._performance_feedback is None:
+            return signal
+        try:
+            if self._performance_feedback.should_block_new_entry():
+                adjusted = signal.copy()
+                adjusted["action"] = "HOLD"
+                adjusted["reason"] = "PERFORMANCE_BLOCK(MDD/ConsecutiveLoss)"
+                adjusted["performance_blocked"] = True
+                self._log.warning("[PerfFeedback] New entry blocked by performance constraint")
+                return adjusted
+
+            multiplier = self._performance_feedback.get_sizing_multiplier()
+            if multiplier < 1.0:
+                adjusted = signal.copy()
+                qty = adjusted.get("qty", 0)
+                if qty and qty > 0:
+                    adjusted["qty"] = max(1, int(qty * multiplier))
+                    adjusted["performance_sizing_multiplier"] = multiplier
+                    self._log.info(
+                        f"[PerfFeedback] qty adjusted: {qty} -> {adjusted['qty']} "
+                        f"(multiplier={multiplier:.2f})"
+                    )
+                return adjusted
+
+            return signal
+        except Exception:
+            self._log.warning("Performance constraint failed (non-blocking)")
+            return signal
+
     def _collect_feedback(
         self,
         decision: Dict[str, Any],
@@ -757,6 +829,42 @@ class ETEDARunner:
             self._log.info(f"Feedback collected for {symbol}")
         except Exception:
             self._log.exception("Feedback collection failed (non-blocking)")
+
+    async def _store_decision_log(
+        self,
+        cycle_id: str,
+        signal: Dict[str, Any],
+        decision: Dict[str, Any],
+        act_result: Dict[str, Any],
+    ) -> None:
+        """의사결정 감사 추적 저장. Fire-and-Forget."""
+        if self._decision_log_repo is None:
+            return
+        try:
+            await self._decision_log_repo.store({
+                "cycle_id": cycle_id,
+                "symbol": decision.get("symbol", ""),
+                "action": decision.get("action", ""),
+                "strategy_tag": decision.get("strategy", ""),
+                "price": decision.get("price"),
+                "qty": decision.get("qty") or decision.get("final_qty"),
+                "signal_confidence": signal.get("weight", signal.get("confidence")),
+                "risk_score": decision.get("risk_score"),
+                "operating_state": signal.get("operating_state"),
+                "feedback_applied": signal.get("feedback_applied", False),
+                "feedback_slippage_bps": signal.get("feedback_avg_slippage_bps"),
+                "feedback_quality_score": signal.get("feedback_avg_quality_score"),
+                "capital_blocked": decision.get("capital_blocked", False),
+                "approved": decision.get("approved", False),
+                "reason": decision.get("reason", ""),
+                "act_status": act_result.get("status", ""),
+                "metadata": {
+                    "mode": act_result.get("mode"),
+                    "intent_id": act_result.get("intent_id"),
+                },
+            })
+        except Exception:
+            self._log.warning("Decision log storage failed (non-blocking)")
 
     # --- Capital Engine Integration ---
 

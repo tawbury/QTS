@@ -22,6 +22,7 @@ from src.db.contracts import (
 )
 from src.db.adapters.interface import DataSourceAdapter
 from src.db.adapters.config import ConnectionPoolConfig
+from src.feedback.contracts import FeedbackData
 
 logger = logging.getLogger(__name__)
 
@@ -291,6 +292,98 @@ class TimescaleDBAdapter(DataSourceAdapter):
             *params,
         )
         return [dict(r) for r in rows]
+
+    async def store_feedback(self, feedback: FeedbackData) -> bool:
+        """피드백 데이터 INSERT."""
+        self._ensure_pool()
+        await self._pool.execute(
+            """INSERT INTO feedback_data
+            (time, symbol, strategy_tag, order_id, slippage_bps, quality_score,
+             impact_bps, fill_latency_ms, fill_ratio, filled_qty, fill_price,
+             original_qty, volatility, spread_bps, depth, order_type)
+            VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)""",
+            feedback.symbol,
+            feedback.strategy_tag,
+            "",  # order_id placeholder
+            float(feedback.total_slippage_bps),
+            float(feedback.execution_quality_score),
+            float(feedback.market_impact_bps),
+            feedback.avg_fill_latency_ms,
+            feedback.partial_fill_ratio,
+            float(feedback.total_filled_qty),
+            float(feedback.avg_fill_price),
+            float(feedback.original_qty),
+            feedback.volatility_at_execution,
+            feedback.spread_at_execution,
+            int(feedback.depth_at_execution),
+            feedback.order_type,
+        )
+        return True
+
+    async def fetch_feedback_summary(
+        self,
+        symbol: str,
+        lookback_hours: int = 24,
+    ) -> dict:
+        """시간 기반 롤링 피드백 집계."""
+        self._ensure_pool()
+        row = await self._pool.fetchrow(
+            """
+            SELECT
+                AVG(slippage_bps) AS avg_slippage_bps,
+                AVG(impact_bps) AS avg_impact_bps,
+                AVG(quality_score) AS avg_quality_score,
+                AVG(fill_latency_ms) AS avg_fill_latency_ms,
+                AVG(fill_ratio) AS avg_fill_ratio,
+                COUNT(*) AS sample_count
+            FROM feedback_data
+            WHERE symbol = $1
+              AND time >= NOW() - make_interval(hours => $2)
+            """,
+            symbol,
+            lookback_hours,
+        )
+        if row is None or row["sample_count"] == 0:
+            return {}
+        return {
+            "avg_slippage_bps": float(row["avg_slippage_bps"] or 0),
+            "avg_market_impact_bps": float(row["avg_impact_bps"] or 0),
+            "avg_quality_score": float(row["avg_quality_score"] or 0),
+            "avg_fill_latency_ms": float(row["avg_fill_latency_ms"] or 0),
+            "avg_fill_ratio": float(row["avg_fill_ratio"] or 0),
+            "sample_count": int(row["sample_count"]),
+        }
+
+    async def store_decision_log(self, entry: dict) -> bool:
+        """의사결정 로그 INSERT."""
+        self._ensure_pool()
+        import json
+        await self._pool.execute(
+            """INSERT INTO decision_log
+            (time, cycle_id, symbol, action, strategy_tag, price, qty,
+             signal_confidence, risk_score, operating_state,
+             feedback_applied, feedback_slippage_bps, feedback_quality_score,
+             capital_blocked, approved, reason, act_status, metadata)
+            VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)""",
+            entry.get("cycle_id", ""),
+            entry.get("symbol", ""),
+            entry.get("action", ""),
+            entry.get("strategy_tag", ""),
+            entry.get("price"),
+            entry.get("qty"),
+            entry.get("signal_confidence"),
+            entry.get("risk_score"),
+            entry.get("operating_state", ""),
+            entry.get("feedback_applied", False),
+            entry.get("feedback_slippage_bps"),
+            entry.get("feedback_quality_score"),
+            entry.get("capital_blocked", False),
+            entry.get("approved", False),
+            entry.get("reason", ""),
+            entry.get("act_status", ""),
+            json.dumps(entry.get("metadata") or {}),
+        )
+        return True
 
     async def initialize_retention_policies(self) -> None:
         """보존 정책 초기화."""

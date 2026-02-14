@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, Protocol
+from typing import Any, Optional, Protocol
 
 from src.feedback.contracts import (
     FeedbackData,
@@ -57,8 +57,14 @@ class NoopFeedbackDB:
 class FeedbackAggregator:
     """실행 데이터 → 피드백 데이터 변환."""
 
-    def __init__(self, db: FeedbackDBAdapter) -> None:
+    def __init__(
+        self,
+        db: FeedbackDBAdapter,
+        *,
+        feedback_repo: Any = None,
+    ) -> None:
         self._db = db
+        self._repo = feedback_repo  # FeedbackRepository (TimescaleDB)
 
     def aggregate(
         self,
@@ -121,9 +127,17 @@ class FeedbackAggregator:
     def aggregate_and_store(
         self, **kwargs,
     ) -> FeedbackData:
-        """aggregate + store 한 번에 수행."""
+        """aggregate + store (TimescaleDB primary, JSONL fallback)."""
         feedback = self.aggregate(**kwargs)
-        self._db.store_feedback(feedback)
+        if self._repo is not None:
+            try:
+                import asyncio
+                loop = asyncio.get_running_loop()
+                loop.create_task(self._repo.store(feedback))
+            except (RuntimeError, Exception):
+                self._db.store_feedback(feedback)
+        else:
+            self._db.store_feedback(feedback)
         return feedback
 
     def get_summary(
@@ -131,4 +145,23 @@ class FeedbackAggregator:
     ) -> FeedbackSummary:
         """종목별 피드백 요약 조회 (없으면 기본값)."""
         summary = self._db.fetch_feedback_summary(symbol, lookback_days)
+        return summary if summary is not None else DEFAULT_FEEDBACK_SUMMARY
+
+    async def get_summary_async(
+        self,
+        symbol: str,
+        strategy_tag: Optional[str] = None,
+        lookback_hours: int = 24,
+    ) -> FeedbackSummary:
+        """비동기 요약 조회 (TimescaleDB 우선)."""
+        if self._repo is not None:
+            try:
+                if strategy_tag:
+                    return await self._repo.fetch_summary_by_strategy(
+                        symbol, strategy_tag, lookback_hours,
+                    )
+                return await self._repo.fetch_summary(symbol, lookback_hours)
+            except Exception:
+                pass
+        summary = self._db.fetch_feedback_summary(symbol, max(lookback_hours // 24, 1))
         return summary if summary is not None else DEFAULT_FEEDBACK_SUMMARY
