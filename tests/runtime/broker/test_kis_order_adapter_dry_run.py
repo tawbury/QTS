@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from runtime.broker.adapters.kis_adapter import KISOrderAdapter
-from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
-from runtime.execution.models.order_response import OrderStatus
+from src.provider.clients.broker.adapters.kis_adapter import KISOrderAdapter
+from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
+from src.provider.models.order_response import OrderStatus
 
 from tests.runtime.broker.conftest import MockKISOrderClient
 

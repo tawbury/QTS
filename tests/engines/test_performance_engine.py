@@ -10,13 +10,13 @@ import pytest
 from unittest.mock import AsyncMock, Mock
 from datetime import datetime, date, timedelta
 
-from runtime.engines.performance_engine import (
+from src.strategy.engines.performance_engine import (
     PerformanceEngine,
     PerformanceMetrics,
     DailyPerformance,
     MonthlyPerformance,
 )
-from runtime.config.config_models import UnifiedConfig
+from src.qts.core.config.config_models import UnifiedConfig
 
 
 def _make_history_repo_mock():

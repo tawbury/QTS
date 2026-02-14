@@ -1,5 +1,5 @@
-from runtime.execution_state.transition import OrderStateMachine
-from runtime.execution.models.response import ExecutionResponse
+from src.provider.state.transition import OrderStateMachine
+from src.provider.models.response import ExecutionResponse
 
 
 def test_phase4_order_state_minimal_accept():

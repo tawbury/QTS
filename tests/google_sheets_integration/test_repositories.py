@@ -27,9 +27,9 @@ def _retry_on_429(func, max_retries=3, backoff=60):
             raise
 
 
-from runtime.data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
-from runtime.data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
-import gspread
+from src.db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
+from src.db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
+gspread = pytest.importorskip("gspread")
 import os
 from dotenv import load_dotenv
 
@@ -49,7 +49,7 @@ def test_portfolio_repository():
         spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY'))
         
         # GoogleSheetsClient 래퍼 생성
-        from runtime.data.google_sheets_client import GoogleSheetsClient
+        from src.db.google_sheets_client import GoogleSheetsClient
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc  # 직접 클라이언트 설정
         
@@ -108,7 +108,7 @@ def test_performance_repository():
         spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY'))
         
         # GoogleSheetsClient 래퍼 생성
-        from runtime.data.google_sheets_client import GoogleSheetsClient
+        from src.db.google_sheets_client import GoogleSheetsClient
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc  # 직접 클라이언트 설정
         

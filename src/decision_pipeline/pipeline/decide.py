@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from src.src.decision_pipeline.contracts.decision_snapshot import DecisionSnapshot
-from src.src.decision_pipeline.contracts.order_decision import OrderDecision
-from src.src.decision_pipeline.contracts.execution_hint import ExecutionHint
+from src.decision_pipeline.contracts.decision_snapshot import DecisionSnapshot
+from src.decision_pipeline.contracts.order_decision import OrderDecision
+from src.decision_pipeline.contracts.execution_hint import ExecutionHint
 
 
 class Decider:

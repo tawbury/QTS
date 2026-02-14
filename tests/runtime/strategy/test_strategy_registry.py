@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from runtime.strategy.registry.strategy_registry import StrategyRegistry
+from src.strategy.registry.strategy_registry import StrategyRegistry
 
 
 @dataclass

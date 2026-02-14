@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from runtime.risk.calculators.base_risk_calculator import SimpleRiskCalculator
-from runtime.strategy.interfaces.strategy import Intent, MarketContext, ExecutionContext
+from src.risk.calculators.base_risk_calculator import SimpleRiskCalculator
+from src.strategy.interfaces.strategy import Intent, MarketContext, ExecutionContext
 
 
 def test_simple_risk_calculator_buy_allows_when_cash_is_sufficient_and_computes_max_qty() -> None:

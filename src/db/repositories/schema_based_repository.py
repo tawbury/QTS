@@ -10,7 +10,7 @@ from typing import Dict, Any, List
 from pathlib import Path
 
 from .base_repository import BaseSheetRepository
-from ...config.schema_loader import get_schema_loader
+from src.qts.core.config.schema_loader import get_schema_loader
 
 
 class SchemaBasedRepository(BaseSheetRepository):

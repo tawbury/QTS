@@ -7,7 +7,7 @@ Broker factory tests (Phase 8).
 
 from __future__ import annotations
 
-from runtime.execution.brokers import (
+from src.provider.brokers import (
     create_broker_for_execution,
     LiveBroker,
     MockBroker,
@@ -18,7 +18,7 @@ from runtime.execution.brokers import (
 def test_create_broker_live_allowed_with_adapter_returns_live_broker():
     class FakeAdapter:
         def submit_intent(self, intent):
-            from runtime.execution.models.response import ExecutionResponse
+            from src.provider.models.response import ExecutionResponse
             return ExecutionResponse(
                 intent_id=intent.intent_id,
                 accepted=True,

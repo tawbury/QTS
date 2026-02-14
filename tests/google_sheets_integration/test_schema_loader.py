@@ -5,7 +5,7 @@ Schema Loader 테스트
 
 import pytest
 from pathlib import Path
-from runtime.config.schema_loader import get_schema_loader, SchemaLoader, SheetConfig, BlockConfig
+from src.qts.core.config.schema_loader import get_schema_loader, SchemaLoader, SheetConfig, BlockConfig
 
 
 class TestSchemaLoader:

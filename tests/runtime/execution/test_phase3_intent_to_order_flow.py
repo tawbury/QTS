@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from runtime.pipeline.execution_route import ExecutionRoute
-from runtime.execution.brokers.noop_broker import NoopBroker
-from runtime.execution.models.response import ExecutionResponse
+from src.pipeline.execution_route import ExecutionRoute
+from src.provider.brokers.noop_broker import NoopBroker
+from src.provider.models.response import ExecutionResponse
 
 
 def test_phase3_execution_route_intent_flow():

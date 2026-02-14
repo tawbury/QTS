@@ -8,10 +8,10 @@ sys.path.append('src')
 
 import pytest
 
-from runtime.data.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
-from runtime.data.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
-from runtime.data.repositories.schema_based_repository import SchemaBasedRepository
-import gspread
+from src.db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
+from src.db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
+from src.db.repositories.schema_based_repository import SchemaBasedRepository
+gspread = pytest.importorskip("gspread")
 import os
 from dotenv import load_dotenv
 from pathlib import Path
@@ -27,7 +27,7 @@ def test_schema_loader():
         load_dotenv()
         
         # Schema Loader 초기화
-        from runtime.config.schema_loader import get_schema_loader
+        from src.qts.core.config.schema_loader import get_schema_loader
         
         project_root = Path('.')
         schema_loader = get_schema_loader(project_root)
@@ -75,7 +75,7 @@ def test_enhanced_portfolio_repository():
         spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY'))
         
         # GoogleSheetsClient 래퍼 생성
-        from runtime.data.google_sheets_client import GoogleSheetsClient
+        from src.db.google_sheets_client import GoogleSheetsClient
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc
         
@@ -136,7 +136,7 @@ def test_enhanced_performance_repository():
         spreadsheet = gc.open_by_key(os.getenv('GOOGLE_SHEET_KEY'))
         
         # GoogleSheetsClient 래퍼 생성
-        from runtime.data.google_sheets_client import GoogleSheetsClient
+        from src.db.google_sheets_client import GoogleSheetsClient
         gs_client = GoogleSheetsClient()
         gs_client.gspread_client = gc
         

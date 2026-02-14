@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from runtime.execution.brokers.mock_broker import MockBroker
-from runtime.pipeline.execution_route import ExecutionRoute
+from src.provider.brokers.mock_broker import MockBroker
+from src.pipeline.execution_route import ExecutionRoute
 
 
 def test_phase1_execution_route_with_mock_broker_accept():

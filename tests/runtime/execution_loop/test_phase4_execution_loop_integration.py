@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from runtime.execution.models.response import ExecutionResponse
-from runtime.execution_loop.loop import ExecutionLoop
-from runtime.execution_loop.controller import ExecutionLoopController
-from runtime.execution_loop.policies.stop_policy import MaxIterationsStopPolicy
-from runtime.risk.noop_risk_gate import NoopRiskGate
+from src.provider.models.response import ExecutionResponse
+from src.pipeline.loop.loop import ExecutionLoop
+from src.pipeline.loop.controller import ExecutionLoopController
+from src.pipeline.loop.policies.stop_policy import MaxIterationsStopPolicy
+from src.risk.noop_risk_gate import NoopRiskGate
 
 
 @dataclass(frozen=True)

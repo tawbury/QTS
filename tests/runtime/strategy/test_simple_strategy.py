@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from runtime.strategy.simple_strategy import SimpleStrategy
-from runtime.strategy.interfaces.strategy import MarketContext, ExecutionContext
+from src.strategy.simple_strategy import SimpleStrategy
+from src.strategy.interfaces.strategy import MarketContext, ExecutionContext
 
 
 def test_simple_strategy_generates_buy_intent_when_price_below_threshold_and_no_position() -> None:

@@ -3,10 +3,10 @@ from __future__ import annotations
 import inspect
 from dataclasses import MISSING, fields, is_dataclass
 
-from src.ops.decision_pipeline.contracts.order_decision import OrderDecision
-from src.ops.decision_pipeline.contracts.execution_hint import ExecutionHint
-from src.ops.decision_pipeline.execution_stub.execution_context import ExecutionContext
-from src.ops.decision_pipeline.execution_stub.virtual_executor import VirtualExecutor
+from src.decision_pipeline.contracts.order_decision import OrderDecision
+from src.decision_pipeline.contracts.execution_hint import ExecutionHint
+from src.decision_pipeline.execution_stub.execution_context import ExecutionContext
+from src.decision_pipeline.execution_stub.virtual_executor import VirtualExecutor
 
 
 def build_obj(cls, **overrides):

@@ -5,7 +5,7 @@ Repository Manager 테스트
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from runtime.data.repository_manager import RepositoryManager
+from src.db.repository_manager import RepositoryManager
 
 
 class TestRepositoryManager:

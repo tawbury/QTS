@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from runtime.risk.calculators.base_risk_calculator import SimpleRiskCalculator
-from runtime.risk.gates.calculated_risk_gate import CalculatedRiskGate
-from runtime.strategy.interfaces.strategy import Intent, MarketContext, ExecutionContext
+from src.risk.calculators.base_risk_calculator import SimpleRiskCalculator
+from src.risk.gates.calculated_risk_gate import CalculatedRiskGate
+from src.strategy.interfaces.strategy import Intent, MarketContext, ExecutionContext
 
 
 def test_calculated_risk_gate_blocks_when_risk_disallows() -> None:

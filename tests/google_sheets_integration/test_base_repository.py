@@ -5,7 +5,7 @@ Base Repository 테스트
 
 import pytest
 from unittest.mock import Mock, AsyncMock
-from runtime.data.repositories.base_repository import BaseSheetRepository
+from src.db.repositories.base_repository import BaseSheetRepository
 
 
 class TestBaseSheetRepository:

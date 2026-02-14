@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from ops.safety import (
+from src.safety import (
     InMemoryNotifier,
     SafetyLayer,
 )

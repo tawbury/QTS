@@ -7,8 +7,8 @@ import pytest
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime
 
-from runtime.engines.base_engine import BaseEngine, EngineState, EngineMetrics
-from runtime.config.config_models import UnifiedConfig, ConfigScope
+from src.strategy.engines.base_engine import BaseEngine, EngineState, EngineMetrics
+from src.qts.core.config.config_models import UnifiedConfig, ConfigScope
 
 
 class MockEngine(BaseEngine):

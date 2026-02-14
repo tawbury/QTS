@@ -6,8 +6,8 @@ Config Validator 단위 테스트
 
 import pytest
 
-from runtime.config.config_models import UnifiedConfig
-from runtime.config.config_validator import (
+from src.qts.core.config.config_models import UnifiedConfig
+from src.qts.core.config.config_validator import (
     validate_config,
     validate_config_with_fallback,
     ConfigValidationError,

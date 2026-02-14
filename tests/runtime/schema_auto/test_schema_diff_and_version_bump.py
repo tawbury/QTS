@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from runtime.schema.schema_diff import diff_normalized, classify_version_bump
+from src.db.schema.schema_diff import diff_normalized, classify_version_bump
 
 
 def test_diff_detects_field_move_and_bumps_minor():

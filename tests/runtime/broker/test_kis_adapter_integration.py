@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 import pytest
 
 from src.shared.timezone_utils import now_kst
-from runtime.auth.token_cache import TokenCache
-from runtime.broker.kis.adapter import KISBrokerAdapter
-from runtime.broker.base import AccessTokenPayload
+from src.provider.clients.auth.token_cache import TokenCache
+from src.provider.clients.broker.kis.adapter import KISBrokerAdapter
+from src.provider.clients.broker.base import AccessTokenPayload
 
 
 def test_kis_adapter_updates_runtime_token_cache(monkeypatch):

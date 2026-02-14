@@ -282,8 +282,8 @@ class TestFeedbackAdjustments:
 
         runner = _make_runner(tmp_path, feedback_agg=agg)
 
-        # _get_feedback_summary 직접 테스트
-        summary = runner._get_feedback_summary("005930")
+        # _get_feedback_summary 직접 테스트 (async)
+        summary = await runner._get_feedback_summary("005930")
         assert summary is not None
         assert summary.sample_count == 10
 
@@ -313,7 +313,7 @@ class TestFeedbackAdjustments:
             )
 
         runner = _make_runner(tmp_path, feedback_agg=agg)
-        summary = runner._get_feedback_summary("005930")
+        summary = await runner._get_feedback_summary("005930")
         assert summary is not None
         assert summary.sample_count == 3
         # sample_count < 5 이므로 _evaluate에서 보정 미적용
@@ -325,7 +325,7 @@ class TestFeedbackAdjustments:
         agg = FeedbackAggregator(db=db)
         runner = _make_runner(tmp_path, feedback_agg=agg)
 
-        summary = runner._get_feedback_summary("UNKNOWN")
+        summary = await runner._get_feedback_summary("UNKNOWN")
         assert summary is not None
         assert summary.sample_count == 0
 
@@ -341,7 +341,7 @@ class TestFeedbackNoneAggregator:
             project_root=tmp_path,
             feedback_aggregator=None,
         )
-        assert runner._get_feedback_summary("005930") is None
+        assert await runner._get_feedback_summary("005930") is None
 
     @pytest.mark.asyncio
     async def test_collect_feedback_noop(self, tmp_path):

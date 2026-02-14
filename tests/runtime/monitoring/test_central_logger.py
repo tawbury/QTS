@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from runtime.monitoring.central_logger import (
+from src.monitoring.central_logger import (
     LOG_BROKER,
     LOG_ENGINE,
     LOG_ETEDA,

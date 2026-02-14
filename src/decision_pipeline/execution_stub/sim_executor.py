@@ -4,8 +4,8 @@ import json
 from hashlib import sha256
 from typing import Any, Dict
 
-from src.src.decision_pipeline.contracts.order_decision import OrderDecision
-from src.src.decision_pipeline.contracts.execution_hint import ExecutionHint
+from src.decision_pipeline.contracts.order_decision import OrderDecision
+from src.decision_pipeline.contracts.execution_hint import ExecutionHint
 
 from .execution_context import ExecutionContext
 from .execution_guards import apply_execution_guards

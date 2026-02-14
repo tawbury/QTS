@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from runtime.schema.schema_registry import SchemaRegistry
-from runtime.schema.schema_hash import compute_schema_hash
+from src.db.schema.schema_registry import SchemaRegistry
+from src.db.schema.schema_hash import compute_schema_hash
 
 
 def test_schema_registry_loads_schema_and_builds_snapshot(tmp_path: Path):

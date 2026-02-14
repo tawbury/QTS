@@ -8,8 +8,8 @@ import json
 import tempfile
 from pathlib import Path
 
-from runtime.config.local_config import load_local_config, validate_local_config_entries
-from runtime.config.config_models import ConfigScope, ConfigEntry
+from src.qts.core.config.local_config import load_local_config, validate_local_config_entries
+from src.qts.core.config.config_models import ConfigScope, ConfigEntry
 
 
 class TestLocalConfig:

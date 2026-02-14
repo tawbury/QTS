@@ -8,7 +8,7 @@ Strategy 리포지토리 단위 테스트
 import pytest
 from unittest.mock import AsyncMock, Mock
 
-from runtime.data.repositories.strategy_repository import StrategyRepository
+from src.db.repositories.strategy_repository import StrategyRepository
 
 
 def _mock_client_empty_sheet():

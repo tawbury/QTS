@@ -9,15 +9,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from runtime.execution.intent_to_order_bridge import (
+from src.provider.intent_to_order_bridge import (
     OrderAdapterToBrokerEngineAdapter,
     intent_to_order_request,
     order_response_to_execution_response,
 )
-from runtime.execution.models.intent import ExecutionIntent
-from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
-from runtime.execution.models.order_response import OrderResponse, OrderStatus
-from runtime.execution.models.response import ExecutionResponse
+from src.provider.models.intent import ExecutionIntent
+from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
+from src.provider.models.order_response import OrderResponse, OrderStatus
+from src.provider.models.response import ExecutionResponse
 
 
 def test_intent_to_order_request_noop_returns_none():

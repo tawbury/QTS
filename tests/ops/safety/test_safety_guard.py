@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from ops.safety import (
+from src.safety import (
     check_act_safety,
     check_decide_safety,
     check_evaluate_safety,

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from runtime.risk.calculators.strategy_risk_calculator import StrategyRiskCalculator
-from runtime.risk.gates.staged_risk_gate import StagedRiskGate
-from runtime.risk.policies.risk_policy import RiskPolicy, RiskStage
-from runtime.strategy.multiplexer.strategy_multiplexer import StrategyIntent
+from src.risk.calculators.strategy_risk_calculator import StrategyRiskCalculator
+from src.risk.gates.staged_risk_gate import StagedRiskGate
+from src.risk.policies.risk_policy import RiskPolicy, RiskStage
+from src.strategy.multiplexer.strategy_multiplexer import StrategyIntent
 
 
 @dataclass

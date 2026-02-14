@@ -14,7 +14,7 @@ _ROOT = Path(__file__).resolve().parents[2]  # tests/integration -> prj_qts
 sys.path.insert(0, str(_ROOT / "src"))
 
 from dotenv import load_dotenv
-from runtime.config.env_loader import get_broker_config
+from src.qts.core.config.env_loader import get_broker_config
 
 # Setup logging
 logging.basicConfig(
@@ -39,7 +39,7 @@ def test_kis_auth():
         _log.info(f"Account: {broker_config.account_no}")
 
         # Import KISClient
-        from runtime.broker.kis.kis_client import KISClient
+        from src.provider.clients.broker.kis.kis_client import KISClient
 
         # Create client
         client = KISClient(
@@ -93,7 +93,7 @@ def test_kiwoom_auth():
         _log.info(f"Account: {broker_config.account_no}")
 
         # Import KiwoomClient
-        from runtime.broker.kiwoom.kiwoom_client import KiwoomClient
+        from src.provider.clients.broker.kiwoom.kiwoom_client import KiwoomClient
 
         # Create client
         client = KiwoomClient(

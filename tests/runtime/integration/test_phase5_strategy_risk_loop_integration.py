@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List
 
-from runtime.strategy.simple_strategy import SimpleStrategy
-from runtime.strategy.interfaces.strategy import MarketContext, ExecutionContext, Intent
-from runtime.risk.calculators.base_risk_calculator import SimpleRiskCalculator
-from runtime.risk.gates.calculated_risk_gate import CalculatedRiskGate
+from src.strategy.simple_strategy import SimpleStrategy
+from src.strategy.interfaces.strategy import MarketContext, ExecutionContext, Intent
+from src.risk.calculators.base_risk_calculator import SimpleRiskCalculator
+from src.risk.gates.calculated_risk_gate import CalculatedRiskGate
 
 
 @dataclass
@@ -93,7 +93,7 @@ def test_phase5_integration_hook_for_phase4_loop_placeholder() -> None:
     # TODO: Phase 4 Loop 엔트리로 연결
     #
     # 예시(가정):
-    # from runtime.execution_loop.execution_loop import ExecutionLoop
+    # from src.pipeline.loop.execution_loop import ExecutionLoop
     # loop = ExecutionLoop(...)
     # loop.process_intents(result.allowed_intents)  # 또는 loop.step(intents=...)
     #

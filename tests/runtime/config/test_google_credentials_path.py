@@ -1,6 +1,6 @@
 import pytest
 
-from runtime.config.google_credentials import resolve_google_credentials
+from src.qts.core.config.google_credentials import resolve_google_credentials
 
 
 def test_google_credentials_missing_fails_fast(tmp_path, monkeypatch):

@@ -3,8 +3,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from shared.timezone_utils import now_kst
-from ops.retention.policy import RetentionPolicy
-from ops.retention.cleaner import RetentionCleaner
+from src.retention.policy import RetentionPolicy
+from src.retention.cleaner import RetentionCleaner
 
 
 def _create_file_with_mtime(

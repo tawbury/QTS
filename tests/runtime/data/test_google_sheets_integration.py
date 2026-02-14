@@ -37,8 +37,8 @@ def _skip_if_no_sheets_env():
 async def test_strategy_repository_live_sheets():
     """Strategy 리포지토리: .env 기반 실제 시트 get_all (연동 검증)."""
     _skip_if_no_sheets_env()
-    from runtime.data.google_sheets_client import GoogleSheetsClient
-    from runtime.data.repositories.strategy_repository import StrategyRepository
+    from src.db.google_sheets_client import GoogleSheetsClient
+    from src.db.repositories.strategy_repository import StrategyRepository
 
     for attempt in range(3):
         try:
@@ -62,8 +62,8 @@ async def test_strategy_repository_live_sheets():
 async def test_repository_manager_health_check_live_sheets():
     """RepositoryManager: .env 기반 client 연동 후 health_check (Data Layer 통합 검증)."""
     _skip_if_no_sheets_env()
-    from runtime.data.google_sheets_client import GoogleSheetsClient
-    from runtime.data.repository_manager import RepositoryManager, register_all_base_repositories
+    from src.db.google_sheets_client import GoogleSheetsClient
+    from src.db.repository_manager import RepositoryManager, register_all_base_repositories
 
     for attempt in range(3):
         try:

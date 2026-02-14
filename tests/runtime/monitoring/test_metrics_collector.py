@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from runtime.monitoring.metrics_collector import (
+from src.monitoring.metrics_collector import (
     MetricsCollector,
     MetricsSnapshot,
 )

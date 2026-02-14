@@ -21,7 +21,7 @@ Migration:
 from __future__ import annotations
 
 # Re-export from canonical location
-from runtime.config.execution_mode import (
+from src.qts.core.config.execution_mode import (
     PipelineMode,
     pipeline_to_trading_mode,
 )

@@ -10,13 +10,13 @@ import pytest
 from pathlib import Path
 from unittest.mock import Mock, AsyncMock, patch
 
-from runtime.config.sheet_config import (
+from src.qts.core.config.sheet_config import (
     load_sheet_config,
     validate_sheet_config_entries,
     _scope_to_sheet_name,
 )
-from runtime.config.config_models import ConfigScope, ConfigEntry, ConfigLoadResult
-from runtime.config.config_constants import (
+from src.qts.core.config.config_models import ConfigScope, ConfigEntry, ConfigLoadResult
+from src.qts.core.config.config_constants import (
     COL_CATEGORY,
     COL_SUB_CATEGORY,
     COL_KEY,
@@ -68,10 +68,10 @@ class TestSheetConfigWithMockClient:
         mock_repo = Mock()
         mock_repo.get_all = AsyncMock(return_value=mock_sheet_records)
         with patch(
-            "runtime.data.repositories.config_scalp_repository.ConfigScalpRepository",
+            "src.db.repositories.config_scalp_repository.ConfigScalpRepository",
             return_value=mock_repo,
         ), patch(
-            "runtime.data.repositories.config_swing_repository.ConfigSwingRepository",
+            "src.db.repositories.config_swing_repository.ConfigSwingRepository",
             return_value=mock_repo,
         ):
             result = load_sheet_config(Path("."), ConfigScope.SCALP, client=mock_client)
@@ -89,10 +89,10 @@ class TestSheetConfigWithMockClient:
         mock_repo = Mock()
         mock_repo.get_all = AsyncMock(return_value=mock_sheet_records)
         with patch(
-            "runtime.data.repositories.config_scalp_repository.ConfigScalpRepository",
+            "src.db.repositories.config_scalp_repository.ConfigScalpRepository",
             return_value=mock_repo,
         ), patch(
-            "runtime.data.repositories.config_swing_repository.ConfigSwingRepository",
+            "src.db.repositories.config_swing_repository.ConfigSwingRepository",
             return_value=mock_repo,
         ):
             result = load_sheet_config(Path("."), ConfigScope.SWING, client=mock_client)
@@ -112,12 +112,12 @@ class TestSheetConfigClientInjection:
         mock_repo = Mock()
         mock_repo.get_all = AsyncMock(return_value=[])
         with patch(
-            "runtime.data.google_sheets_client.GoogleSheetsClient",
+            "src.db.google_sheets_client.GoogleSheetsClient",
         ) as mock_gs_client, patch(
-            "runtime.data.repositories.config_scalp_repository.ConfigScalpRepository",
+            "src.db.repositories.config_scalp_repository.ConfigScalpRepository",
             return_value=mock_repo,
         ), patch(
-            "runtime.data.repositories.config_swing_repository.ConfigSwingRepository",
+            "src.db.repositories.config_swing_repository.ConfigSwingRepository",
             return_value=mock_repo,
         ):
             load_sheet_config(Path("."), ConfigScope.SCALP, client=mock_client)

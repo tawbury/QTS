@@ -17,7 +17,7 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from runtime.data.google_sheets_client import (
+from src.db.google_sheets_client import (
     GoogleSheetsClient,
     GoogleSheetsError,
     AuthenticationError,

@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import pytest
 
-from ops.safety import (
+from src.safety import (
     SafetyEvent,
     InMemoryNotifier,
     NoOpNotifier,

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from runtime.strategy.registry.strategy_registry import StrategyRegistry
-from runtime.strategy.multiplexer.strategy_multiplexer import StrategyMultiplexer
+from src.strategy.registry.strategy_registry import StrategyRegistry
+from src.strategy.multiplexer.strategy_multiplexer import StrategyMultiplexer
 
 
 @dataclass

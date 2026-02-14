@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from runtime.broker.kis.payload_mapping import (
+from src.provider.clients.broker.kis.payload_mapping import (
     DEFAULT_BROKER_ERROR_SAFETY,
     EXCG_ID_DVSN_CD_DEFAULT,
     KIS_ERROR_TO_SAFETY,
@@ -21,8 +21,8 @@ from runtime.broker.kis.payload_mapping import (
     parse_kis_place_response,
     raw_to_order_response,
 )
-from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
-from runtime.execution.models.order_response import OrderStatus
+from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
+from src.provider.models.order_response import OrderStatus
 
 
 # ----- Request normalization (open-trading-api: tr_id로 매수/매도, Body 대문자) -----

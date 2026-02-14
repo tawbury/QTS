@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 import pytest
 
-from ops.automation.health import (
+from src.automation.health import (
     CHECK_BROKER_HEARTBEAT,
     CHECK_ETEDA_LOOP_LATENCY,
     CHECK_GOOGLE_SHEETS,
@@ -18,7 +18,7 @@ from ops.automation.health import (
     HealthCheckResult,
     HealthMonitor,
 )
-from ops.automation.alerts import LogOnlyAlertChannel
+from src.automation.alerts import LogOnlyAlertChannel
 
 
 def test_health_check_result():

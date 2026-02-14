@@ -7,9 +7,9 @@ from typing import Any, Dict
 
 import pytest
 
-from runtime.config.config_models import UnifiedConfig
-from runtime.execution_loop.eteda_loop import run_eteda_loop
-from runtime.execution_loop.eteda_loop_policy import (
+from src.qts.core.config.config_models import UnifiedConfig
+from src.pipeline.loop.eteda_loop import run_eteda_loop
+from src.pipeline.loop.eteda_loop_policy import (
     ETEDALoopPolicy,
     default_should_stop_from_config,
 )

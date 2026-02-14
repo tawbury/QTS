@@ -10,8 +10,8 @@ import pytest
 from unittest.mock import Mock, AsyncMock
 from datetime import datetime, date
 
-from runtime.engines.portfolio_engine import PortfolioEngine, Position, PortfolioSummary
-from runtime.config.config_models import UnifiedConfig
+from src.strategy.engines.portfolio_engine import PortfolioEngine, Position, PortfolioSummary
+from src.qts.core.config.config_models import UnifiedConfig
 
 
 def _make_position_repo_mock():

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import pytest
 
-from ops.automation.scheduler import (
+from src.automation.scheduler import (
     TARGET_BACKUP_MAINTENANCE,
     TARGET_BROKER_HEARTBEAT,
     TARGET_DASHBOARD_UPDATE,

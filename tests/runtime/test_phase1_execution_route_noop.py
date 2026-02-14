@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from runtime.execution.brokers.noop_broker import NoopBroker
-from runtime.pipeline.execution_route import ExecutionRoute
+from src.provider.brokers.noop_broker import NoopBroker
+from src.pipeline.execution_route import ExecutionRoute
 
 
 def test_phase1_execution_route_with_noop_broker():

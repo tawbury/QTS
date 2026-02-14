@@ -18,9 +18,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from runtime.config.config_models import UnifiedConfig
-from runtime.execution.brokers.mock_broker import MockBroker
-from runtime.pipeline.eteda_runner import ETEDARunner
+from src.qts.core.config.config_models import UnifiedConfig
+from src.provider.brokers.mock_broker import MockBroker
+from src.pipeline.eteda_runner import ETEDARunner
 
 
 def _make_mock_sheets_client() -> MagicMock:

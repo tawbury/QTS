@@ -15,6 +15,7 @@ from typing import Any
 
 from src.provider.interfaces.broker import BrokerEngine
 from src.provider.brokers.live_broker import LiveBroker
+from src.provider.brokers.mock_broker import MockBroker
 from src.provider.brokers.noop_broker import NoopBroker
 
 
@@ -41,6 +42,7 @@ def create_broker_for_execution(
 __all__ = [
     "BrokerEngine",
     "LiveBroker",
+    "MockBroker",
     "NoopBroker",
     "create_broker_for_execution",
 ]

@@ -13,8 +13,8 @@ _ROOT = Path(__file__).resolve().parents[2]  # tests/integration -> prj_qts
 sys.path.insert(0, str(_ROOT / "src"))
 
 from dotenv import load_dotenv
-from runtime.config.env_loader import get_broker_config
-from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
+from src.qts.core.config.env_loader import get_broker_config
+from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
 
 # Setup logging
 logging.basicConfig(
@@ -39,8 +39,8 @@ def test_kis_order_placement():
         _log.info(f"Account: {broker_config.account_no}")
 
         # Import KIS components
-        from runtime.broker.kis.kis_client import KISClient
-        from runtime.broker.adapters.kis_adapter import KISOrderAdapter
+        from src.provider.clients.broker.kis.kis_client import KISClient
+        from src.provider.clients.broker.adapters.kis_adapter import KISOrderAdapter
 
         # Create client
         client = KISClient(
@@ -87,7 +87,7 @@ def test_kis_order_placement():
         _log.info(f"  Raw Response: {order_response.raw}")
 
         # Verify success
-        from runtime.execution.models.order_response import OrderStatus
+        from src.provider.models.order_response import OrderStatus
         if order_response.status == OrderStatus.ACCEPTED:
             _log.info("")
             _log.info("=" * 60)

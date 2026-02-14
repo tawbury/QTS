@@ -9,7 +9,7 @@ Multi-Broker Adapter Pattern tests (Phase 8).
 
 from __future__ import annotations
 
-from runtime.broker.adapters import (
+from src.provider.clients.broker.adapters import (
     BaseBrokerAdapter,
     BrokerConfig,
     get_broker,
@@ -17,11 +17,11 @@ from runtime.broker.adapters import (
     has_broker,
     list_broker_ids,
 )
-from runtime.broker.adapters.kiwoom_adapter import KiwoomOrderAdapter
-from runtime.broker.config import broker_id_from_config
-from runtime.broker.order_base import OrderQuery
-from runtime.execution.models.order_request import OrderRequest, OrderSide, OrderType
-from runtime.execution.models.order_response import OrderStatus
+from src.provider.clients.broker.adapters.kiwoom_adapter import KiwoomOrderAdapter
+from src.provider.clients.broker.config import broker_id_from_config
+from src.provider.clients.broker.order_base import OrderQuery
+from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
+from src.provider.models.order_response import OrderStatus
 
 
 def test_list_broker_ids_includes_kis_and_kiwoom():

@@ -9,12 +9,12 @@ MockBroker/NoopBroker 주입으로 계약만 검증.
 import pytest
 from datetime import datetime
 
-from runtime.engines.trading_engine import TradingEngine
-from runtime.config.config_models import UnifiedConfig
-from runtime.execution.brokers.mock_broker import MockBroker
-from runtime.execution.brokers.noop_broker import NoopBroker
-from runtime.execution.models.intent import ExecutionIntent
-from runtime.execution.models.response import ExecutionResponse
+from src.strategy.engines.trading_engine import TradingEngine
+from src.qts.core.config.config_models import UnifiedConfig
+from src.provider.brokers.mock_broker import MockBroker
+from src.provider.brokers.noop_broker import NoopBroker
+from src.provider.models.intent import ExecutionIntent
+from src.provider.models.response import ExecutionResponse
 
 
 def _make_engine(broker):

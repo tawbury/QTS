@@ -2,7 +2,7 @@ import json
 import tarfile
 from pathlib import Path
 
-from ops.backup.manager import BackupManager
+from src.backup.manager import BackupManager
 
 
 def _create_dummy_files(root: Path) -> None:

@@ -1,4 +1,4 @@
-from runtime.config.execution_mode import decide_execution_mode, ExecutionMode
+from src.qts.core.config.execution_mode import decide_execution_mode, ExecutionMode
 
 
 def test_default_is_paper_when_mode_not_live():
