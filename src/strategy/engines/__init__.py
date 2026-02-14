@@ -10,6 +10,8 @@ from .portfolio_engine import PortfolioEngine
 from .performance_engine import PerformanceEngine
 from .strategy_engine import StrategyEngine
 from .trading_engine import TradingEngine
+from .scalp_engine import ScalpStrategyEngine
+from .swing_engine import SwingStrategyEngine
 
 __all__ = [
     "BaseEngine",
@@ -19,4 +21,6 @@ __all__ = [
     "PerformanceEngine",
     "StrategyEngine",
     "TradingEngine",
+    "ScalpStrategyEngine",
+    "SwingStrategyEngine",
 ]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Optional, Sequence, Set
 
 from ..registry.strategy_registry import StrategyRegistry, StrategyLike
 
@@ -29,11 +29,32 @@ class StrategyMultiplexer:
 
     def __init__(self, registry: StrategyRegistry) -> None:
         self._registry = registry
+        self._disabled_prefixes: Set[str] = set()
+
+    def set_engine_state(
+        self, *, scalp_enabled: bool = True, swing_enabled: bool = True
+    ) -> None:
+        """Operating State 기반 엔진 활성화/비활성화."""
+        self._disabled_prefixes.clear()
+        if not scalp_enabled:
+            self._disabled_prefixes.add("scalp")
+        if not swing_enabled:
+            self._disabled_prefixes.add("swing")
+
+    def _is_strategy_allowed(self, strategy: StrategyLike) -> bool:
+        """disabled_prefixes에 해당하는 전략은 건너뜀."""
+        if not self._disabled_prefixes:
+            return True
+        name = strategy.name.lower()
+        return not any(name.startswith(prefix) for prefix in self._disabled_prefixes)
 
     def collect(self, snapshot: Any) -> List[StrategyIntent]:
         out: List[StrategyIntent] = []
 
         for s in self._registry.active_strategies():
+            if not self._is_strategy_allowed(s):
+                _log.info("Strategy %s skipped (disabled prefix)", s.name)
+                continue
             try:
                 intents = self._generate_intents(s, snapshot)
                 for it in intents:

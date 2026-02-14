@@ -29,6 +29,10 @@ from ..capital.contracts import CapitalPoolContract, PoolId
 from ..capital.engine import CapitalEngine, CapitalEngineInput, CapitalEngineOutput
 from ..capital.pool_repository import CapitalPoolRepository
 from ..safety.state import SafetyState
+from ..strategy.multiplexer.strategy_multiplexer import StrategyMultiplexer, StrategyIntent as MuxStrategyIntent
+from ..strategy.registry.strategy_registry import StrategyRegistry
+from ..strategy.arbitration.intent_arbitrator import IntentArbitrator
+from ..strategy.contracts import get_strategy_tag
 
 # Optional: Execution Pipeline integration
 try:
@@ -146,6 +150,12 @@ class ETEDARunner:
             performance_repo=self._performance_repo
         )
         self._strategy_engine = StrategyEngine(config=config)
+
+        # Strategy Multiplexer 인프라 (Scalp/Swing 듀얼 엔진)
+        self._strategy_registry = StrategyRegistry()
+        self._strategy_multiplexer = StrategyMultiplexer(self._strategy_registry)
+        self._intent_arbitrator = IntentArbitrator()
+
         self._broker = broker
         self._safety_hook = safety_hook
         self._feedback_agg = feedback_aggregator
@@ -320,22 +330,34 @@ class ETEDARunner:
         # Operating State 로드 및 엔진 활성화 결정
         operating_state, state_props = self._get_operating_state_properties()
 
-        # DEFENSIVE 상태에서 Scalp Engine 비활성화 (§6.2)
-        if not state_props.scalp_engine_active:
-            self._log.info(f"[State] Scalp engine inactive in {operating_state.value} state")
-            return {
-                "symbol": symbol,
-                "price": price,
-                "action": "HOLD",
-                "signal": "NONE",
-                "reason": f"SCALP_DISABLED_IN_{operating_state.value}",
-                "operating_state": operating_state.value,
-            }
-
-        signal = self._strategy_engine.calculate_signal(
-            data["market"],
-            data["position"],
+        # Multiplexer에 엔진 활성화 상태 전달
+        self._strategy_multiplexer.set_engine_state(
+            scalp_enabled=state_props.scalp_engine_active,
+            swing_enabled=state_props.swing_engine_active,
         )
+
+        # Multiplexer 기반 전략 신호 생성 (등록된 엔진이 있을 때)
+        if len(self._strategy_registry) > 0:
+            signal = self._evaluate_via_multiplexer(
+                market, data, symbol, price, operating_state, state_props,
+                capital_decision=capital_decision,
+            )
+        else:
+            # Fallback: 기존 단일 StrategyEngine (등록된 엔진 없을 때)
+            if not state_props.scalp_engine_active:
+                self._log.info(f"[State] Scalp engine inactive in {operating_state.value} state")
+                return {
+                    "symbol": symbol,
+                    "price": price,
+                    "action": "HOLD",
+                    "signal": "NONE",
+                    "reason": f"SCALP_DISABLED_IN_{operating_state.value}",
+                    "operating_state": operating_state.value,
+                }
+            signal = self._strategy_engine.calculate_signal(
+                data["market"],
+                data["position"],
+            )
 
         # 신호 임계값 필터링: confidence < entry_signal_threshold → HOLD
         signal_confidence = signal.get("weight", signal.get("confidence", 1.0))
@@ -372,6 +394,67 @@ class ETEDARunner:
                 self._log.warning("Capital constraint failed, using original signal")
 
         return signal
+
+    def _evaluate_via_multiplexer(
+        self,
+        market: Dict[str, Any],
+        data: Dict[str, Any],
+        symbol: str,
+        price: float,
+        operating_state: Any,
+        state_props: Any,
+        *,
+        capital_decision: Optional[CapitalEngineOutput] = None,
+    ) -> Dict[str, Any]:
+        """StrategyMultiplexer 기반 다중 전략 신호 생성."""
+        from ..strategy.interfaces.strategy import MarketContext, ExecutionContext
+
+        pos = data.get("position", {})
+        position_qty = pos.get("quantity", 0) if isinstance(pos, dict) else 0
+
+        # Capital 풀별 가용 자본 조회
+        available_cash = float(market.get("available_cash", 100_000_000))
+        if capital_decision is not None and hasattr(capital_decision, "pool_states"):
+            pool_states = getattr(capital_decision, "pool_states", None)
+            if pool_states:
+                scalp_pool = pool_states.get(PoolId.SCALP)
+                if scalp_pool:
+                    available_cash = float(scalp_pool.available_capital)
+
+        market_ctx = MarketContext(symbol=symbol, price=price)
+        exec_ctx = ExecutionContext(position_qty=position_qty, cash=available_cash)
+
+        # Multiplexer 호출 — 엔진별 실패 격리
+        strategy_intents = self._strategy_multiplexer.collect(
+            snapshot=(market_ctx, exec_ctx)
+        )
+
+        # Arbitration — 동일 symbol/side 중복 제거
+        arbitrated = self._intent_arbitrator.arbitrate(strategy_intents)
+
+        if not arbitrated:
+            return {
+                "symbol": symbol,
+                "price": price,
+                "action": "HOLD",
+                "reason": "NO_SIGNAL",
+                "operating_state": operating_state.value,
+            }
+
+        # 첫 번째 신호 사용
+        si = arbitrated[0]
+        strategy_tag = get_strategy_tag(si)
+        return {
+            "symbol": si.intent.symbol,
+            "action": si.intent.side,
+            "qty": si.intent.qty,
+            "price": price,
+            "reason": si.intent.reason,
+            "strategy": strategy_tag,
+            "strategy_id": si.strategy_id,
+            "weight": 1.0,
+            "operating_state": operating_state.value,
+        }
 
     def _decide(self, signal: Dict[str, Any]) -> Dict[str, Any]:
         """Apply Risk Logic + Operating State 기반 결정 오버라이드.
@@ -415,6 +498,16 @@ class ETEDARunner:
             decision["approved"] = False
             decision["reason"] = f"FROZEN_BY_MICRO_RISK({symbol})"
             return decision
+
+        # 전략별 Risk 승수 적용 (Scalp: 타이트, Swing: 완화)
+        strategy_tag = decision.get("strategy", "scalp")
+        if strategy_tag == "scalp":
+            risk_mult = state_props.risk_tolerance_multiplier * 0.8
+        elif strategy_tag == "swing":
+            risk_mult = state_props.risk_tolerance_multiplier * 1.2
+        else:
+            risk_mult = state_props.risk_tolerance_multiplier
+        decision["risk_tolerance_multiplier"] = risk_mult
 
         if self._risk_gate is not None and decision.get("action") != "HOLD":
             gate_result = self._apply_risk_gate(decision)
@@ -790,17 +883,22 @@ class ETEDARunner:
             if fill_amount <= 0:
                 return
 
-            # 현재 Scalp Pool 기준 (향후 전략 태그로 풀 분기)
-            scalp_pool = pool_states.get(PoolId.SCALP)
-            if scalp_pool is None:
+            # 전략 태그 기반 풀 라우팅
+            strategy_tag = decision.get("strategy", "scalp")
+            if strategy_tag == "swing":
+                target_pool = pool_states.get(PoolId.SWING)
+            else:
+                target_pool = pool_states.get(PoolId.SCALP)
+
+            if target_pool is None:
                 return
 
             if action == "BUY":
-                scalp_pool.invested_capital += fill_amount
+                target_pool.invested_capital += fill_amount
             elif action == "SELL":
-                scalp_pool.invested_capital -= fill_amount
-                if scalp_pool.invested_capital < Decimal("0"):
-                    scalp_pool.invested_capital = Decimal("0")
+                target_pool.invested_capital -= fill_amount
+                if target_pool.invested_capital < Decimal("0"):
+                    target_pool.invested_capital = Decimal("0")
             else:
                 return
 
