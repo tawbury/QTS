@@ -111,6 +111,8 @@ class ETEDARunner:
         performance_feedback: Optional[Any] = None,
     ) -> None:
         self._log = logging.getLogger("ETEDARunner")
+        self._feedback_log = logging.getLogger("runtime.feedback")
+        self._paper_log = logging.getLogger("runtime.paper_trade")
         self._config = config
         self._project_root = project_root if project_root is not None else _default_project_root()
 
@@ -677,27 +679,27 @@ class ETEDARunner:
                         symbol, lookback_hours=24,
                     )
                 if summary and summary.sample_count > 0:
-                    self._log.info(
+                    self._feedback_log.info(
                         f"[Feedback/DB] {symbol}: sample={summary.sample_count}, "
                         f"slippage={summary.avg_slippage_bps:.1f}bps"
                     )
                 return summary
             except Exception:
-                self._log.debug("FeedbackRepository query failed, falling back to JSONL")
+                self._feedback_log.debug("FeedbackRepository query failed, falling back to JSONL")
         # 2순위: FeedbackAggregator (JSONL)
         if self._feedback_agg is None:
             return None
         try:
             summary = self._feedback_agg.get_summary(symbol, lookback_days=30)
             if summary.sample_count > 0:
-                self._log.info(
+                self._feedback_log.info(
                     f"[Feedback] {symbol}: sample={summary.sample_count}, "
                     f"slippage={summary.avg_slippage_bps:.1f}bps, "
                     f"quality={summary.avg_quality_score:.3f}"
                 )
             return summary
         except Exception:
-            self._log.warning(f"Feedback summary fetch failed for {symbol}")
+            self._feedback_log.warning(f"Feedback summary fetch failed for {symbol}")
             return None
 
     def _apply_feedback_adjustments(
@@ -753,7 +755,7 @@ class ETEDARunner:
         adjusted["feedback_avg_slippage_bps"] = summary.avg_slippage_bps
         adjusted["feedback_avg_quality_score"] = summary.avg_quality_score
 
-        self._log.info(
+        self._feedback_log.info(
             f"[Feedback] {signal.get('symbol')}: "
             f"price {price}->{adjusted.get('adjusted_entry_price', price)}, "
             f"qty {qty}->{adjusted.get('adjusted_qty', qty)}, "
@@ -772,7 +774,7 @@ class ETEDARunner:
                 adjusted["action"] = "HOLD"
                 adjusted["reason"] = "PERFORMANCE_BLOCK(MDD/ConsecutiveLoss)"
                 adjusted["performance_blocked"] = True
-                self._log.warning("[PerfFeedback] New entry blocked by performance constraint")
+                self._feedback_log.warning("[PerfFeedback] New entry blocked by performance constraint")
                 return adjusted
 
             multiplier = self._performance_feedback.get_sizing_multiplier()
@@ -782,7 +784,7 @@ class ETEDARunner:
                 if qty and qty > 0:
                     adjusted["qty"] = max(1, int(qty * multiplier))
                     adjusted["performance_sizing_multiplier"] = multiplier
-                    self._log.info(
+                    self._feedback_log.info(
                         f"[PerfFeedback] qty adjusted: {qty} -> {adjusted['qty']} "
                         f"(multiplier={multiplier:.2f})"
                     )
@@ -790,7 +792,7 @@ class ETEDARunner:
 
             return signal
         except Exception:
-            self._log.warning("Performance constraint failed (non-blocking)")
+            self._feedback_log.warning("Performance constraint failed (non-blocking)")
             return signal
 
     def _collect_feedback(
@@ -826,9 +828,9 @@ class ETEDARunner:
                 strategy_tag=decision.get("strategy", ""),
                 order_type=decision.get("order_type", "MARKET"),
             )
-            self._log.info(f"Feedback collected for {symbol}")
+            self._feedback_log.info(f"Feedback collected for {symbol}")
         except Exception:
-            self._log.exception("Feedback collection failed (non-blocking)")
+            self._feedback_log.exception("Feedback collection failed (non-blocking)")
 
     async def _store_decision_log(
         self,
@@ -1018,8 +1020,27 @@ class ETEDARunner:
         """
         Act 결과를 Google Sheets T_Ledger에 기록.
 
+        LIVE 모드만 T_Ledger 기록. PAPER 모드는 별도 로그 파일에 기록.
         시트 기록 실패 시에도 매매 결과에 영향을 주지 않도록 에러 격리.
         """
+        mode = act_result.get("mode", "")
+
+        # PAPER 모드: Google Sheets에 기록하지 않고 별도 로그 파일에 저장
+        if mode != "LIVE":
+            self._paper_log.info(
+                "[%s] %s %s qty=%s price=%s strategy=%s intent_id=%s broker=%s",
+                mode or "UNKNOWN",
+                decision.get("action", ""),
+                decision.get("symbol", ""),
+                decision.get("qty") or decision.get("final_qty", ""),
+                decision.get("price", ""),
+                decision.get("strategy", ""),
+                act_result.get("intent_id", ""),
+                act_result.get("broker", ""),
+            )
+            return
+
+        # LIVE 모드만 T_Ledger에 기록
         try:
             trade_data = {
                 "timestamp": act_result.get("timestamp"),
@@ -1030,7 +1051,7 @@ class ETEDARunner:
                 "intent_id": act_result.get("intent_id", ""),
                 "broker": act_result.get("broker", ""),
                 "strategy": decision.get("strategy", ""),
-                "mode": act_result.get("mode", ""),
+                "mode": mode,
             }
             await self._t_ledger_repo.append_trade(trade_data)
             self._log.info(f"Recorded trade to T_Ledger sheet: {trade_data.get('intent_id', 'N/A')}")

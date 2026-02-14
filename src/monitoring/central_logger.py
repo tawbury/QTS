@@ -14,11 +14,13 @@ from logging.handlers import TimedRotatingFileHandler
 from pathlib import Path
 from typing import Optional
 
-# Logger name hierarchy (ETEDA / Engine / Broker)
+# Logger name hierarchy (ETEDA / Engine / Broker / Feedback / Paper)
 LOG_ETEDA = "runtime.eteda"
 LOG_ENGINE = "runtime.engine"
 LOG_BROKER = "runtime.broker"
 LOG_MONITORING = "runtime.monitoring"
+LOG_FEEDBACK = "runtime.feedback"
+LOG_PAPER_TRADE = "runtime.paper_trade"
 
 # 파일 로그 기본값
 _LOG_DIR_NAME = "logs"
@@ -49,6 +51,16 @@ def get_broker_logger() -> logging.Logger:
 def get_monitoring_logger() -> logging.Logger:
     """Logger for monitoring/metrics/health."""
     return get_logger(LOG_MONITORING)
+
+
+def get_feedback_logger() -> logging.Logger:
+    """Logger for feedback loop (separated from main trade logs)."""
+    return get_logger(LOG_FEEDBACK)
+
+
+def get_paper_trade_logger() -> logging.Logger:
+    """Logger for PAPER mode trades (not written to Google Sheets)."""
+    return get_logger(LOG_PAPER_TRADE)
 
 
 _DEFAULT_FORMAT = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
@@ -128,3 +140,29 @@ def configure_central_logging(
             for h in handlers:
                 log.addHandler(h)
             log.propagate = False
+
+    # Feedback/Paper 로거: 별도 파일 핸들러 (메인 로그 미전파)
+    if log_file is not None:
+        log_dir = log_file.parent
+        days = retention_days
+        if days is None:
+            days = int(os.getenv("QTS_LOG_RETENTION_DAYS", str(_DEFAULT_RETENTION_DAYS)))
+
+        for logger_name, filename in (
+            (LOG_FEEDBACK, "feedback_loop.log"),
+            (LOG_PAPER_TRADE, "paper_trades.log"),
+        ):
+            sep_log = logging.getLogger(logger_name)
+            sep_log.setLevel(level)
+            sep_log.handlers.clear()
+            sep_log.propagate = False
+            try:
+                sep_handler = _make_file_handler(
+                    log_path=log_dir / filename,
+                    level=level,
+                    fmt=fmt,
+                    retention_days=days,
+                )
+                sep_log.addHandler(sep_handler)
+            except OSError:
+                pass
