@@ -7,6 +7,7 @@ stdlib만 사용하여 Python 3.8 및 모든 플랫폼에서 동작합니다.
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 # KST = UTC+9 (한국 표준시)
 KST = timezone(timedelta(hours=9))

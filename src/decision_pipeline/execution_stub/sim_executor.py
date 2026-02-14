@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict
 
 from src.src.decision_pipeline.contracts.order_decision import OrderDecision
 from src.src.decision_pipeline.contracts.execution_hint import ExecutionHint

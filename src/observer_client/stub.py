@@ -8,9 +8,8 @@ Stub Observer Client
 import random
 import logging
 from typing import Optional, List
-from datetime import datetime
 
-from .interfaces import ObserverClient, MarketSnapshot
+from .interfaces import MarketSnapshot
 from src.shared.timezone_utils import get_kst_now
 
 

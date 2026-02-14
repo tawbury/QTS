@@ -7,9 +7,9 @@ FeedbackAwareStrategyEngine: Strategy Protocol 래퍼 — 피드백 메트릭을
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
-from typing import Optional, Protocol, Sequence
+from typing import Protocol
 
 from src.feedback.contracts import (
     FeedbackSummary,

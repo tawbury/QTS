@@ -9,7 +9,6 @@ Phase 7 — Safety Notifier 최소 규격.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Protocol
 
 from src.shared.timezone_utils import now_kst

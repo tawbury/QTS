@@ -10,7 +10,6 @@ Data Contract: timestamp, symbol, market, side, qty, price, amount_local,
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
-import logging
 
 from .base_repository import BaseSheetRepository
 from ...shared.timezone_utils import now_kst

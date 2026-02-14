@@ -11,7 +11,7 @@ Single module for all KIS mapping rules (Arch 08, 07):
 
 from __future__ import annotations
 
-from src.provider.models.order_request import OrderRequest, OrderSide, OrderType
+from src.provider.models.order_request import OrderRequest, OrderType
 from src.provider.models.order_response import OrderResponse, OrderStatus
 
 

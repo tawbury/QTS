@@ -10,7 +10,6 @@ import asyncio
 import logging
 from typing import Optional
 
-from src.micro_risk.contracts import MicroRiskConfig
 from src.micro_risk.loop import MicroRiskLoop
 
 _LOG = logging.getLogger("micro_risk.runner")

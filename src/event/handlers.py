@@ -9,7 +9,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Coroutine
 
-from src.event.contracts import Event, EventPriority, EventType
+from src.event.contracts import Event, EventType
 
 logger = logging.getLogger(__name__)
 

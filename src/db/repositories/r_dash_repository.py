@@ -6,12 +6,9 @@ R_Dash 리포지토리
 """
 
 from typing import List, Dict, Any, Optional
-from datetime import datetime
-import logging
 
 from .base_repository import BaseSheetRepository
 from ...shared.timezone_utils import now_kst
-from ..google_sheets_client import ValidationError
 
 
 class R_DashRepository(BaseSheetRepository):
@@ -181,7 +178,7 @@ class R_DashRepository(BaseSheetRepository):
             range_name = f"{self.sheet_name}!A:Z"
             await self.client.append_sheet_data(range_name, [row_data])
             
-            self.logger.info(f"Created new dashboard record")
+            self.logger.info("Created new dashboard record")
             return sanitized_data
             
         except Exception as e:

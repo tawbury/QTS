@@ -10,9 +10,7 @@ Capital Engine — 풀 수준 자본 배분 오케스트레이터.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
 
 from src.capital.allocator import calculate_target_allocation, check_drift
 from src.capital.contracts import (
@@ -21,14 +19,11 @@ from src.capital.contracts import (
     CapitalTransfer,
     PerformanceMetrics,
     PoolId,
-    PoolState,
 )
 from src.capital.guardrails import run_all_guardrails
 from src.capital.pool import (
     apply_transfer_in,
     apply_transfer_out,
-    lock_pool,
-    reset_accumulated_profit,
 )
 from src.capital.promotion import (
     check_portfolio_demotion,

@@ -8,9 +8,9 @@ Observer Server(외부 프로세스)와 UDS로 통신하여 실시간 시장 데
 import asyncio
 import json
 import logging
-from typing import Optional, List, Dict, Any, AsyncIterator
+from typing import Optional, List, Dict, Any
 
-from .interfaces import ObserverClient, MarketSnapshot
+from .interfaces import MarketSnapshot
 
 
 logger = logging.getLogger("src.observer_client.uds")

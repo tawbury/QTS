@@ -4,7 +4,6 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
 
 from .schema_diff import SchemaDiffReport, classify_version_bump
 

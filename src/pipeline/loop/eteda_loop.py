@@ -12,17 +12,16 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional, Protocol, Union
 
-
-class ETEDARunnerLike(Protocol):
-    def run_once(self, snapshot: Dict[str, Any]) -> Awaitable[Dict[str, Any]]: ...
-
-
 from src.qts.core.config.config_models import UnifiedConfig
 from src.pipeline.loop.eteda_loop_policy import (
     ETEDALoopPolicy,
     ETEDALoopShouldStop,
     default_should_stop_from_config,
 )
+
+
+class ETEDARunnerLike(Protocol):
+    def run_once(self, snapshot: Dict[str, Any]) -> Awaitable[Dict[str, Any]]: ...
 
 
 _log = logging.getLogger("ETEDALoop")

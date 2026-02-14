@@ -17,10 +17,7 @@ from src.capital.contracts import (
     SCALP_TO_SWING_CRITERIA,
     SWING_TO_PORTFOLIO_CRITERIA,
     CapitalPoolContract,
-    CapitalTransfer,
-    DemotionRule,
     PerformanceMetrics,
-    PoolId,
     PromotionCriteria,
 )
 

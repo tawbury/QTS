@@ -9,11 +9,6 @@ import logging
 import uuid
 from typing import Optional
 
-from src.micro_risk.dispatcher import (
-    EmergencyOrderChannel,
-    ETEDAController,
-    SafetyNotifier,
-)
 
 _LOG = logging.getLogger("micro_risk.bridges")
 

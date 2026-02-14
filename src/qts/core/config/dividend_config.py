@@ -12,7 +12,7 @@ import json
 import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from datetime import datetime, date
+from datetime import datetime
 
 from .config_constants import (
     DIVIDEND_DB_FILENAME,

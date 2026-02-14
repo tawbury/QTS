@@ -7,7 +7,6 @@ from src.execution.contracts import (
     ExecutionAlert,
     ExecutionContext,
     SplitOrder,
-    SplitOrderStatus,
 )
 
 
@@ -42,7 +41,7 @@ def check_insufficient_balance(
         return [ExecutionAlert(
             code="GR061",
             severity="GUARDRAIL",
-            message=f"No available balance",
+            message="No available balance",
             stage="PRECHECK",
         )]
     return []
@@ -113,7 +112,7 @@ def check_invalid_symbol(symbol: str, valid_symbols: set[str] | None = None) -> 
         return [ExecutionAlert(
             code="FS091",
             severity="FAIL_SAFE",
-            message=f"Empty symbol",
+            message="Empty symbol",
             stage="PRECHECK",
         )]
     if valid_symbols is not None and symbol not in valid_symbols:

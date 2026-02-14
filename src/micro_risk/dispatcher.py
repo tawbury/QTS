@@ -12,7 +12,6 @@ from src.micro_risk.contracts import (
     ActionType,
     MicroRiskAction,
     MicroRiskAlert,
-    PositionShadow,
 )
 from src.micro_risk.shadow_manager import PositionShadowManager
 

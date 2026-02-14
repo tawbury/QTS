@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Protocol
+from typing import Any, Dict, Optional, Protocol
 
 from src.pipeline.execution_route import ExecutionRoute, ExecutionRouteResult
 from src.provider.state.transition import OrderStateMachine

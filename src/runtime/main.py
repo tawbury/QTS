@@ -20,7 +20,6 @@ import os
 import signal
 import sys
 from pathlib import Path
-from typing import Optional
 
 # 프로젝트 루트를 sys.path에 추가
 _ROOT = Path(__file__).resolve().parent.parent.parent  # prj_qts/
@@ -28,17 +27,17 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 # src 내부 imports
-from src.qts.core.config.config_loader import load_local_only_config, load_unified_config
-from src.qts.core.config.config_models import ConfigScope, UnifiedConfig
-from src.qts.core.config.config_validator import validate_config, ConfigValidationError
-from src.qts.core.config.env_loader import load_dotenv_if_available
-from src.monitoring.central_logger import configure_central_logging
-from src.pipeline.loop.eteda_loop import run_eteda_loop
-from src.observer_client.factory import create_observer_client
+from src.qts.core.config.config_loader import load_local_only_config, load_unified_config  # noqa: E402
+from src.qts.core.config.config_models import ConfigScope, UnifiedConfig  # noqa: E402
+from src.qts.core.config.config_validator import validate_config, ConfigValidationError  # noqa: E402
+from src.qts.core.config.env_loader import load_dotenv_if_available  # noqa: E402
+from src.monitoring.central_logger import configure_central_logging  # noqa: E402
+from src.pipeline.loop.eteda_loop import run_eteda_loop  # noqa: E402
+from src.observer_client.factory import create_observer_client  # noqa: E402
 
 # shared imports
-from src.shared.paths import data_dir, get_project_root
-from src.shared.timezone_utils import get_kst_now
+from src.shared.paths import data_dir, get_project_root  # noqa: E402
+from src.shared.timezone_utils import get_kst_now  # noqa: E402
 
 
 _LOG = logging.getLogger("src.runtime.main")
@@ -367,7 +366,6 @@ def main() -> int:
 
     # 4. Config 로드
     try:
-        deployment_mode = os.environ.get("QTS_DEPLOYMENT_MODE", "local")
         use_local_config = local_only
         
         if use_local_config:

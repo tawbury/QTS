@@ -6,16 +6,13 @@ Portfolio Engine
 
 from __future__ import annotations
 
-import logging
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, date
+from typing import Dict, Any, List, Optional
+from datetime import datetime
 from dataclasses import dataclass, asdict
-import asyncio
 
-from .base_engine import BaseEngine, EngineState, EngineMetrics
+from .base_engine import BaseEngine
 from ...qts.core.config.config_models import UnifiedConfig
 from ...db.repositories.enhanced_portfolio_repository import EnhancedPortfolioRepository
-from ...db.repositories.position_repository import PositionRepository
 from ...db.repositories.position_repository import PositionRepository
 from ...db.repositories.t_ledger_repository import T_LedgerRepository
 from ...shared.timezone_utils import now_kst
@@ -217,7 +214,6 @@ class PortfolioEngine(BaseEngine):
             positions = await self.get_positions()
             
             # 기본 지표 계산
-            total_market_value = sum(pos.market_value for pos in positions)
             total_unrealized_pnl = sum(pos.unrealized_pnl for pos in positions)
             total_equity = float(self.config.get_flat('BASE_EQUITY', 1000000.0))
             

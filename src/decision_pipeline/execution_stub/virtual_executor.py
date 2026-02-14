@@ -6,16 +6,15 @@ from dataclasses import asdict, is_dataclass
 from hashlib import sha256
 from typing import Any, Dict
 
-from src.src.decision_pipeline.contracts.order_decision import OrderDecision
-
-_log = logging.getLogger(__name__)
-from src.src.decision_pipeline.contracts.execution_hint import ExecutionHint
-
+from src.decision_pipeline.contracts.order_decision import OrderDecision
+from src.decision_pipeline.contracts.execution_hint import ExecutionHint
 from .execution_context import ExecutionContext
 from .execution_mode import ExecutionMode
 from .execution_result import ExecutionResult, ExecutionStatus
 from .execution_guards import apply_execution_guards
 from .iexecution import IExecution
+
+_log = logging.getLogger(__name__)
 
 
 def _safe_to_dict(obj: Any) -> Dict[str, Any]:

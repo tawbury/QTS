@@ -11,7 +11,6 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 from .codes import (
-    CodeInfo,
     get_code_info,
     message_for,
 )

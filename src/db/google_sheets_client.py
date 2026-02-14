@@ -9,7 +9,7 @@ import os
 import asyncio
 import logging
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 import gspread
 from google.oauth2 import service_account
 from googleapiclient.discovery import build

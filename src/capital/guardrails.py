@@ -7,7 +7,6 @@ Capital Guardrails & Fail-Safe.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -16,7 +15,6 @@ from src.capital.contracts import (
     CapitalAlert,
     CapitalPoolContract,
     PoolId,
-    PoolState,
 )
 
 

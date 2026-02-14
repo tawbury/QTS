@@ -14,7 +14,7 @@ import functools
 import logging
 import time
 import warnings
-from typing import Any, Callable, Optional, Type, TypeVar, Union
+from typing import Any, Callable, Optional, Type, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
 

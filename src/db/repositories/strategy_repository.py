@@ -7,7 +7,6 @@ Strategy Engine 입력용 전략별 파라미터.
 """
 
 from typing import List, Dict, Any, Optional
-import logging
 
 from .base_repository import BaseSheetRepository
 

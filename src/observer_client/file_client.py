@@ -9,11 +9,9 @@ import asyncio
 import glob
 import json
 import logging
-import os
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional
+from typing import Any, AsyncIterator, Dict, Optional
 
-from src.shared.timezone_utils import get_kst_now
 
 logger = logging.getLogger("src.observer_client.file")
 

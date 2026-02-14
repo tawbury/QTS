@@ -7,7 +7,7 @@ Protocol-Driven: OrderClientProtocol 주입으로 실제 API 호출부 분리 �
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from src.provider.clients.broker.adapters.base_adapter import BaseBrokerAdapter
 from src.provider.clients.broker.adapters.protocols import OrderClientProtocol

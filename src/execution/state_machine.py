@@ -60,7 +60,7 @@ def handle_stage_timeout(ctx: ExecutionContext) -> ExecutionState:
         ctx.add_alert(ExecutionAlert(
             code="FS093",
             severity="FAIL_SAFE",
-            message=f"Fill timeout in MONITORING stage",
+            message="Fill timeout in MONITORING stage",
             stage="MONITORING",
         ))
         return ExecutionState.ADJUSTING
@@ -69,7 +69,7 @@ def handle_stage_timeout(ctx: ExecutionContext) -> ExecutionState:
         ctx.add_alert(ExecutionAlert(
             code="FS093",
             severity="FAIL_SAFE",
-            message=f"Adjustment timeout, triggering escape",
+            message="Adjustment timeout, triggering escape",
             stage="ADJUSTING",
         ))
         return ExecutionState.ESCAPING

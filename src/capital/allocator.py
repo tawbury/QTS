@@ -9,11 +9,9 @@
 from __future__ import annotations
 
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Optional
 
 from src.capital.contracts import (
     POOL_CONSTRAINTS,
-    AllocationConstraints,
     PoolId,
 )
 from src.state.contracts import STATE_PROPERTIES, OperatingState

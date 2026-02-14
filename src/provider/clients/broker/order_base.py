@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, Optional
+from typing import Protocol
 
 from src.provider.models.order_request import OrderRequest
 from src.provider.models.order_response import OrderResponse

@@ -32,7 +32,7 @@ class TradeRecorder:
         """Ensures the base directory for trade data exists."""
         try:
             self._base_path.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
+        except Exception:
             _LOG.error(f"Failed to create trade data directory: {self._base_path}", exc_info=True)
             raise
 
@@ -67,6 +67,6 @@ class TradeRecorder:
             with open(file_path, "a") as f:
                 f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-        except Exception as e:
+        except Exception:
             _LOG.error(f"Failed to record trade data to {file_path}", exc_info=True)
 

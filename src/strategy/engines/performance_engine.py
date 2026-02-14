@@ -6,15 +6,13 @@ Performance Engine
 
 from __future__ import annotations
 
-import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, date, timedelta
 from dataclasses import dataclass, asdict
-import asyncio
 import statistics
 import math
 
-from .base_engine import BaseEngine, EngineState, EngineMetrics
+from .base_engine import BaseEngine
 from ...qts.core.config.config_models import UnifiedConfig
 from ...db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 from ...db.repositories.history_repository import HistoryRepository
@@ -231,7 +229,6 @@ class PerformanceEngine(BaseEngine):
         """
         try:
             # HistoryRepository를 통해 실제 데이터 조회 (1년 데이터)
-            perf_data = await self._history_repo.get_performance_metrics(days=252)
             history_data = await self._history_repo.get_execution_history(days=252)
             
             # 일별 수익률 추출
@@ -511,7 +508,6 @@ class PerformanceEngine(BaseEngine):
         if len(returns) < 2:
             return 0.0
         
-        mean_return = statistics.mean(returns)
         variance = statistics.variance(returns)
         daily_vol = math.sqrt(variance)
         

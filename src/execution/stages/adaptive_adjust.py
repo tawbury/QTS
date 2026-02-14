@@ -10,7 +10,6 @@ from src.execution.contracts import (
     ExecutionAlert,
     SlippageConfig,
     SplitOrder,
-    SplitOrderStatus,
 )
 
 

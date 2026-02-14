@@ -8,7 +8,6 @@ CRUD 인터페이스와 공통 유틸리티 메서드를 제공합니다.
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 import logging
-from datetime import datetime
 
 from ..google_sheets_client import GoogleSheetsClient
 from ...shared.timezone_utils import now_kst

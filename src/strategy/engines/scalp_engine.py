@@ -7,7 +7,7 @@ StrategyMultiplexer.collect(snapshot) 호환: generate_intents(snapshot) 시그�
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Optional, Sequence
 
 from ..interfaces.strategy import Intent, MarketContext, ExecutionContext
 from ..contracts import ScalpConfig

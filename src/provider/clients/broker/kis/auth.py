@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 runtime.broker.kis.auth
 
@@ -24,7 +22,6 @@ Hard constraints:
 
 import os
 import requests
-from datetime import datetime
 from typing import Dict, Any
 
 from src.shared.timezone_utils import now_kst

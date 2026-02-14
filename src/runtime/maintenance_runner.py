@@ -5,11 +5,11 @@ from pathlib import Path
 from typing import Dict, Any, List
 
 from src.retention.policy import DataRetentionPolicy
-
-_log = logging.getLogger("src.runtime.maintenance_runner")
 from src.retention.scanner import DatasetScanner
 from src.retention.cleaner import RetentionCleaner
 from src.backup.manager import BackupManager
+
+_log = logging.getLogger("src.runtime.maintenance_runner")
 
 
 def run_maintenance_automation(

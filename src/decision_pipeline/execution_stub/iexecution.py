@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Protocol
 
 from src.src.decision_pipeline.contracts.order_decision import OrderDecision

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol
 
 
 class StrategyLike(Protocol):

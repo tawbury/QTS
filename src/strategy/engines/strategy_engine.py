@@ -7,7 +7,6 @@ Engine I/O Contract: execute(data) — data.operation; output {success, data|err
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Dict, Any, Optional
 
 from .base_engine import BaseEngine

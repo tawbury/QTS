@@ -174,7 +174,7 @@ class CacheManager:
             stats.record_miss()
             self._breaker.record_success()
             return None
-        except Exception as e:
+        except Exception:
             stats.record_error()
             self._breaker.record_failure()
             return None

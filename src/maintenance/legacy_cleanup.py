@@ -1,7 +1,6 @@
 """
 This script cleans up old log and trade data files.
 """
-import os
 import glob
 import logging
 from datetime import datetime, timedelta

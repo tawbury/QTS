@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from src.provider.models.response import ExecutionResponse
 from .order_state import OrderState

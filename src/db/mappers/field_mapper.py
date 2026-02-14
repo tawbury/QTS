@@ -8,7 +8,6 @@
 from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
-import re
 
 
 class FieldMapper:

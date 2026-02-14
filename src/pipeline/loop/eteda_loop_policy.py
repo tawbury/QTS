@@ -15,7 +15,7 @@ ETEDA Loop Policy (Phase 5 – Trigger & Loop Control).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, Optional, Protocol
+from typing import Protocol
 
 from src.qts.core.config.config_models import UnifiedConfig
 

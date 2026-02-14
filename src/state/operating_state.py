@@ -30,7 +30,6 @@ from src.state.transition import (
     CONFIRMATION_CYCLES,
     COOLDOWN_HOURS,
     HYSTERESIS,
-    TransitionRule,
     find_applicable_rule,
 )
 
@@ -193,7 +192,6 @@ class OperatingStateManager:
     def apply_override(self, override: ManualOverride) -> TransitionResult:
         """수동 오버라이드 적용 (§4.1)."""
         self._override = override
-        prev = self._state
         return self._apply_transition(
             override.override_state,
             f"manual_override: {override.override_reason}",

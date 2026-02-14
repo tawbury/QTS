@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import json
 import tarfile
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional, TYPE_CHECKING
 
@@ -187,6 +187,5 @@ def run_backup(plan: BackupPlan, strategy: Optional[BackupStrategy] = None) -> "
     Returns:
         BackupResult: 백업 결과
     """
-    from src.maintenance._types import BackupResult as BR
     strategy = strategy or FileBackupStrategy()
     return strategy.execute(plan)

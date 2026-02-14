@@ -8,7 +8,6 @@ Data Contract: symbol, name, market, qty, avg_price_current_currency, ...
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
-import logging
 
 from .base_repository import BaseSheetRepository
 
