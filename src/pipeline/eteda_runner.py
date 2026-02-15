@@ -22,6 +22,7 @@ from ..db.repositories.t_ledger_repository import T_LedgerRepository
 from ..db.repositories.history_repository import HistoryRepository
 from ..db.repositories.enhanced_performance_repository import EnhancedPerformanceRepository
 from ..db.trade_recorder import TradeRecorder
+from ..db.contracts import DecisionLogEntry
 from ..feedback.aggregator import FeedbackAggregator
 from ..feedback.contracts import FeedbackSummary
 from ..feedback.performance_feedback import PerformanceFeedbackProvider
@@ -843,28 +844,30 @@ class ETEDARunner:
         if self._decision_log_repo is None:
             return
         try:
-            await self._decision_log_repo.store({
-                "cycle_id": cycle_id,
-                "symbol": decision.get("symbol", ""),
-                "action": decision.get("action", ""),
-                "strategy_tag": decision.get("strategy", ""),
-                "price": decision.get("price"),
-                "qty": decision.get("qty") or decision.get("final_qty"),
-                "signal_confidence": signal.get("weight", signal.get("confidence")),
-                "risk_score": decision.get("risk_score"),
-                "operating_state": signal.get("operating_state"),
-                "feedback_applied": signal.get("feedback_applied", False),
-                "feedback_slippage_bps": signal.get("feedback_avg_slippage_bps"),
-                "feedback_quality_score": signal.get("feedback_avg_quality_score"),
-                "capital_blocked": decision.get("capital_blocked", False),
-                "approved": decision.get("approved", False),
-                "reason": decision.get("reason", ""),
-                "act_status": act_result.get("status", ""),
-                "metadata": {
+            price_raw = decision.get("price")
+            entry = DecisionLogEntry(
+                cycle_id=cycle_id,
+                symbol=decision.get("symbol", ""),
+                action=decision.get("action", "HOLD"),
+                strategy_tag=decision.get("strategy", ""),
+                price=Decimal(str(price_raw)) if price_raw is not None else None,
+                qty=decision.get("qty") or decision.get("final_qty"),
+                signal_confidence=signal.get("weight", signal.get("confidence")),
+                risk_score=decision.get("risk_score"),
+                operating_state=signal.get("operating_state", ""),
+                feedback_applied=signal.get("feedback_applied", False),
+                feedback_slippage_bps=signal.get("feedback_avg_slippage_bps"),
+                feedback_quality_score=signal.get("feedback_avg_quality_score"),
+                capital_blocked=decision.get("capital_blocked", False),
+                approved=decision.get("approved", False),
+                reason=decision.get("reason", ""),
+                act_status=act_result.get("status", ""),
+                metadata={
                     "mode": act_result.get("mode"),
                     "intent_id": act_result.get("intent_id"),
                 },
-            })
+            )
+            await self._decision_log_repo.store(entry)
         except Exception:
             self._log.warning("Decision log storage failed (non-blocking)")
 

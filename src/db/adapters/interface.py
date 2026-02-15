@@ -13,12 +13,14 @@ from decimal import Decimal
 from typing import Optional
 
 from src.db.contracts import (
+    DecisionLogEntry,
     HealthStatus,
     LedgerEntry,
     OHLCV,
     Position,
     TickData,
 )
+from src.feedback.contracts import FeedbackData
 
 
 class DataSourceAdapter(ABC):
@@ -94,6 +96,23 @@ class DataSourceAdapter(ABC):
         limit: int = 1000,
     ) -> list[dict]:
         """실행 로그 조회."""
+        ...
+
+    @abstractmethod
+    async def store_feedback(self, feedback: FeedbackData) -> bool:
+        """피드백 데이터 저장."""
+        ...
+
+    @abstractmethod
+    async def fetch_feedback_summary(
+        self, symbol: str, lookback_hours: int = 24
+    ) -> dict:
+        """시간 기반 롤링 피드백 집계."""
+        ...
+
+    @abstractmethod
+    async def store_decision_log(self, entry: DecisionLogEntry) -> bool:
+        """의사결정 로그 저장."""
         ...
 
     @abstractmethod

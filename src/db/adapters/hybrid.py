@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import Optional
 
 from src.db.contracts import (
+    DecisionLogEntry,
     HealthStatus,
     LedgerEntry,
     OHLCV,
@@ -21,6 +22,7 @@ from src.db.contracts import (
     TickData,
 )
 from src.db.adapters.interface import DataSourceAdapter
+from src.feedback.contracts import FeedbackData
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +146,30 @@ class HybridAdapter(DataSourceAdapter):
             return await self._secondary.fetch_execution_logs(
                 start=start, end=end, order_id=order_id, limit=limit
             )
+
+    async def store_feedback(self, feedback: FeedbackData) -> bool:
+        """피드백 저장 — primary에 위임."""
+        return await self._primary.store_feedback(feedback)
+
+    async def fetch_feedback_summary(
+        self, symbol: str, lookback_hours: int = 24
+    ) -> dict:
+        """피드백 집계 — primary 우선, 실패 시 secondary fallback."""
+        try:
+            return await self._primary.fetch_feedback_summary(
+                symbol, lookback_hours
+            )
+        except Exception as e:
+            logger.warning(
+                "Primary fetch_feedback_summary failed: %s, fallback", e
+            )
+            return await self._secondary.fetch_feedback_summary(
+                symbol, lookback_hours
+            )
+
+    async def store_decision_log(self, entry: DecisionLogEntry) -> bool:
+        """의사결정 로그 저장 — primary에 위임."""
+        return await self._primary.store_decision_log(entry)
 
     async def health_check(self) -> HealthStatus:
         start = time.monotonic()

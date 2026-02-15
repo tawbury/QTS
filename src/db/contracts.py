@@ -106,6 +106,29 @@ class TickData:
 
 
 @dataclass(frozen=True)
+class DecisionLogEntry:
+    """의사결정 감사 추적 항목 (§3.2.5)."""
+
+    cycle_id: str
+    symbol: str
+    action: str  # BUY, SELL, HOLD
+    strategy_tag: str = ""
+    price: Optional[Decimal] = None
+    qty: Optional[int] = None
+    signal_confidence: Optional[float] = None
+    risk_score: Optional[float] = None
+    operating_state: str = ""
+    feedback_applied: bool = False
+    feedback_slippage_bps: Optional[float] = None
+    feedback_quality_score: Optional[float] = None
+    capital_blocked: bool = False
+    approved: bool = False
+    reason: str = ""
+    act_status: str = ""
+    metadata: Optional[dict] = None
+
+
+@dataclass(frozen=True)
 class HealthStatus:
     """데이터 소스/캐시 상태."""
 

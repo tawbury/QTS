@@ -8,6 +8,8 @@ import json
 import logging
 from typing import Any, Optional
 
+from src.db.contracts import DecisionLogEntry
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,10 +19,9 @@ class DecisionLogRepository:
     def __init__(self, pool: Any) -> None:
         self._pool = pool  # asyncpg.Pool
 
-    async def store(self, log_entry: dict) -> None:
+    async def store(self, entry: DecisionLogEntry) -> None:
         """의사결정 로그 저장."""
-        metadata = log_entry.get("metadata")
-        metadata_json = json.dumps(metadata) if metadata else None
+        metadata_json = json.dumps(entry.metadata) if entry.metadata else None
 
         await self._pool.execute(
             """
@@ -32,22 +33,22 @@ class DecisionLogRepository:
              capital_blocked, approved, reason, act_status, metadata)
             VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             """,
-            log_entry.get("cycle_id", ""),
-            log_entry.get("symbol", ""),
-            log_entry.get("action", "HOLD"),
-            log_entry.get("strategy_tag", ""),
-            log_entry.get("price"),
-            log_entry.get("qty"),
-            log_entry.get("signal_confidence"),
-            log_entry.get("risk_score"),
-            log_entry.get("operating_state"),
-            log_entry.get("feedback_applied", False),
-            log_entry.get("feedback_slippage_bps"),
-            log_entry.get("feedback_quality_score"),
-            log_entry.get("capital_blocked", False),
-            log_entry.get("approved", False),
-            log_entry.get("reason"),
-            log_entry.get("act_status"),
+            entry.cycle_id,
+            entry.symbol,
+            entry.action,
+            entry.strategy_tag,
+            entry.price,
+            entry.qty,
+            entry.signal_confidence,
+            entry.risk_score,
+            entry.operating_state,
+            entry.feedback_applied,
+            entry.feedback_slippage_bps,
+            entry.feedback_quality_score,
+            entry.capital_blocked,
+            entry.approved,
+            entry.reason,
+            entry.act_status,
             metadata_json,
         )
 

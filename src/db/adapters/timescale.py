@@ -14,6 +14,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from src.db.contracts import (
+    DecisionLogEntry,
     HealthStatus,
     LedgerEntry,
     OHLCV,
@@ -354,7 +355,7 @@ class TimescaleDBAdapter(DataSourceAdapter):
             "sample_count": int(row["sample_count"]),
         }
 
-    async def store_decision_log(self, entry: dict) -> bool:
+    async def store_decision_log(self, entry: DecisionLogEntry) -> bool:
         """의사결정 로그 INSERT."""
         self._ensure_pool()
         import json
@@ -365,23 +366,23 @@ class TimescaleDBAdapter(DataSourceAdapter):
              feedback_applied, feedback_slippage_bps, feedback_quality_score,
              capital_blocked, approved, reason, act_status, metadata)
             VALUES (NOW(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)""",
-            entry.get("cycle_id", ""),
-            entry.get("symbol", ""),
-            entry.get("action", ""),
-            entry.get("strategy_tag", ""),
-            entry.get("price"),
-            entry.get("qty"),
-            entry.get("signal_confidence"),
-            entry.get("risk_score"),
-            entry.get("operating_state", ""),
-            entry.get("feedback_applied", False),
-            entry.get("feedback_slippage_bps"),
-            entry.get("feedback_quality_score"),
-            entry.get("capital_blocked", False),
-            entry.get("approved", False),
-            entry.get("reason", ""),
-            entry.get("act_status", ""),
-            json.dumps(entry.get("metadata") or {}),
+            entry.cycle_id,
+            entry.symbol,
+            entry.action,
+            entry.strategy_tag,
+            entry.price,
+            entry.qty,
+            entry.signal_confidence,
+            entry.risk_score,
+            entry.operating_state,
+            entry.feedback_applied,
+            entry.feedback_slippage_bps,
+            entry.feedback_quality_score,
+            entry.capital_blocked,
+            entry.approved,
+            entry.reason,
+            entry.act_status,
+            json.dumps(entry.metadata or {}),
         )
         return True
 

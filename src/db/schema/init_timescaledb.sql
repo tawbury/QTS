@@ -3,6 +3,7 @@
 -- ============================================================
 -- 근거: docs/arch/sub/18_Data_Layer_Architecture.md §3
 -- 실행: psql -h $DB_HOST -U $DB_USER -d qts -f init_timescaledb.sql
+-- 컬럼명 기준: Observer 005_create_trading_tables.sql (SoR)
 -- ============================================================
 
 -- TimescaleDB 확장 활성화
@@ -15,12 +16,12 @@ CREATE EXTENSION IF NOT EXISTS timescaledb;
 -- 1.1 positions: 현재 포지션 정보
 CREATE TABLE IF NOT EXISTS positions (
     symbol VARCHAR(20) PRIMARY KEY,
-    qty DECIMAL(18, 8) NOT NULL CHECK (qty >= 0),
-    avg_price DECIMAL(18, 8) NOT NULL,
-    market VARCHAR(10),
-    exposure_value DECIMAL(18, 2),
-    exposure_pct DECIMAL(5, 4),
-    unrealized_pnl DECIMAL(18, 2),
+    qty NUMERIC(20, 4) NOT NULL DEFAULT 0,
+    avg_price NUMERIC(15, 4) NOT NULL DEFAULT 0,
+    market VARCHAR(20),
+    exposure_value NUMERIC(20, 4),
+    exposure_pct NUMERIC(5, 4),
+    unrealized_pnl NUMERIC(20, 4),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -28,18 +29,19 @@ CREATE INDEX IF NOT EXISTS idx_positions_market ON positions(market);
 CREATE INDEX IF NOT EXISTS idx_positions_updated ON positions(updated_at DESC);
 
 -- 1.2 t_ledger: 거래 원장
+-- NOTE: BIGSERIAL PK가 있어 hypertable 변환 불가, regular table 유지
 CREATE TABLE IF NOT EXISTS t_ledger (
     id BIGSERIAL PRIMARY KEY,
-    timestamp TIMESTAMPTZ NOT NULL,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     symbol VARCHAR(20) NOT NULL,
-    side VARCHAR(4) NOT NULL CHECK (side IN ('BUY', 'SELL')),
-    qty DECIMAL(18, 8) NOT NULL,
-    price DECIMAL(18, 8) NOT NULL,
-    amount DECIMAL(18, 2) NOT NULL,
-    fee DECIMAL(18, 2) DEFAULT 0,
+    side VARCHAR(10) NOT NULL CHECK (side IN ('BUY', 'SELL')),
+    qty NUMERIC(20, 4) NOT NULL,
+    price NUMERIC(15, 4) NOT NULL,
+    amount NUMERIC(20, 4),
+    fee NUMERIC(15, 4) DEFAULT 0,
     strategy_tag VARCHAR(50),
     order_id VARCHAR(100),
-    broker VARCHAR(20)
+    broker VARCHAR(50)
 );
 
 CREATE INDEX IF NOT EXISTS idx_ledger_timestamp ON t_ledger(timestamp DESC);
@@ -75,10 +77,10 @@ CREATE TABLE IF NOT EXISTS risk_configs (
 CREATE TABLE IF NOT EXISTS tick_data (
     time TIMESTAMPTZ NOT NULL,
     symbol VARCHAR(20) NOT NULL,
-    price DECIMAL(18, 8) NOT NULL,
+    price NUMERIC(15, 4) NOT NULL,
     volume BIGINT NOT NULL,
-    bid DECIMAL(18, 8),
-    ask DECIMAL(18, 8),
+    bid NUMERIC(15, 4),
+    ask NUMERIC(15, 4),
     source VARCHAR(20)
 );
 
@@ -102,10 +104,10 @@ SELECT add_compression_policy('tick_data', INTERVAL '7 days', if_not_exists => T
 CREATE TABLE IF NOT EXISTS ohlcv_1d (
     time TIMESTAMPTZ NOT NULL,
     symbol VARCHAR(20) NOT NULL,
-    open DECIMAL(18, 8) NOT NULL,
-    high DECIMAL(18, 8) NOT NULL,
-    low DECIMAL(18, 8) NOT NULL,
-    close DECIMAL(18, 8) NOT NULL,
+    open NUMERIC(15, 4) NOT NULL,
+    high NUMERIC(15, 4) NOT NULL,
+    low NUMERIC(15, 4) NOT NULL,
+    close NUMERIC(15, 4) NOT NULL,
     volume BIGINT NOT NULL,
     UNIQUE (time, symbol)
 );
@@ -119,11 +121,11 @@ CREATE INDEX IF NOT EXISTS idx_ohlcv_1d_symbol_time ON ohlcv_1d (symbol, time DE
 
 -- 2.3 execution_logs: 실행 로그
 CREATE TABLE IF NOT EXISTS execution_logs (
-    time TIMESTAMPTZ NOT NULL,
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     order_id VARCHAR(100) NOT NULL,
     symbol VARCHAR(20) NOT NULL,
     stage VARCHAR(50) NOT NULL,
-    latency_ms DECIMAL(10, 3),
+    latency_ms NUMERIC(10, 2),
     success BOOLEAN NOT NULL,
     error_code VARCHAR(50)
 );
@@ -135,25 +137,27 @@ SELECT create_hypertable('execution_logs', 'time',
 
 CREATE INDEX IF NOT EXISTS idx_exec_logs_order ON execution_logs (order_id, time DESC);
 CREATE INDEX IF NOT EXISTS idx_exec_logs_stage ON execution_logs (stage, time DESC);
+CREATE INDEX IF NOT EXISTS idx_exec_logs_symbol ON execution_logs (symbol, time DESC);
 
--- 2.4 feedback_data: 피드백 루프 데이터 (§20 Feedback Loop)
+-- 2.4 feedback_data: 실행 피드백 (슬리피지, 품질, 시장 충격)
+-- 컬럼명: Observer 005_create_trading_tables.sql 기준
 CREATE TABLE IF NOT EXISTS feedback_data (
-    time TIMESTAMPTZ NOT NULL,
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     symbol VARCHAR(20) NOT NULL,
-    order_id VARCHAR(100) NOT NULL,
     strategy_tag VARCHAR(50),
-    total_slippage_bps DECIMAL(10, 3),
-    avg_fill_latency_ms DECIMAL(10, 3),
-    partial_fill_ratio DECIMAL(5, 4),
-    total_filled_qty DECIMAL(18, 8),
-    avg_fill_price DECIMAL(18, 8),
-    volatility_at_execution DECIMAL(10, 6),
-    spread_at_execution DECIMAL(10, 3),
-    depth_at_execution INT,
-    execution_quality_score DECIMAL(5, 4),
-    market_impact_bps DECIMAL(10, 3),
-    order_type VARCHAR(20),
-    original_qty DECIMAL(18, 8)
+    order_id VARCHAR(100),
+    slippage_bps NUMERIC(10, 4),
+    quality_score NUMERIC(5, 4),
+    impact_bps NUMERIC(10, 4),
+    fill_latency_ms NUMERIC(10, 2),
+    fill_ratio NUMERIC(5, 4),
+    filled_qty NUMERIC(20, 4),
+    fill_price NUMERIC(15, 4),
+    original_qty NUMERIC(20, 4),
+    volatility NUMERIC(10, 6),
+    spread_bps NUMERIC(10, 4),
+    depth INT,
+    order_type VARCHAR(20)
 );
 
 SELECT create_hypertable('feedback_data', 'time',
@@ -163,6 +167,45 @@ SELECT create_hypertable('feedback_data', 'time',
 
 CREATE INDEX IF NOT EXISTS idx_feedback_symbol_time ON feedback_data (symbol, time DESC);
 CREATE INDEX IF NOT EXISTS idx_feedback_strategy_time ON feedback_data (strategy_tag, time DESC);
+CREATE INDEX IF NOT EXISTS idx_feedback_symbol_strategy_time ON feedback_data (symbol, strategy_tag, time DESC);
+
+-- feedback_data 압축 (30일 이후)
+ALTER TABLE feedback_data SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'symbol'
+);
+
+SELECT add_compression_policy('feedback_data', INTERVAL '30 days', if_not_exists => TRUE);
+
+-- 2.5 decision_log: 의사결정 감사 추적
+CREATE TABLE IF NOT EXISTS decision_log (
+    time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    cycle_id VARCHAR(100) NOT NULL,
+    symbol VARCHAR(20) NOT NULL,
+    action VARCHAR(10) NOT NULL,
+    strategy_tag VARCHAR(50),
+    price NUMERIC(15, 4),
+    qty INT,
+    signal_confidence NUMERIC(5, 4),
+    risk_score NUMERIC(5, 4),
+    operating_state VARCHAR(20),
+    feedback_applied BOOLEAN DEFAULT FALSE,
+    feedback_slippage_bps NUMERIC(10, 4),
+    feedback_quality_score NUMERIC(5, 4),
+    capital_blocked BOOLEAN DEFAULT FALSE,
+    approved BOOLEAN DEFAULT FALSE,
+    reason TEXT,
+    act_status VARCHAR(20),
+    metadata JSONB
+);
+
+SELECT create_hypertable('decision_log', 'time',
+    chunk_time_interval => INTERVAL '30 days',
+    if_not_exists => TRUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_decision_symbol_time ON decision_log (symbol, time DESC);
+CREATE INDEX IF NOT EXISTS idx_decision_cycle ON decision_log (cycle_id);
 
 
 -- ============================================================
@@ -239,10 +282,13 @@ SELECT add_continuous_aggregate_policy('hourly_execution_metrics',
 SELECT add_retention_policy('tick_data', INTERVAL '7 days', if_not_exists => TRUE);
 SELECT add_retention_policy('execution_logs', INTERVAL '90 days', if_not_exists => TRUE);
 SELECT add_retention_policy('feedback_data', INTERVAL '180 days', if_not_exists => TRUE);
+SELECT add_retention_policy('decision_log', INTERVAL '365 days', if_not_exists => TRUE);
 -- ohlcv_1d: 영구 보존 (정책 없음)
 -- daily_pnl: 영구 보존 (정책 없음)
+-- t_ledger: 영구 보존 (정책 없음)
 
 
 -- ============================================================
--- QTS TimescaleDB Schema v1.0.0 — 완료
+-- QTS TimescaleDB Schema v2.0.0 — 완료
+-- Observer 005_create_trading_tables.sql 컬럼명 기준 통합
 -- ============================================================

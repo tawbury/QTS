@@ -11,6 +11,7 @@ from decimal import Decimal
 from typing import Optional
 
 from src.db.contracts import (
+    DecisionLogEntry,
     HealthStatus,
     LedgerEntry,
     OHLCV,
@@ -18,6 +19,7 @@ from src.db.contracts import (
     TickData,
 )
 from src.db.adapters.interface import DataSourceAdapter
+from src.feedback.contracts import FeedbackData
 
 
 class InMemoryAdapter(DataSourceAdapter):
@@ -29,6 +31,8 @@ class InMemoryAdapter(DataSourceAdapter):
         self._ohlcv: list[OHLCV] = []
         self._ticks: list[TickData] = []
         self._execution_logs: list[dict] = []
+        self._feedbacks: list[FeedbackData] = []
+        self._decision_logs: list[DecisionLogEntry] = []
 
     async def fetch_positions(self) -> list[Position]:
         return list(self._positions.values())
@@ -136,6 +140,32 @@ class InMemoryAdapter(DataSourceAdapter):
             logs = [log for log in logs if log["time"] < end]
         logs = sorted(logs, key=lambda x: x["time"], reverse=True)
         return logs[:limit]
+
+    async def store_feedback(self, feedback: FeedbackData) -> bool:
+        """피드백 데이터 저장."""
+        self._feedbacks.append(feedback)
+        return True
+
+    async def fetch_feedback_summary(
+        self, symbol: str, lookback_hours: int = 24
+    ) -> dict:
+        """시간 기반 롤링 피드백 집계."""
+        matching = [f for f in self._feedbacks if f.symbol == symbol]
+        if not matching:
+            return {}
+        return {
+            "avg_slippage_bps": sum(f.total_slippage_bps for f in matching) / len(matching),
+            "avg_market_impact_bps": sum(f.market_impact_bps for f in matching) / len(matching),
+            "avg_quality_score": sum(f.execution_quality_score for f in matching) / len(matching),
+            "avg_fill_latency_ms": sum(f.avg_fill_latency_ms for f in matching) / len(matching),
+            "avg_fill_ratio": sum(f.partial_fill_ratio for f in matching) / len(matching),
+            "sample_count": len(matching),
+        }
+
+    async def store_decision_log(self, entry: DecisionLogEntry) -> bool:
+        """의사결정 로그 저장."""
+        self._decision_logs.append(entry)
+        return True
 
     async def health_check(self) -> HealthStatus:
         start = time.monotonic()
